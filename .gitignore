@@ -1,5 +1,5 @@
 index.html
-.swp
-.swo
-.sw*
+*.swp
+*.swo
+*.sw*
 .DS_Store
