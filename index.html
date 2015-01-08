@@ -1,47 +1,52 @@
 <html>
 <body>
-    <textarea style = "width:100%;max-width:100%;;margin:10px auto" id="input" placeholder="Enter some CE..."></textarea>
+    <textarea style = "width:100%;max-width:100%;;margin:10px auto" id="input" placeholder="Enter some CE...">conceptualise a human</textarea>
     <p style="font-size:10px;font-family:'Courier', 'Monospace';" id="card"></p>
     <br />
-    <button id="send">Submit</button>
+    <button id="send">Submit card to store</button>
     <hr />
-    <p>Cards:</p>
-    <textarea readonly style="width:100%;max-width:100%;height:200px;" id="cards"></textarea>
+    <h3>Internal representation of CEStore</h3>
+    <div style="width:48%;float:left">
+        <p>Instances:</p>
+        <textarea readonly style="width:100%;max-width:100%;height:400px;" id="instances"></textarea>
+    </div>
+    <div style="width:48%;float:right">
+        <p>Concepts:</p>
+        <textarea readonly style="width:100%;max-width:100%;height:400px;" id="concepts"></textarea>
+    </div>
 
-    <p>CEStore concepts:</p>
-    <textarea readonly style="width:100%;max-width:100%;height:200px;" id="content"></textarea>
     <script src="cestore.js"></script>  
     <script>
         var text = document.getElementById("input");
         var send = document.getElementById("send");
-        var content = document.getElementById("content");
-        var card = document.getElementById("card");
+        var concepts = document.getElementById("concepts");
+        var instances = document.getElementById("instances");
         var cards = document.getElementById("cards");
+        
         var store = new cestore();    
-        var card_count = 1;
 
         function refresh_content(){
-            card_count++;
-            var concepts = store.get_concepts();
-            var c = store.get_cards();
-            content.innerHTML = JSON.stringify(concepts, undefined, 2);
-            cards.value = JSON.stringify(c, undefined, 2);
+            setTimeout(function(){
+                var c = store.get_concepts();
+                var i = store.get_instances();
+                concepts.value = JSON.stringify(c, undefined, 2);
+                instances.value = JSON.stringify(i, undefined, 2);
+                refresh_content();
+            },200);
         }
         refresh_content();
 
         text.onkeyup = function(){
-            card.innerHTML = "there is a tell_card named {card_id} that is from the individual 'test_user' and is to the agent 'Moira' and has '"+text.value+"' as content and has {timestamp} as timestamp.";
+            card.innerHTML = "there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has '"+text.value.replace(/'/g, "\\'")+"' as content and has the timestamp '{now}' as timestamp.";
             
         }
         
         send.onclick = function(){
-            var input = text.value;
-            store.parse_ce(input);
             store.receive_card(card.innerHTML);
             text.value = "";
             card.innerHTML = "";
-            refresh_content();
         };
+    
     </script>
 </body> 
 </html>
