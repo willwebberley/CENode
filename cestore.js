@@ -1,4 +1,12 @@
+/*
+ * A JS 'class' to represent the CEStore, its concepts and instances, and to provide interaction methods.
+ */
 function cestore(){
+    
+    /*
+     * List of concepts stored by the store. This should not be manipulated directly,
+     *  but can be modified using the add_concept() function
+     */
     var concepts = [
         {name: "entity", id: 1, parent_id: null},
         {name: "card", id: 2, parent_id: 1},
@@ -10,7 +18,9 @@ function cestore(){
     var relationships = [
         {ce: "from the individual", relationship: "from"},
         {ce: "from the agent", relationship: "from"},
+        {ce: "from", relationship: "from"},
         {ce: "to the agent", relationship: "to"},
+        {ce: "to the individual", relationship: "to"},
         {ce: "to", relationship: "to"},
         {ce: "named", relationship: "name"}
     ];
@@ -20,6 +30,7 @@ function cestore(){
     var card_count = cards.length;
     var agent_name = "Moira";
     var last_polled_timestamp = 0;
+    var store = null;
 
     var get_concept_by_name = function(name){
         if(name == null){return null;}
@@ -80,6 +91,8 @@ function cestore(){
 
         // Tokenise ce
         var tokens = t.split(/[ ]+/);
+
+        // If a concept, return a concept. If an instance, return an instance.
         if(t.indexOf("conceptualise") == 0){
             var concept = {};
             concept.name = tokens[1];
@@ -89,7 +102,6 @@ function cestore(){
                 }
             }
             return concept;
-            //return add_concept(name, parent);
         }
         if(t.indexOf("there is") == 0){
             var concept = get_concept_by_name(tokens[2]);
@@ -126,17 +138,14 @@ function cestore(){
 
     var poll_cards = function(){
         setTimeout(function(){
-            try{
-                for(var i = 0; i < cards.length; i++){
-                    var card = parse_ce(cards[i]); 
+            var card_list = store.get_instances("tell_card");
+            for(var i = 0; i < card_list.length; i++){
+                var card = card_list[i]; 
+                try{
                     if(card.timestamp != null){
-                        if(card.timestamp > last_polled_timestamp){
-                            console.log(card);
-                            console.log(cards[i]);
+                        if(card.timestamp > last_polled_timestamp && card.to == agent_name){
                             last_polled_timestamp = card.timestamp;
-                            add_instance(card);
                             var data = parse_ce(card.content); 
-                            
                             if(data.concept_id == null){
                                 add_concept(data);
                             }                        
@@ -146,26 +155,56 @@ function cestore(){
                         }
                     }
                 }
+                catch(err){
+                    console.log(err);
+                    store.receive_card("there is a tell_card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+err+"' as content.");
+                }   
             }
-            catch(err){
-                console.log(err);
-            }   
             poll_cards();
         }
         , 200);
     }
 
-    this.get_instances = function(){
-        return instances;
+    this.get_instances = function(concept_type, recurse){
+        var instance_list = [];
+        if(concept_type == null){
+            instance_list = instances;
+        }
+        else if(concept_type != null && (recurse == null || recurse == false)){
+            var concept = null;
+            for(var i = 0; i < concepts.length; i++){
+                if(concepts[i].name == concept_type){
+                    concept = concepts[i];
+                    break;
+                }
+            }
+            for(var i = 0; i < instances.length; i++){
+                if(instances[i].concept_id == concept.id){
+                    instance_list.push(instances[i]);
+                }
+            }
+        }
+        return instance_list;
     }    
     this.get_concepts = function(){
         return concepts;
+    }
+    this.get_sentences = function(){
+        return cards;
     }
     this.receive_card = function(card_ce){
         card_count ++;
         card_ce = card_ce.replace("{now}", new Date().getTime());
         card_ce = card_ce.replace("{uid}", card_count);
         cards.push(card_ce);        
+        var card = parse_ce(card_ce);
+        add_instance(card);
     }
-    poll_cards();
+
+    var init = function(){
+        poll_cards();
+    }
+
+    store = this;
+    init();
 }
