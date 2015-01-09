@@ -15,7 +15,7 @@ function cestore(){
     var instances = [
 
     ];
-    var relationships = [
+    var properties = [
         {ce: "from the individual", relationship: "from"},
         {ce: "from the agent", relationship: "from"},
         {ce: "from", relationship: "from"},
@@ -37,6 +37,13 @@ function cestore(){
         for(var i = 0; i < concepts.length; i++){
             if(concepts[i].name == name.toLowerCase()){
                 return concepts[i];
+            }
+            if(concepts[i].synonyms != null){
+                for(var j = 0; j < concepts[i].synonyms.length; j++){
+                    if(concepts[i].synonyms[j] == name){
+                        return concepts[i];
+                    }
+                }
             }
         }
         return null;
@@ -94,6 +101,7 @@ function cestore(){
 
         // If a concept, return a concept. If an instance, return an instance.
         if(t.indexOf("conceptualise") == 0){
+            if(get_concept_by_name(tokens[1]) != null){throw "Concept already exists.";}
             var concept = {};
             concept.name = tokens[1];
             for(var i = 0; i < tokens.length-1; i++){
@@ -103,9 +111,21 @@ function cestore(){
             }
             return concept;
         }
+        if(t.indexOf("the entity concept") == 0){
+            var concept = get_concept_by_name(tokens[3]);
+            if(concept == null){throw "Concept doesnt exist.";}
+            if(concept.synonyms == null){concept.synonyms = [];}
+            for(var i = 0; i < facts.length; i++){
+                var fact = facts[i];
+                var fact_tokens = fact.split(" ");
+                if(fact.indexOf("can be expressed by") > -1){
+                    concept.synonyms.push(fact_tokens[fact_tokens.length-1].replace(/'/g,'').replace(/__/g, ' ').trim());
+                }
+            }
+        }
         if(t.indexOf("there is") == 0){
             var concept = get_concept_by_name(tokens[2]);
-            if(concept == null){throw "Concept doesn't exist.";}
+            if(concept == null){throw "Concept doesnt exist.";}
             var instance = {};
             instance.concept_id = concept.id;
             for(var i = 0; i < facts.length; i++){
@@ -125,9 +145,9 @@ function cestore(){
                     instance[fact_tokens[3]] = fact_tokens[1].replace(/'/g,'').replace(/__/g, ' ').trim();
                 }
                 else{
-                    for(var j = 0; j < relationships.length; j++){
-                        if(fact.indexOf(relationships[j].ce) > -1){
-                            instance[relationships[j].relationship] = fact_tokens[fact_tokens.length-1].replace(/'/g,'').replace(/__/g, ' ').trim();
+                    for(var j = 0; j < properties.length; j++){
+                        if(fact.indexOf(properties[j].ce) > -1){
+                            instance[properties[j].relationship] = fact_tokens[fact_tokens.length-1].replace(/'/g,'').replace(/__/g, ' ').trim();
                         }
                     }
                 }
