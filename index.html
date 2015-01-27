@@ -1,6 +1,10 @@
 <html>
 <body>
-    <textarea style = "width:100%;max-width:100%;;margin:10px auto" id="input" placeholder="Enter some CE..."></textarea>
+    <div style="position:relative; height:100px;">
+        <textarea style = "top:0px;left:0px;position:absolute;width:100%;max-width:100%;;margin:10px auto;z-index:2;height:50px;background:none;" id="input"></textarea>
+        <textarea style = "top:0px;left:0px;position:absolute;width:100%;max-width:100%;;margin:10px auto;z-index:1;height:50px;color:rgb(150,150,150);" id="guess"></textarea>
+    </div>
+
     <p style="font-size:10px;font-family:'Courier', 'Monospace';" id="card"></p>
     <br />
     <button id="send">Submit card to store</button>
@@ -25,6 +29,7 @@
         var concepts = document.getElementById("concepts");
         var instances = document.getElementById("instances");
         var cards = document.getElementById("cards");
+        var guess = document.getElementById("guess");
         
         var store = new cestore();    
 
@@ -41,11 +46,21 @@
         }
         refresh_content();
 
-        text.onkeyup = function(){
+        text.onkeyup = function(event){
             card.innerHTML = "there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has '"+text.value.replace(/'/g, "\\'")+"' as content and has the timestamp '{now}' as timestamp.";
+            guess.innerHTML = store.guess_next(text.value);               
             
         }
-        
+        text.onkeydown = function(event){
+            if(event.keyCode == 9){
+                text.value = store.guess_next(text.value);
+                event.preventDefault();
+            }
+            if(event.keyCode == 13){
+                send.click();
+                event.preventDefault();
+            }
+        }
         send.onclick = function(){
             store.receive_card(card.innerHTML);
             text.value = "";

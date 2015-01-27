@@ -24,6 +24,18 @@ function cestore(){
         {ce: "to", relationship: "to"},
         {ce: "named", relationship: "name"}
     ];
+    var key_words = {
+        starters: [
+            "conceptualise a ",
+            "the entity concept ",
+            "there is a "
+        ],
+        general: [
+            "and has ",
+            "that is a ",
+            "that has "
+        ]
+    };
 
     var cards = [];
     var next_id = concepts.length;
@@ -185,6 +197,60 @@ function cestore(){
         , 200);
     }
 
+    this.guess_next = function(s){
+        var t = s.split(/[ ]+/);
+        var last_word = t[t.length-1];
+        var guess = "";
+        
+        if(t.length <= 3){
+            for(var i = 0; i < key_words.starters.length; i++){
+                if(key_words.starters[i].indexOf(s) == 0){
+                    guess = key_words.starters[i];
+                }
+            } 
+        }
+        if(t.length > 2){
+            for(var i = 0; i < key_words.general.length; i++){
+                if(key_words.general[i].indexOf(last_word) == 0){
+                    guess = key_words.general[i];
+                }
+            }
+            if(t[t.length-3] == "as" && s.indexOf("that has") > -1){
+                guess = "and has ";
+            }
+            if(s.indexOf("and is") > -1){
+                guess = "and is ";
+            }
+            if((s.indexOf("the entity concept") == 0 || s.indexOf("there is a") == 0) && s.indexOf("named") == -1){
+                for(var i = 0; i < concepts.length; i++){
+                    if(concepts[i].name.indexOf(last_word) == 0){
+                        guess = concepts[i].name+" named ";  
+                    }
+                }
+            }
+            if(t[t.length-2] == "named"){
+                guess = "";
+            }
+        }
+        if(t[t.length-2] == "a"){
+            if(t[t.length-4]=="that"&&t[t.length-3]=="is"){
+                for(var i = 0; i < concepts.length; i++){
+                    if(concepts[i].name.indexOf(last_word) == 0){
+                        guess = concepts[i].name+" ";  
+                    }
+                }
+            }
+             
+        }
+
+        if(s.trim() == "conceptualise a"){guess = "";}
+        
+        var new_string = "";
+        for(var i = 0; i < t.length-1; i++){
+            new_string+=t[i]+" ";
+        }
+        return new_string+guess;
+    }
     this.get_instances = function(concept_type, recurse){
         var instance_list = [];
         if(concept_type == null){
