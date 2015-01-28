@@ -40,10 +40,11 @@ Use to add a new card sentence to the store.
 Include the file `cestore.js` in the normal way (in your HTML file or Node application).
 
 ### Initialise the store
-`var store = new CEStore()`
+`var store = new CEStore();`
 
 ### Send new sentences to the store
 `store.receive_card("there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has 'conceptualise a person' as content and has the timestamp '{now}' as timestamp.");`
+
 `store.receive_card("there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has 'there is a person named 'Harry'' as content and has the timestamp '{now}' as timestamp.");`
 
 ### Query the store
