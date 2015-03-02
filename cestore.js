@@ -103,7 +103,19 @@ function cestore(){
             return concept;
         }
 
+        if(t.match(/^there is a/)) {
+            var instance = {};
+            for(var i = 0; i<concepts.length; i++) {
+                console.log(t.match(/^there is a '([a-zA-Z0-9 ]*)'/));
+                if (concepts[i].name==t.match(/^there is a '([a-zA-Z0-9 ]*)'/)[1]) {
 
+                    instance.id=concepts[i].id;
+                }
+            }
+            instance.name=t.match(/named '([a-zA-Z0-9 ]*)'/)[1];
+            console.log(instance);
+            return instance;
+        }
 
         /*
         // Replace all spaces in variables (stuff in apostrophes) with '__'
