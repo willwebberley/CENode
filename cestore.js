@@ -62,6 +62,7 @@ function cestore(){
     }
 
     var add_concept = function(concept){
+        console.log(concept);
         if(get_concept_by_name(concept.name) != null){throw "Concept already exists.";}
         var parent_name = concept.parent_name;
         next_id++;
@@ -89,6 +90,22 @@ function cestore(){
     }
 
     var parse_ce = function(t){
+        console.log(t);
+
+        if(t.match(/^conceptualise a/)){
+            var concept = {};
+            var concept_name = t.match(/^conceptualise a '([a-zA-Z0-9 ]*)'/)[1];
+            concept.name = concept_name;
+            console.log(concept_name);                
+            if(t.match(/that is a '([a-zA-Z0-9 ]*)'$/)){
+                concept.parent_name = t.match(/that is a '([a-zA-Z0-9 ]*)'$/)[1];
+            }
+            return concept;
+        }
+
+
+
+        /*
         // Replace all spaces in variables (stuff in apostrophes) with '__'
         t = t.replace(/\\'/g, "'");
         var quoted = t.match(/'(.*?)'/g);
@@ -166,6 +183,7 @@ function cestore(){
             }
             return instance;            
         }
+           */
     }
 
     var poll_cards = function(){
@@ -263,6 +281,7 @@ function cestore(){
         return new_string+guess;
     }
     this.get_instances = function(concept_type, recurse){
+        return [];
         var instance_list = [];
         if(concept_type == null){
             instance_list = instances;

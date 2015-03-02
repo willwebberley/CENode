@@ -62,7 +62,8 @@
             }
         }
         send.onclick = function(){
-            store.receive_card(card.innerHTML);
+            store.receive_card(text.value);
+            //store.receive_card(card.innerHTML);
             text.value = "";
             card.innerHTML = "";
         };
