@@ -201,11 +201,13 @@ function cestore(){
         var t = s.split(/[ ]+/);
         var last_word = t[t.length-1];
         var guess = "";
+        var delete_all = false;
         
         if(t.length <= 3){
             for(var i = 0; i < key_words.starters.length; i++){
                 if(key_words.starters[i].indexOf(s) == 0){
                     guess = key_words.starters[i];
+                    delete_all = true;
                 }
             } 
         }
@@ -215,19 +217,27 @@ function cestore(){
                     guess = key_words.general[i];
                 }
             }
+            if(s.indexOf("the entity concept") == 0){
+                for(var i = 0; i < concepts.length; i++){
+                    if(concepts[i].name.indexOf(last_word) == 0){
+                        guess = concepts[i].name+" ";  
+                    }
+                }
+            }
             if(t[t.length-3] == "as" && s.indexOf("that has") > -1){
                 guess = "and has ";
             }
             if(s.indexOf("and is") > -1){
                 guess = "and is ";
             }
-            if((s.indexOf("the entity concept") == 0 || s.indexOf("there is a") == 0) && s.indexOf("named") == -1){
+            if((s.indexOf("there is a") == 0) && s.indexOf("named") == -1){
                 for(var i = 0; i < concepts.length; i++){
                     if(concepts[i].name.indexOf(last_word) == 0){
                         guess = concepts[i].name+" named ";  
                     }
                 }
             }
+            
             if(t[t.length-2] == "named"){
                 guess = "";
             }
@@ -240,8 +250,8 @@ function cestore(){
                     }
                 }
             }
-             
         }
+
 
         if(s.trim() == "conceptualise a"){guess = "";}
         
@@ -249,6 +259,7 @@ function cestore(){
         for(var i = 0; i < t.length-1; i++){
             new_string+=t[i]+" ";
         }
+        if(delete_all){return guess;}
         return new_string+guess;
     }
     this.get_instances = function(concept_type, recurse){
