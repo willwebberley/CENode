@@ -10,7 +10,9 @@ function cestore(){
     var concepts = [
         {name: "entity", id: 1, parent_id: null},
         {name: "card", id: 2, parent_id: 1},
-        {name: "tell_card", id: 3, parent_id: 2}
+        {name: "tell_card", id: 3, parent_id: 2},
+		{name: "human", id: 4, parent_id: 1},
+		{name: "location", id: 5, parent_id: 1}
     ];
     var instances = [
 
