@@ -98,7 +98,6 @@ function cestore(){
             var concept = {};
             var concept_name = t.match(/^conceptualise a '([a-zA-Z0-9 ]*)'/)[1];
             concept.name = concept_name;
-            console.log(concept_name);                
             if(t.match(/that is a '([a-zA-Z0-9 ]*)'$/)){
                 concept.parent_name = t.match(/that is a '([a-zA-Z0-9 ]*)'$/)[1];
             }
@@ -108,14 +107,26 @@ function cestore(){
         if(t.match(/^there is a/)) {
             var instance = {};
             for(var i = 0; i<concepts.length; i++) {
-                console.log(t.match(/^there is a '([a-zA-Z0-9 ]*)'/));
                 if (concepts[i].name==t.match(/^there is a '([a-zA-Z0-9 ]*)'/)[1]) {
 
                     instance.id=concepts[i].id;
                 }
             }
             instance.name=t.match(/named '([a-zA-Z0-9 ]*)'/)[1];
-            console.log(instance);
+			var facts = t.split(/(\bthat\b|\band\b) has/g);
+			console.log(facts);
+			for (var i=0; i<facts.length; i++) {
+				var fact = facts[i].trim();
+				if(fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/)) {
+					var factsInfo = fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
+					instance[factsInfo[1]] = factsInfo[2];
+				}
+				if(fact.match(/there is a ([a-zA-Z0-9 ]*)
+
+			}
+			console.log(instance);
+			//console.log(t.match(/(\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) (\band\b|.)/g));
+
             return instance;
         }
 
