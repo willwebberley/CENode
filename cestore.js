@@ -15,6 +15,8 @@ function cestore(){
 		{name: "location", id: 5, parent_id: 1}
     ];
     var instances = [
+        {name: "Alun Preece", id: 1, location: 2, concept_id: 4},
+        {name: "Office", id: 2, concept_id: 5}
 
     ];
     var properties = [
@@ -64,7 +66,6 @@ function cestore(){
     }
 
     var add_concept = function(concept){
-        console.log(concept);
         if(get_concept_by_name(concept.name) != null){throw "Concept already exists.";}
         var parent_name = concept.parent_name;
         next_id++;
@@ -92,7 +93,6 @@ function cestore(){
     }
 
     var parse_ce = function(t){
-        console.log(t);
 
         if(t.match(/^conceptualise a/)){
             var concept = {};
@@ -114,101 +114,73 @@ function cestore(){
             }
             instance.name=t.match(/named '([a-zA-Z0-9 ]*)'/)[1];
 			var facts = t.split(/(\bthat\b|\band\b) has/g);
-			console.log(facts);
 			for (var i=0; i<facts.length; i++) {
 				var fact = facts[i].trim();
 				if(fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/)) {
 					var factsInfo = fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
 					instance[factsInfo[1]] = factsInfo[2];
 				}
-				if(fact.match(/there is a ([a-zA-Z0-9 ]*)
+				if(fact.match(/there is a ([a-zA-Z0-9 ]*)/)){}
 
 			}
-			console.log(instance);
-			//console.log(t.match(/(\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) (\band\b|.)/g));
 
             return instance;
         }
 
-        /*
-        // Replace all spaces in variables (stuff in apostrophes) with '__'
-        t = t.replace(/\\'/g, "'");
-        var quoted = t.match(/'(.*?)'/g);
-        if(quoted != null){
-            for(var i = 0; i < quoted.length; i++){
-                var fixed = quoted[i].replace(/[ ]+/g, '__');
-                t = t.replace(quoted[i], fixed);
-            }
-        }
-
-        // Trim and remove all tildas and "a"s
-        t = t.trim();
-        t = t.replace(/~/g, '');
-        t = t.replace(/\ba\b/g, ''); 
-
-        // Reduce ce down into facts separated by "and"s
-        var facts = t.split(/\band\b|that /);
-        for(var i = 0; i < facts.length; i++){facts[i] = facts[i].trim();}
-
-        // Tokenise ce
-        var tokens = t.split(/[ ]+/);
-
-        // If a concept, return a concept. If an instance, return an instance.
-        if(t.indexOf("conceptualise") == 0){
-            if(get_concept_by_name(tokens[1]) != null){throw "Concept already exists.";}
-            var concept = {};
-            concept.name = tokens[1];
-            for(var i = 0; i < tokens.length-1; i++){
-                if(tokens[i] == "that" && tokens[i+1] == "is"){
-                    concept.parent_name = tokens[i+2].trim();
+        if(t.match(/^(\bwho\b|\bwhat\b) is/)){
+            var response = {};
+            response.type="response";
+            var name = t.match(/^\bwho\b|\bwhat\b is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').trim();
+            var thing = null;
+            for(var i = 0; i< instances.length; i++) {
+                if(instances[i].name==name) {
+                    thing = instances[i];
+                    break;
                 }
             }
-            return concept;
-        }
-        if(t.indexOf("the entity concept") == 0){
-            var concept = get_concept_by_name(tokens[3]);
-            if(concept == null){throw "Concept doesnt exist.";}
-            if(concept.synonyms == null){concept.synonyms = [];}
-            for(var i = 0; i < facts.length; i++){
-                var fact = facts[i];
-                var fact_tokens = fact.split(" ");
-                if(fact.indexOf("can be expressed by") > -1){
-                    concept.synonyms.push(fact_tokens[fact_tokens.length-1].replace(/'/g,'').replace(/__/g, ' ').trim());
+            console.log(thing); 
+            for (var key in thing) {
+                if (thing.hasOwnProperty(key)) {
+                    console.log(thing[key]);
                 }
             }
+            return response;
         }
-        if(t.indexOf("there is") == 0){
-            var concept = get_concept_by_name(tokens[2]);
-            if(concept == null){throw "Concept doesnt exist.";}
-            var instance = {};
-            instance.concept_id = concept.id;
-            for(var i = 0; i < facts.length; i++){
-                var fact = facts[i];
-                var fact_tokens = fact.split(" ");
-                if(fact.indexOf("has the") == 0){
-                    var value = fact_tokens[3].replace(/'/g,'').replace(/__/g, ' ').trim();
-                    var number_value = parseInt(value);
-                    if(isNaN(number_value)){
-                        instance[fact_tokens[2]] = value;
-                    }
-                    else{
-                        instance[fact_tokens[2]] = number_value;
-                    } 
-                }
-                else if(fact.indexOf("has") == 0){
-                    instance[fact_tokens[3]] = fact_tokens[1].replace(/'/g,'').replace(/__/g, ' ').trim();
-                }
-                else{
-                    for(var j = 0; j < properties.length; j++){
-                        if(fact.indexOf(properties[j].ce) > -1){
-                            instance[properties[j].relationship] = fact_tokens[fact_tokens.length-1].replace(/'/g,'').replace(/__/g, ' ').trim();
-                        }
+
+        if(t.match(/^where is/)){
+            var response = {};
+            response.type="response";
+            var id = null;
+            var location = null;
+            var thing = t.match(/^where is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').trim();
+            for(var i = 0; i<instances.length; i++) {
+                if (instances[i].name==thing) {
+                    if(instances[i].location != null) {
+                       id = instances[i].location;
+                       break; 
                     }
                 }
             }
-            return instance;            
+            if(id==null) {
+                response.message="I don't know where that is.";
+                return response;
+            }
+
+            for(var i = 0; i<instances.length; i++) {
+                if (instances[i].id==id) {
+                    location=instances[i];
+                    break;
+                }
+            }
+            if (location==null) {
+                response.message="I don't know where that is.";
+                return response;
+            }
+            response.message=location.name;
+            console.log(response);
+            return response;
+
         }
-           */
     }
 
     var poll_cards = function(){
@@ -221,7 +193,10 @@ function cestore(){
                         if(card.timestamp > last_polled_timestamp && card.to == agent_name){
                             last_polled_timestamp = card.timestamp;
                             var data = parse_ce(card.content); 
-                            if(data.concept_id == null){
+                            if(data.type = "response"){
+                                // TODO
+                            }
+                            else if(data.concept_id == null){
                                 add_concept(data);
                             }                        
                             else{
@@ -306,7 +281,6 @@ function cestore(){
         return new_string+guess;
     }
     this.get_instances = function(concept_type, recurse){
-        return [];
         var instance_list = [];
         if(concept_type == null){
             instance_list = instances;
