@@ -8,16 +8,27 @@ function cestore(){
      *  but can be modified using the add_concept() function
      */
     var concepts = [
-        {name: "entity", id: 1, parent_id: null},
-        {name: "card", id: 2, parent_id: 1},
-        {name: "tell_card", id: 3, parent_id: 2},
-		{name: "human", id: 4, parent_id: 1},
-		{name: "location", id: 5, parent_id: 1}
+        {name: "entity", id: 1, parent: []},
+        {name: "card", id: 2, parent: [1], values:[
+            {type: 0, descriptor: 'content'},
+            {type: 6, descriptor: 'timestamp'}
+        ], relationships:[
+            {target: 7, label: 'is to'},
+            {target: 7, label: 'is from'}
+        ]},
+        {name: "teacher", id: 8, parent: [4], values:[
+            {type: 4, descriptor: 'manager'},
+            {type: 0, descriptor: 'language'}
+        ], relationships:[]},
+        {name: "tell card", id: 3, parent: [2], values:[]},
+		{name: "human", id: 4, parent: [1]},
+		{name: "location", id: 5, parent: [1]},
+        {name: "timestamp", id: 6, parent: [1]},
+        {name: "agent", id: 7, parent: [1]}
     ];
     var instances = [
         {name: "Alun Preece", id: 1, location: 2, concept_id: 4},
         {name: "Office", id: 2, concept_id: 5}
-
     ];
     var properties = [
         {ce: "from the individual", relationship: "from"},
@@ -93,25 +104,90 @@ function cestore(){
     }
 
     var parse_ce = function(t){
+        console.log(t);
 
         if(t.match(/^conceptualise a/)){
             var concept = {};
-            var concept_name = t.match(/^conceptualise a '([a-zA-Z0-9 ]*)'/)[1];
+            concept.values = [];
+            concept.relationships = [];
+
+            var concept_name = t.match(/^conceptualise a ~ ([a-zA-Z0-9 ]*) ~ /)[1];
             concept.name = concept_name;
+            concept.id = concepts.length+1;
             if(t.match(/that is a '([a-zA-Z0-9 ]*)'$/)){
                 concept.parent_name = t.match(/that is a '([a-zA-Z0-9 ]*)'$/)[1];
             }
+            var facts = t.split(/(\bthat\b|\band\b) has/g);
+            for (var i=0; i<facts.length; i++) {
+                var fact = facts[i].trim();
+                if(fact.match(/the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9 ]*) as ~ ([a-zA-Z0-9 ]*) ~/)) {
+                    var factsInfo = fact.match(/the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9 ]*) as ~ ([a-zA-Z0-9 ]*) ~/);
+                    var value = {};
+                    var type_name = factsInfo[1];
+                    for(var j = 0; j < concepts.length; j++){
+                        if(concepts[j].name == type_name){
+                            value.type = concepts[j].id;
+                            break;
+                        }
+                    }
+                    if(type_name == "value"){value.type = 0;}
+                    if(value.type == null){return;}
+                    value.descriptor = factsInfo[3];
+                    concept.values.push(value);
+                } 
+            }
+            console.log(concept);
             return concept;
+        }
+
+        if(t.match(/^conceptualise the/)){
+            var concept = {};
+            var concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/);
+            var concept_name = concept_info[1];
+            for(var i = 0; i < concepts.length; i++){
+                if(concepts[i].name == concept_name){
+                    concept = concepts[i];
+                }
+            }
+            console.log(concept);
+            if(concept == {}){return;}
+            if(concept.relationships == null){concept.relationships = [];}
+            var facts = t.split(/\band\b/g);
+            for(var i = 0; i < facts.length; i++){
+                var fact = facts[i].trim();
+                if(fact.match(/the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9 ]*) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9 ]*)/)){
+                    var factsInfo = fact.match(/the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9 ]*) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9 ]*)/);
+                    var target = {};
+                    var target_name = factsInfo[4];
+                    for(var j = 0; j < concepts.length; j++){
+                        if(concepts[j].name == target_name){
+                            target = concepts[j];
+                            break;
+                        }
+                    } 
+                    if(target == null){return;}
+                    
+                    var relationship = {};
+                    relationship.target = target.id;
+                    relationship.label = factsInfo[3];
+                    concept.relationships.push(relationship);
+                }
+            }
+            console.log(concept);
         }
 
         if(t.match(/^there is a/)) {
             var instance = {};
+            var concept = null;
             for(var i = 0; i<concepts.length; i++) {
-                if (concepts[i].name==t.match(/^there is a '([a-zA-Z0-9 ]*)'/)[1]) {
-
-                    instance.id=concepts[i].id;
+                if (concepts[i].name==t.match(/^there is a ([a-zA-Z0-9 ]*) named/)[1]) {
+                    concept = concepts[i];
+                    break;
                 }
             }
+            if(concept == null){return;}
+            
+
             instance.name=t.match(/named '([a-zA-Z0-9 ]*)'/)[1];
 			var facts = t.split(/(\bthat\b|\band\b) has/g);
 			for (var i=0; i<facts.length; i++) {
@@ -120,8 +196,6 @@ function cestore(){
 					var factsInfo = fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
 					instance[factsInfo[1]] = factsInfo[2];
 				}
-				if(fact.match(/there is a ([a-zA-Z0-9 ]*)/)){}
-
 			}
 
             return instance;
