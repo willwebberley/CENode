@@ -19,4 +19,14 @@ The above examples assume that `person`, `human`, `employee`, and `location` are
 
 ## Modifying existing concepts
 
+For all sentences starting with `conceptualise the`.
 
+In addition to the above sentences, the following is also supported:
+
+* `conceptualise the concept name C ~ label ~ the target T`
+
+Combinations of all of the above are also valid:
+
+* `conceptualise the teacher T ~ teaches ~ the student S and is a human and has the person P as ~ manager ~` 
+
+The above example assumes that `teacher`, `student`, `human`, and `person` are all pre-defined concepts within the model.
