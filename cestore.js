@@ -204,7 +204,7 @@ function cestore(){
         if(t.match(/^(\bwho\b|\bwhat\b) is/)){
             var response = {};
             response.type="response";
-            var name = t.match(/^\bwho\b|\bwhat\b is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').trim();
+            var name = t.match(/^(\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').trim();
             var thing = null;
             for(var i = 0; i< instances.length; i++) {
                 if(instances[i].name==name) {
