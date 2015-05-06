@@ -170,7 +170,6 @@ function cestore(){
             if(concept.values == null){concept.values = [];}
 
             var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b|)/g);
-            console.log(facts);
             for(var i = 0; i < facts.length; i++){
                 var fact = facts[i].trim();
 
@@ -196,7 +195,6 @@ function cestore(){
                 // "~ label ~ the target T"
                 if(fact.match(/^~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
                     var factsInfo = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-                    console.log(factsInfo);
                     var target = {};
                     var target_name = factsInfo[2];
                     for(var j = 0; j < concepts.length; j++){
