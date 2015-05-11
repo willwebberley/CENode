@@ -8,49 +8,24 @@ function cestore(){
      *  but can be modified using the add_concept() function
      */
     var concepts = [
-        {name: "entity", id: 1, parent: []},
-        {name: "card", id: 2, parent: [1], values:[
+        {name: "entity", id: 1, parents: []},
+        {name: "card", id: 2, parents: [1], values:[
             {type: 0, descriptor: 'content'},
             {type: 6, descriptor: 'timestamp'}
         ], relationships:[
             {target: 7, label: 'is to'},
             {target: 7, label: 'is from'}
         ]},
-        {name: "teacher", id: 8, parent: [4], values:[
-            {type: 4, descriptor: 'manager'},
-            {type: 0, descriptor: 'language'}
-        ], relationships:[]},
-        {name: "tell card", id: 3, parent: [2], values:[]},
-		{name: "human", id: 4, parent: [1]},
-		{name: "location", id: 5, parent: [1]},
-        {name: "timestamp", id: 6, parent: [1]},
-        {name: "agent", id: 7, parent: [1]}
+        {name: "tell card", id: 3, parents: [2], values:[]},
+		{name: "human", id: 4, parents: [1]},
+		{name: "location", id: 5, parents: [1]},
+        {name: "timestamp", id: 6, parents: [1]},
+        {name: "agent", id: 7, parents: [1]}
     ];
     var instances = [
         {name: "Alun Preece", id: 1, location: 2, concept_id: 4},
         {name: "Office", id: 2, concept_id: 5}
     ];
-    var properties = [
-        {ce: "from the individual", relationship: "from"},
-        {ce: "from the agent", relationship: "from"},
-        {ce: "from", relationship: "from"},
-        {ce: "to the agent", relationship: "to"},
-        {ce: "to the individual", relationship: "to"},
-        {ce: "to", relationship: "to"},
-        {ce: "named", relationship: "name"}
-    ];
-    var key_words = {
-        starters: [
-            "conceptualise a ",
-            "the entity concept ",
-            "there is a "
-        ],
-        general: [
-            "and has ",
-            "that is a ",
-            "that has "
-        ]
-    };
 
     var cards = [];
     var next_id = concepts.length;
@@ -59,6 +34,12 @@ function cestore(){
     var last_polled_timestamp = 0;
     var store = null;
 
+    var get_concept_by_id = function(id){
+        for(var i = 0; i < concepts.length; i++){
+            if(concepts[i].id == id){return concepts[i];}
+        }
+        return null;
+    }
     var get_concept_by_name = function(name){
         if(name == null){return null;}
         for(var i = 0; i < concepts.length; i++){
@@ -75,48 +56,40 @@ function cestore(){
         }
         return null;
     }
-
-    var add_concept = function(concept){
-        if(get_concept_by_name(concept.name) != null){throw "Concept already exists.";}
-        var parent_name = concept.parent_name;
-        next_id++;
-        var parent = get_concept_by_name(parent_name);
-        if(parent_name != null && parent == null){
-            concepts.push({name: parent_name, id: next_id});
-            next_id++;
-            concept.id = next_id;
-            concept.parent_id = next_id-1;
+    var get_recursive_parents = function(concept){
+        var parents = [];
+        var stack = [];
+        stack.push(concept);
+        while(stack.length > 0){
+            var current = stack.pop();
+            for(var i = 0; i < current.parents.length; i++){
+                stack.push(get_concept_by_id(current.parents[i]));
+            }
         }
-        else if(parent_name != null && parent != null){
-            concept.id = next_id;
-            concept.parent_id = parent.id;
-        }
-        else if(parent_name == null){
-            concept.id = next_id;
-            concept.parent_id = null;
-        }
-        concepts.push(concept);
-        return concept;
-    }
-
-    var add_instance = function(instance){
-        instances.push(instance);
+        return parents;
     }
 
     var parse_ce = function(t){
-        console.log(t);
+        t = t.replace(/\s+/g, " "); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
+        console.log(t); 
 
-        if(t.match(/^conceptualise a/)){
-
-            var concept_name = t.match(/^conceptualise a ~ ([a-zA-Z0-9 ]*) ~ /)[1];
-            var parent_name = null;
-
-            var concept = {};
-            concept.values = [];
-            concept.relationships = [];
-            concept.parents = []
-            concept.name = concept_name;
-            concept.id = concepts.length+1;
+        if(t.match(/^conceptualise an?/)){
+            console.log(t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/));
+            var concept_name = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/)[1];
+            var stored_concept = get_concept_by_name(concept_name);
+            var concept = null;
+            if(stored_concept != null){ // if exists, simply modify existing concept
+                concept = stored_concept;
+            }
+            else{ // otherwise create a new one and add it to list
+                concept = {};
+                concept.values = [];
+                concept.relationships = [];
+                concept.parents = []
+                concept.name = concept_name;
+                concept.id = concepts.length+1;
+                concepts.push(concept);
+            }
 
             var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b)/g);
             for (var i=0; i<facts.length; i++) {
@@ -127,12 +100,8 @@ function cestore(){
                     var factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
                     var value = {};
                     var type_name = factsInfo[1];
-                    for(var j = 0; j < concepts.length; j++){
-                        if(concepts[j].name == type_name){
-                            value.type = concepts[j].id;
-                            break;
-                        }
-                    }
+                    value.type = get_concept_by_name(type_name).id;
+
                     if(type_name == "value"){value.type = 0;}
                     if(value.type == null){return;}
                     value.descriptor = factsInfo[3];
@@ -140,29 +109,23 @@ function cestore(){
                 } 
 
                 // "is a parent_concept"
-                else if(fact.match(/^a ([a-zA-Z0-9 ]*)/)){
-                    var parent_name = fact.match(/^a ([a-zA-Z0-9 ]*)/)[1];
-                    for(var j = 0; j < concepts.length; j++){
-                        if(concepts[j].name == parent_name){
-                            concept.parents.push(concepts[j].id);
-                        }
-                    }       
+                else if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
+                    var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
+                    var parent = get_concept_by_name(parent_name);
+                    if(parent == null){return;}
+                    concept.parents.push(parent.id);
                 }
             }
+
             console.log(concept);
-            return concept;
         }
 
         if(t.match(/^conceptualise the/)){
             var concept = {};
             var concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/);
             var concept_name = concept_info[1];
-
-            for(var i = 0; i < concepts.length; i++){
-                if(concepts[i].name == concept_name){
-                    concept = concepts[i];
-                }
-            }
+            
+            concept = get_concept_by_name(concept_name);
             if(concept == {}){return;} // if can't find concept, just fail silently
 
             if(concept.relationships == null){concept.relationships = [];}
@@ -173,17 +136,12 @@ function cestore(){
             for(var i = 0; i < facts.length; i++){
                 var fact = facts[i].trim();
 
-                // "concept C ~ label ~ the target T" 
+                // "concept C ~ label ~ the target T"  (e.g. the teacher T ~ teaches ~ the student S)
                 if(fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
                     var factsInfo = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
                     var target = {};
                     var target_name = factsInfo[4];
-                    for(var j = 0; j < concepts.length; j++){
-                        if(concepts[j].name == target_name){
-                            target = concepts[j];
-                            break;
-                        }
-                    } 
+                    target = get_concept_by_name(target_name);
                     if(target == null){return;}
                     
                     var relationship = {};
@@ -192,17 +150,12 @@ function cestore(){
                     concept.relationships.push(relationship);
                 }
 
-                // "~ label ~ the target T"
+                // "~ label ~ the target T" (e.g. and ~ loves ~ the person P)
                 if(fact.match(/^~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
                     var factsInfo = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
                     var target = {};
                     var target_name = factsInfo[2];
-                    for(var j = 0; j < concepts.length; j++){
-                        if(concepts[j].name == target_name){
-                            target = concepts[j];
-                            break;
-                        }
-                    } 
+                    target = get_concept_by_name(target_name);
                     if(target == null){return;}
                     
                     var relationship = {};
@@ -211,17 +164,13 @@ function cestore(){
                     concept.relationships.push(relationship);
                 }
 
-                // "has the type X as ~ descriptor ~"
+                // "has the type X as ~ descriptor ~" (e.g. and has the room R as ~ location ~)
                 if(fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
                     var factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
                     var value = {};
                     var type_name = factsInfo[1];
-                    for(var j = 0; j < concepts.length; j++){
-                        if(concepts[j].name == type_name){
-                            value.type = concepts[j].id;
-                            break;
-                        }
-                    }
+                    value.type = get_concept_by_name(type_name).id;
+                    
                     if(type_name == "value"){value.type = 0;}
                     if(value.type == null){return;}
                     value.descriptor = factsInfo[3];
@@ -229,29 +178,19 @@ function cestore(){
                 }
 
                 // "is a parent_concept"
-                else if(fact.match(/^a ([a-zA-Z0-9 ]*)/)){
-                    var parent_name = fact.match(/^a ([a-zA-Z0-9 ]*)/)[1];
-                    for(var j = 0; j < concepts.length; j++){
-                        if(concepts[j].name == parent_name){
-                            concept.parents.push(concepts[j].id);
-                        }
-                    }       
+                else if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
+                    var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
+                    concept.parents.push(get_concept_by_name(parent_name).id);
                 }
             }
             console.log(concept);
         }
 
-        if(t.match(/^there is a/)) {
+        if(t.match(/^there is [a|an]/)) {
             var instance = {};
-            var concept = null;
-            for(var i = 0; i<concepts.length; i++) {
-                if (concepts[i].name==t.match(/^there is a ([a-zA-Z0-9 ]*) named/)[1]) {
-                    concept = concepts[i];
-                    break;
-                }
-            }
+            var concept_name = t.match(/^there is a ([a-zA-Z0-9 ]*) named/)[1];
+            var concept = get_concept_by_name(concept_name);
             if(concept == null){return;}
-            
 
             instance.name=t.match(/named '([a-zA-Z0-9 ]*)'/)[1];
 			var facts = t.split(/(\bthat\b|\band\b) has/g);
@@ -322,40 +261,9 @@ function cestore(){
         }
     }
 
-    var poll_cards = function(){
-        setTimeout(function(){
-            var card_list = store.get_instances("tell_card");
-            for(var i = 0; i < card_list.length; i++){
-                var card = card_list[i]; 
-                try{
-                    if(card.timestamp != null){
-                        if(card.timestamp > last_polled_timestamp && card.to == agent_name){
-                            last_polled_timestamp = card.timestamp;
-                            var data = parse_ce(card.content); 
-                            if(data.type = "response"){
-                                // TODO
-                            }
-                            else if(data.concept_id == null){
-                                add_concept(data);
-                            }                        
-                            else{
-                                add_instance(data);
-                            }                        
-                        }
-                    }
-                }
-                catch(err){
-                    console.log(err);
-                    store.receive_card("there is a tell_card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+err+"' as content.");
-                }   
-            }
-            poll_cards();
-        }
-        , 200);
-    }
-
     this.guess_next = function(s){
-        var t = s.split(/[ ]+/);
+        return "";
+        /*var t = s.split(/[ ]+/);
         var last_word = t[t.length-1];
         var guess = "";
         var delete_all = false;
@@ -417,7 +325,7 @@ function cestore(){
             new_string+=t[i]+" ";
         }
         if(delete_all){return guess;}
-        return new_string+guess;
+        return new_string+guess;*/
     }
     this.get_instances = function(concept_type, recurse){
         var instance_list = [];
@@ -446,13 +354,37 @@ function cestore(){
     this.get_sentences = function(){
         return cards;
     }
+    var poll_cards = function(){
+        setTimeout(function(){
+            var card_list = store.get_instances("tell card");
+            for(var i = 0; i < card_list.length; i++){
+                var card = card_list[i]; 
+                try{
+                    if(card.timestamp != null){
+                        if(card.timestamp > last_polled_timestamp && card.to == agent_name){
+                            last_polled_timestamp = card.timestamp;
+                            var data = parse_ce(card.content); 
+                        }
+                    }
+                }
+                catch(err){
+                    console.log(err);
+                    store.receive_card("there is a tell card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+err+"' as content.");
+                }   
+            }
+            poll_cards();
+        }
+        , 200);
+    }
     this.receive_card = function(card_ce){
         card_count ++;
         card_ce = card_ce.replace("{now}", new Date().getTime());
         card_ce = card_ce.replace("{uid}", card_count);
         cards.push(card_ce);        
-        var card = parse_ce(card_ce);
-        add_instance(card);
+        parse_ce(card_ce);
+    }
+    this.update_model = function(ce){
+        parse_ce(ce);
     }
 
     var init = function(){
