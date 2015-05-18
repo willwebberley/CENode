@@ -7,7 +7,7 @@
 
     <p style="font-size:10px;font-family:'Courier', 'Monospace';" id="card"></p>
     <br />
-    <button id="send">Submit card to store</button>
+    <button id="send">Submit card to node</button>
     <hr />
     <h3>Internal representation of CEStore</h3>
     <div style="width:48%;float:left;margin-bottom:20px;">
@@ -22,7 +22,7 @@
     <textarea readonly style="width:100%;max-width:100%;height:400px;" id="cards"></textarea>
 
 
-    <script src="cestore.js"></script>  
+    <script src="cenode.js"></script>  
     <script>
         var text = document.getElementById("input");
         var send = document.getElementById("send");
@@ -31,13 +31,13 @@
         var cards = document.getElementById("cards");
         var guess = document.getElementById("guess");
         
-        var store = new cestore();    
+        var node = new CENode();    
 
         function refresh_content(){
             setTimeout(function(){
-                var c = store.get_concepts();
-                var i = store.get_instances();
-                var s = store.get_sentences();
+                var c = node.get_concepts();
+                var i = node.get_instances();
+                var s = node.get_sentences();
                 concepts.value = JSON.stringify(c, undefined, 2);
                 instances.value = JSON.stringify(i, undefined, 2);
                 cards.value = JSON.stringify(s, undefined, 2);
@@ -48,12 +48,12 @@
 
         text.onkeyup = function(event){
             card.innerHTML = "there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has '"+text.value.replace(/'/g, "\\'")+"' as content and has the timestamp '{now}' as timestamp.";
-            guess.innerHTML = store.guess_next(text.value);               
+            guess.innerHTML = node.guess_next(text.value);               
             
         }
         text.onkeydown = function(event){
             if(event.keyCode == 9){
-                text.value = store.guess_next(text.value);
+                text.value = node.guess_next(text.value);
                 event.preventDefault();
             }
             if(event.keyCode == 13){
@@ -62,8 +62,8 @@
             }
         }
         send.onclick = function(){
-            store.update_model(text.value);
-            //store.receive_card(card.innerHTML);
+            node.update_model(text.value);
+            //node.receive_card(card.innerHTML);
             text.value = "";
             card.innerHTML = "";
         };
