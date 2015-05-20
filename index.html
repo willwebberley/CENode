@@ -47,7 +47,7 @@
         refresh_content();
 
         text.onkeyup = function(event){
-            card.innerHTML = "there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has '"+text.value.replace(/'/g, "\\'")+"' as content and has the timestamp '{now}' as timestamp.";
+            card.innerHTML = "there is a tell card named 'msg_{uid}' that is from the agent 'test user' and is to the agent 'Moira' and has '"+text.value.replace(/'/g, "\\'")+"' as content and has the timestamp '{now}' as timestamp.";
             guess.innerHTML = node.guess_next(text.value);               
             
         }
@@ -62,8 +62,8 @@
             }
         }
         send.onclick = function(){
-            node.update_model(text.value);
-            //node.receive_card(card.innerHTML);
+            //node.update_model(text.value);
+            node.update_model(card.innerHTML);
             text.value = "";
             card.innerHTML = "";
         };

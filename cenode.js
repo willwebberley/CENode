@@ -12,6 +12,7 @@ function CENode(){
 
     var last_instance_id = instances.length;
     var last_concept_id = concepts.length;
+    var last_card_id = 0;
 
     var new_instance_id = function(){
         last_instance_id++;
@@ -21,6 +22,11 @@ function CENode(){
         last_concept_id++;
         return last_concept_id;
     }
+    var new_card_id = function(){
+        last_card_id++;
+        return last_card_id;
+    }
+
     var get_concept_by_id = function(id){
         for(var i = 0; i < concepts.length; i++){
             if(concepts[i].id == id){return concepts[i];}
@@ -195,7 +201,7 @@ function CENode(){
 
         if(t.match(/^there is [a|an]/)) {
             var instance = {};
-            var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([a-zA-Z0-9 ]*)'/);
+            var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^']*)'/);
             var concept_name = names[1];
             instance.name = names[2];
             var concept = get_concept_by_name(concept_name);
@@ -214,11 +220,14 @@ function CENode(){
                 possible_values = possible_values.concat(parents[i].values);
             }
 
+                console.log(t);
 			var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|)/g);
 			for (var i=0; i<facts.length; i++) {
 				var fact = facts[i].trim();
-				if(fact.match(/^the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/)) {
-					var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
+
+                // "the concept 'instance_name' as descriptor"
+				if(fact.match(/^the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*)/)) {
+					var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*)/);
                     var value_type = facts_info[1];
                     var value_instance_name = facts_info[2];
                     var value_instance = get_instance_by_name(value_instance_name);
@@ -243,9 +252,11 @@ function CENode(){
                         }
                     }
                 }
-                else if(fact.match(/^'([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/)) {
-                    var facts_info = fact.match(/^'([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
-                    var value_value = facts_info[1];
+                // "'value_text' as value" (allows value_text to include escaped apostrophe)
+                else if(fact.match(/^'([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/)) {
+                    var facts_info = fact.match(/^'([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
+                    var value_value = facts_info[1].replace(/\\/g, '');
+                    console.log(value_value);
                     var value_descriptor = facts_info[2];
                     
                     var value = {};
@@ -259,8 +270,10 @@ function CENode(){
                         }
                     }
                 }
-                else if(fact.match(/^([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/)){
-                    var facts_info = fact.match(/^([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/);
+
+                // "relationship_to the concept 'instance_name'"
+                else if(fact.match(/^([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/)){
+                    var facts_info = fact.match(/^([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/);
                     var relationship_label = facts_info[1];
                     var relationship_type_name = facts_info[2];
                     var relationship_instance_name = facts_info[3];
@@ -292,8 +305,8 @@ function CENode(){
             instances.push(instance);
         }
 
-        if(t.match(/^the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/)) {
-            var names = t.match(/^the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/);
+        if(t.match(/^the ([a-zA-Z0-9 ]*) '([^']*)'/)) {
+            var names = t.match(/^the ([a-zA-Z0-9 ]*) '([^']*)'/);
             var concept_name = names[1];
             var instance_name = names[2];
 
@@ -308,15 +321,16 @@ function CENode(){
                 possible_relationships = possible_relationships.concat(parents[i].relationships);
                 possible_values = possible_values.concat(parents[i].values);
             }
-            t = t.replace(/^the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/, '').trim();
+            t = t.replace(/^the ([a-zA-Z0-9 ]*) '([^']*)'/, '').trim();
 
-            var has_concept_facts = t.match(/has the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g);
-            var has_value_facts = t.match(/has '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g);
-            var relationship_facts = t.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/g);
+            var has_concept_facts = t.match(/has the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has concept C as descriptor
+            var has_value_facts = t.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has 'value_name' as value (matches escaped quotes too)
+            var relationship_facts = t.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/g); // does something to the concept 'target'
 
+            // "has the concept 'instance_name' as descriptor"
             if(has_concept_facts!=null){for(var i = 0; i < has_concept_facts.length; i++){
                 var fact = has_concept_facts[i].trim();
-                var fact_info = fact.match(/^has the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
+                var fact_info = fact.match(/^has the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*)/);
                 var value = {};
                 value.descriptor = fact_info[3];
                 value.type_name = fact_info[2];
@@ -342,13 +356,14 @@ function CENode(){
                     }
                 }
             }}
+
+            // "has 'value_text' as value" (allows 'value_text' to contain escaped quotes)
             if(has_value_facts!=null){for(var i = 0; i < has_value_facts.length; i++){
                 var fact = has_value_facts[i].trim();
-                var fact_info = fact.match(/has '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) ?(?!and)/);
-                console.log(fact_info);
+                var fact_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?!and)/);
                 var value = {};
-                value.descriptor = fact_info[2].replace(/\band\b/g,'').trim();
-                value.type_name = fact_info[1];
+                value.descriptor = fact_info[2];
+                value.type_name = fact_info[1].replace(/\\/g, '');
                 value.type_id = 0;
                 for(var j = 0; j < possible_values.length; j++){
                     if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
@@ -356,9 +371,11 @@ function CENode(){
                     }
                 }             
             }}
+
+            // "is_related_to" the concept 'instance_name'
             if(relationship_facts!=null){for(var i = 0; i < relationship_facts.length; i++){
                 var fact = relationship_facts[i].trim();
-                var fact_info = fact.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/);
+                var fact_info = fact.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/);
                 var relationship = {};
                 relationship.label = fact_info[1].replace(/\band\b/g, '').trim();
                 relationship.target_name = fact_info[3];
@@ -474,13 +491,10 @@ function CENode(){
         return sentences;
     }
     
-    this.receive_card = function(card_ce){
-        card_ce = card_ce.replace("{now}", new Date().getTime());
-        card_ce = card_ce.replace("{uid}", cards.length-1);
-        cards.push(card_ce);        
-        parse_ce(card_ce);
-    }
     this.update_model = function(ce){
+        ce = ce.replace("{now}", new Date().getTime());
+        ce = ce.replace("{uid}", new_card_id());
+
         parse_ce(ce);
     }
 
@@ -505,21 +519,32 @@ function CEAgent(n){
             var card_list = node.get_instances("tell card");
             for(var i = 0; i < card_list.length; i++){
                 var card = card_list[i]; 
-                try{
-                    if(card.timestamp != null){
-                        if(card.timestamp > last_polled_timestamp && card.to == agent_name){
-                            last_polled_timestamp = card.timestamp;
-                            var data = parse_ce(card.content); 
-                            if(data != null){ 
-                                node.reveive_caed("there is an tell card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
-                            }
+                var timestamp, to, from, content;
+                for(var j = 0; j < card.values.length; j++){
+                    if(card.values[j].descriptor=="timestamp"){
+                        timestamp = parseInt(card.values[j].type_name);
+                    }
+                    if(card.values[j].descriptor=="content"){
+                        content = card.values[j].type_name;
+                    }
+                }
+                for(var j = 0; j < card.relationships.length; j++){
+                    if(card.relationships[j].label=="is from"){
+                        from = card.relationships[j].target_name;
+                    }
+                    if(card.relationships[j].label=="is to"){
+                        to = card.relationships[j].target_name;
+                    }
+                }
+                if(timestamp != null){
+                    if(timestamp > last_polled_timestamp && to == agent_name){
+                        last_polled_timestamp = timestamp;
+                        var data = node.update_model(content); 
+                        if(data != null){ 
+                            node.reveive_caed("there is an tell card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
                         }
                     }
                 }
-                catch(err){
-                    console.log(err);
-                    node.receive_card("there is a tell card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+err+"' as content.");
-                }   
             }
             poll_cards();
         }
