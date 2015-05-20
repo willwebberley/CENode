@@ -9,7 +9,7 @@
     <br />
     <button id="send">Submit card to node</button>
     <hr />
-    <h3>Internal representation of CEStore</h3>
+    <h3>Internal representation of CENode</h3>
     <div style="width:48%;float:left;margin-bottom:20px;">
         <p>Instances:</p>
         <textarea readonly style="width:100%;max-width:100%;height:400px;" id="instances"></textarea>
@@ -31,7 +31,7 @@
         var cards = document.getElementById("cards");
         var guess = document.getElementById("guess");
         
-        var node = new CENode();    
+        var node = new CENode(MODELS.CORE, MODELS.SHERLOCK);    
 
         function refresh_content(){
             setTimeout(function(){

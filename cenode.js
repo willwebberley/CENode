@@ -2,25 +2,14 @@
  * A JS 'class' to represent the CENode, its concepts and instances, and to provide interaction methods.
  */
 function CENode(){
-    
+    this.models = arguments;
+
     var concepts = [];
     var instances = [];
     var cards = [];
-    var core_model = [
-        "conceptualise an ~ entity ~",
-        "conceptualise a ~ timestamp ~ T that is an entity",
-        "conceptualise an ~ agent ~ A that is an entity",
-        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~",
-        "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
-        "conceptualise a ~ tell card ~ T that is a card",
-        "conceptualise a ~ location ~ L that is an entity",
-        "conceptualise a ~ human ~ H that is an entity and has the location L as ~ office ~",
-        "conceptualise the human H ~ is supervised by ~ the human G",
-        "there is a location named 'N215'",
-        "there is a human named 'Alun Preece' that has the location 'N215' as office",
-        "there is a human named 'Will' that is supervised by the human 'Alun Preece' and has the location 'S309' as office"
-    ];
+    var sentences = [];
     var agent = new CEAgent(this);
+
     var last_instance_id = instances.length;
     var last_concept_id = concepts.length;
 
@@ -88,6 +77,7 @@ function CENode(){
         return parents;
     }
     var parse_ce = function(t){
+        sentences.push(t);
         t = t.replace(/\s+/g, " "); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
 
         if(t.match(/^conceptualise an?/)){
@@ -318,14 +308,82 @@ function CENode(){
                 possible_relationships = possible_relationships.concat(parents[i].relationships);
                 possible_values = possible_values.concat(parents[i].values);
             }
+            t = t.replace(/^the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/, '').trim();
 
-			var facts = t.split(/(\bhas\b) (\bthe\b)/g);
-			for (var i=0; i<facts.length; i++) {
-				var fact = facts[i].trim();
-				if(fact.match(/^the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/)) {
-					var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
+            var has_concept_facts = t.match(/has the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g);
+            var has_value_facts = t.match(/has '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g);
+            var relationship_facts = t.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/g);
+
+            if(has_concept_facts!=null){for(var i = 0; i < has_concept_facts.length; i++){
+                var fact = has_concept_facts[i].trim();
+                var fact_info = fact.match(/^has the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*)/);
+                var value = {};
+                value.descriptor = fact_info[3];
+                value.type_name = fact_info[2];
+
+                var value_concept = get_concept_by_name(fact_info[1]);
+                var value_instance = get_instance_by_name(fact_info[2]);
+
+                if(value_concept == null){break;}
+                if(value_instance == null){
+                    var new_instance = {};
+                    new_instance.id = new_instance_id();
+                    new_instance.name = value.type_name;
+                    new_instance.concept_id = value_concept.id;
+                    new_instance.values = [];
+                    new_instance.relationships = [];
+                    instances.push(new_instance);
+                    value_instance = new_instance;
                 }
-            }
+                value.type_id = value_instance.id;
+                for(var j = 0; j < possible_values.length; j++){
+                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
+                        instance.values.push(value);
+                    }
+                }
+            }}
+            if(has_value_facts!=null){for(var i = 0; i < has_value_facts.length; i++){
+                var fact = has_value_facts[i].trim();
+                var fact_info = fact.match(/has '([a-zA-Z0-9 ]*)' as ([a-zA-Z0-9 ]*) ?(?!and)/);
+                console.log(fact_info);
+                var value = {};
+                value.descriptor = fact_info[2].replace(/\band\b/g,'').trim();
+                value.type_name = fact_info[1];
+                value.type_id = 0;
+                for(var j = 0; j < possible_values.length; j++){
+                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
+                        instance.values.push(value);
+                    }
+                }             
+            }}
+            if(relationship_facts!=null){for(var i = 0; i < relationship_facts.length; i++){
+                var fact = relationship_facts[i].trim();
+                var fact_info = fact.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([a-zA-Z0-9 ]*)'/);
+                var relationship = {};
+                relationship.label = fact_info[1].replace(/\band\b/g, '').trim();
+                relationship.target_name = fact_info[3];
+
+                var target_type = get_concept_by_name(fact_info[2]);
+                var target_instance = get_instance_by_name(relationship.target_name);
+                if(target_type == null){break;}
+                if(target_instance == null){
+                    var new_instance = {};
+                    new_instance.id = new_instance_id();
+                    new_instance.name = relationship.target_name;
+                    new_instance.concept_id = target_type.id;
+                    new_instance.relationships = [];
+                    new_instance.values = [];
+                    instances.push(new_instance);
+                    target_instance = new_instance;
+                }
+                relationship.target_id = target_instance.id;
+                for(var j = 0; j < possible_relationships.length; j++){
+                    if(possible_relationships[j] != null && possible_relationships[j].label == relationship.label){
+                        instance.relationships.push(relationship);
+                    }
+                }
+            }}
+
         }
 
 
@@ -413,7 +471,7 @@ function CENode(){
         return concepts;
     }
     this.get_sentences = function(){
-        return cards;
+        return sentences;
     }
     
     this.receive_card = function(card_ce){
@@ -427,8 +485,10 @@ function CENode(){
     }
 
     this.init = function(){
-        for(var i = 0; i < core_model.length; i++){
-            this.update_model(core_model[i]);
+        for(var i = 0; i < this.models.length; i++){
+            for(var j = 0; j < this.models[i].length; j++){
+                this.update_model(this.models[i][j]);
+            }
         }
     }
     this.init();
@@ -465,5 +525,44 @@ function CEAgent(n){
         }
         , 200);
     }
-    poll_cards();
+
+    this.init = function(){
+        poll_cards();
+    }
+    this.init();
+}
+
+
+/* 
+ * Define some models which should be passed when instantiating a CENode object.
+ * Any number of models can be passed, but ORDERING IS IMPORTANT.
+ * CORE should generally be the first model loaded.
+ *
+ * Example: node = new CENode(MODELS.CORE, MODELS.SHERLOCK);
+ */
+MODELS = {
+    CORE : [
+        "conceptualise an ~ entity ~",
+        "conceptualise a ~ timestamp ~ T that is an entity",
+        "conceptualise an ~ agent ~ A that is an entity",
+        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~",
+        "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
+        "conceptualise a ~ tell card ~ T that is a card",
+        "conceptualise a ~ location ~ L that is an entity",
+        "conceptualise a ~ human ~ H that is an entity",
+    ],
+    TEST : [
+        "conceptualise the human H ~ is supervised by ~ the human G",
+        "there is a location named 'N215'",
+        "there is a human named 'Alun Preece' that has the location 'N215' as office",
+        "there is a human named 'Will' that is supervised by the human 'Alun Preece' and has the location 'S309' as office"
+
+    ],
+    SHERLOCK : [
+        "conceptualise a ~ company ~",
+        "conceptualise a ~ room ~ that is a location",
+        "conceptualise a ~ character ~ that has the value V as ~ shirt colour ~",
+        "conceptualise the character C ~ works for ~ the company D and has the room R as ~ room ~",
+        "there is a character named 'Prof Plum'"
+    ]
 }
