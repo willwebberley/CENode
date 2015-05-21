@@ -247,13 +247,14 @@ function CENode(){
                 possible_values = possible_values.concat(parents[i].values);
             }
 
-			var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|)/g);
-			for (var i=0; i<facts.length; i++) {
-				var fact = facts[i].trim();
+            var concept_facts = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([^']*)' as ((.(?!\band\b))*)/g);
+            var value_facts = t.match(/(?:\bthat\b|\band\b) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+            var relationship_facts = t.match(/(?:\bthat\b|\band\b) ([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/g); 
 
-                // "the concept 'instance_name' as descriptor"
-				if(fact.match(/^the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*)/)) {
-					var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*)/);
+            if(concept_facts!=null){for(var i = 0; i < concept_facts.length; i++){
+                var fact = concept_facts[i].trim();
+                if(fact.indexOf("and")==0 || fact.indexOf("that")==0){
+                    var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*)/);
                     var value_type = facts_info[1];
                     var value_instance_name = facts_info[2];
                     var value_instance = get_instance_by_name(value_instance_name);
@@ -278,9 +279,12 @@ function CENode(){
                         }
                     }
                 }
-                // "'value_text' as value" (allows value_text to include escaped apostrophe)
-                else if(fact.match(/^'([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/)) {
-                    var facts_info = fact.match(/^'([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
+            }}
+
+            if(value_facts!=null){for(var i = 0; i < value_facts.length; i++){
+                var fact = value_facts[i].trim();
+                if(fact.indexOf("and")==0 || fact.indexOf("that")==0){
+                    var facts_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
                     var value_value = facts_info[1].replace(/\\/g, '');
                     var value_descriptor = facts_info[2];
                     
@@ -295,10 +299,11 @@ function CENode(){
                         }
                     }
                 }
+            }}
 
-                // "relationship_to the concept 'instance_name'"
-                else if(fact.match(/^([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/)){
-                    var facts_info = fact.match(/^([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/);
+            if(relationship_facts!=null){for(var i = 0; i < relationship_facts.length; i++){
+                var fact = relationship_facts[i].trim();
+                    var facts_info = fact.match(/(?:\bthat\b|\band\b) ([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/);
                     var relationship_label = facts_info[1];
                     var relationship_type_name = facts_info[2];
                     var relationship_instance_name = facts_info[3];
@@ -319,14 +324,14 @@ function CENode(){
                     relationship.label = relationship_label;
                     relationship.target_name = relationship_instance_name;
                     relationship.target_id = relationship_instance.id;
+                    console.log(relationship);
 
                     for(var j = 0; j < possible_relationships.length; j++){
-                        if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label && relationship_type.id == possible_relationships[j].target){
+                        if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label){
                             instance.relationships.push(relationship);
                         }
                     }
-                }
-			}
+            }}
             instances.push(instance);
         }
 
@@ -493,11 +498,11 @@ function CENode(){
     }    
     this.set_agent_name = function(new_name){
         if(new_name != null){
-            agent.agent_name = new_name;
+            agent.set_name(new_name);
         }
     }
     this.get_agent_name = function(){
-        return agent.agent_name;
+        return agent.get_name();
     }   
     this.get_concepts = function(){
         return concepts;
@@ -523,9 +528,16 @@ function CENode(){
 
 
 function CEAgent(n){
-    this.agent_name = "Moira";
+    var name = "Moira";
     var last_polled_timestamp = 0;
     var node = n;
+
+    this.set_name = function(n){
+        name = n;
+    }
+    this.get_name = function(){
+        return name;
+    }
 
     var poll_cards = function(){
         setTimeout(function(){
@@ -550,7 +562,7 @@ function CEAgent(n){
                     }
                 }
                 if(timestamp != null){
-                    if(timestamp > last_polled_timestamp && to.toLowerCase() == this.agent_name.toLowerCase()){
+                    if(timestamp > last_polled_timestamp && to.toLowerCase() == name.toLowerCase()){
                         last_polled_timestamp = timestamp;
                         var data = node.add_sentence(content); 
                         if(data != null){ 

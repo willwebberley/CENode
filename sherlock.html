@@ -58,6 +58,7 @@
                 for(var j = 0; j < questions.length; j++){
                     var instance = ins[i];
                     var question = questions[j];
+                    console.log(question);
                     if(question.concerns.toLowerCase() == instance.name.toLowerCase()){
                         if(question.value != null){
                             for(var k = 0; k < instance.values.length; k++){
