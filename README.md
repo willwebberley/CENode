@@ -4,7 +4,7 @@ A pure JavScript implementation of the ITA project's CEStore - called CENode. CE
 
 ## Blackboard architecture
 
-As with the CEStore, CENode supports the blackboard architecture. Concepts such as `card` and `tell card` are included in CENode's core model, and instances of these nodes automatically spin up an agent to read and write to the store, as necessary, using such cards. In these scenarios, only cards addressed to the Node's agent (default is named 'Moira') will be examined for updating the node. This means that a node can act as a router of messages for other nodes to read and add to.
+As with the CEStore, CENode supports the blackboard architecture. Concepts such as `card` and `tell card` are included in CENode's core model, and instances of these nodes automatically spin up an agent to read and write to the store, as necessary, using such cards. In these scenarios, only cards addressed to the Node's agent (default is named 'Moira') will be examined for updating the node. This means that a node can act as a router of messages for other nodes to read and add to. A node's agent's name can easily be changed by using the `set_agent_name()` method, as described below.
 
 ## Models
 
@@ -81,3 +81,9 @@ If `sentence` is asking a question understandable by the node, then this method 
 The first two questions have identical internal meaning, and both simply return the conceptual type of the instance, if it exists. 
 
 The 'where' question will return all of the known locations of the instance name, where a 'location' is any instance of a concept that is a child, grandchild, etc., of the concept `location`.
+
+### `void set_agent_name(String name)`
+Set a new name for the node's agent. Note that when qualifying the address of cards, agents will ignore the case of their name.
+
+### `String get_agent_name()`
+Retrieve the node's agent's name.

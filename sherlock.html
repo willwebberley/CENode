@@ -44,7 +44,6 @@
                     }
                     for(key in responses){response_vols.push(responses[key]);}
                     response_vols.sort().reverse();
-                    console.log(response_vols);
                     if(response_vols.length == 1){c = "answered";}
                     else if(response_vols.length > 1 && (response_vols[0]-response_vols[1]) >= 3){c = "answered";}
                     else{c = "conflicted";}

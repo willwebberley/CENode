@@ -491,6 +491,14 @@ function CENode(){
         }
         return instance_list;
     }    
+    this.set_agent_name = function(new_name){
+        if(new_name != null){
+            agent.agent_name = new_name;
+        }
+    }
+    this.get_agent_name = function(){
+        return agent.agent_name;
+    }   
     this.get_concepts = function(){
         return concepts;
     }
@@ -515,7 +523,7 @@ function CENode(){
 
 
 function CEAgent(n){
-    var agent_name = "Moira";
+    this.agent_name = "Moira";
     var last_polled_timestamp = 0;
     var node = n;
 
@@ -542,7 +550,7 @@ function CEAgent(n){
                     }
                 }
                 if(timestamp != null){
-                    if(timestamp > last_polled_timestamp && to == agent_name){
+                    if(timestamp > last_polled_timestamp && to.toLowerCase() == this.agent_name.toLowerCase()){
                         last_polled_timestamp = timestamp;
                         var data = node.add_sentence(content); 
                         if(data != null){ 
@@ -575,6 +583,7 @@ MODELS = {
         "conceptualise an ~ entity ~",
         "conceptualise a ~ timestamp ~ T that is an entity",
         "conceptualise an ~ agent ~ A that is an entity",
+        "conceptualise an ~ individual ~ I that is an ~ agent ~",
         "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~",
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
         "conceptualise a ~ tell card ~ T that is a card",
