@@ -9,6 +9,7 @@ function CENode(){
     var cards = [];
     var sentences = [];
     var agent = new CEAgent(this);
+    var node = this;
 
     var last_instance_id = instances.length;
     var last_concept_id = concepts.length;
@@ -82,6 +83,32 @@ function CENode(){
         }
         return parents;
     }
+    var get_children = function(concept){
+        var children = [];
+        for(var i = 0; i < concepts.length; i++){
+            if(concepts[i].parents.indexOf(concept.id) > -1){
+                children.push(concepts[i]);
+            }
+        }
+        return children;
+    }
+    var get_recursive_children = function(concept){
+        var children = [];
+        var stack = [];
+        stack.push(concept);
+        while(stack.length > 0){
+            var current = stack.pop();
+            children.push(current);
+            var current_children = get_children(current);
+            if(current_children != null){
+                for(var i = 0; i < current_children.length; i++){
+                    stack.push(current_children[i]);
+                }
+            }
+        }
+        return children;
+    }
+
     var parse_ce = function(t){
         sentences.push(t);
         t = t.replace(/\s+/g, " "); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
@@ -220,7 +247,6 @@ function CENode(){
                 possible_values = possible_values.concat(parents[i].values);
             }
 
-                console.log(t);
 			var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|)/g);
 			for (var i=0; i<facts.length; i++) {
 				var fact = facts[i].trim();
@@ -256,7 +282,6 @@ function CENode(){
                 else if(fact.match(/^'([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/)) {
                     var facts_info = fact.match(/^'([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
                     var value_value = facts_info[1].replace(/\\/g, '');
-                    console.log(value_value);
                     var value_descriptor = facts_info[2];
                     
                     var value = {};
@@ -405,58 +430,36 @@ function CENode(){
 
 
         if(t.match(/^(\bwho\b|\bwhat\b) is/)){
-            var response = {};
-            response.type="response";
-            var name = t.match(/^(\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').trim();
-            var thing = null;
-            for(var i = 0; i< instances.length; i++) {
-                if(instances[i].name==name) {
-                    thing = instances[i];
-                    break;
-                }
+            var name = t.match(/^(?:\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/(\bthe\b|\ba\b)/g, '').trim();
+            var instance = get_instance_by_name(name);
+            console.log(instance);
+            if(instance == null){
+                return "I don't know who or what that is.";
             }
-            console.log(thing); 
-            for (var key in thing) {
-                if (thing.hasOwnProperty(key)) {
-                    console.log(thing[key]);
-                }
-            }
-            return response;
+            var concept = get_concept_by_id(instance.concept_id);
+            return name+" is a "+concept.name+".";
         }
 
         if(t.match(/^where is/)){
-            var response = {};
-            response.type="response";
-            var id = null;
-            var location = null;
-            var thing = t.match(/^where is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').trim();
-            for(var i = 0; i<instances.length; i++) {
-                if (instances[i].name==thing) {
-                    if(instances[i].location != null) {
-                       id = instances[i].location;
-                       break; 
-                    }
+            var thing = t.match(/^where is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/(\bthe\b|\ba\b)/g, '').trim();
+            var instance = get_instance_by_name(thing);
+            if(instance == null){return "I don't know what "+thing+" is.";}
+            var locatable_instances = node.get_instances("location", true);
+            var locatable_ids = [];
+            var places = [];
+            for(var i = 0; i < locatable_instances.length; i++){locatable_ids.push(locatable_instances[i].id);}
+            if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
+                if(locatable_ids.indexOf(instance.values[i].type_id) > -1){
+                    places.push("has "+instance.values[i].type_name+" as "+instance.values[i].descriptor);
                 }
-            }
-            if(id==null) {
-                response.message="I don't know where that is.";
-                return response;
-            }
-
-            for(var i = 0; i<instances.length; i++) {
-                if (instances[i].id==id) {
-                    location=instances[i];
-                    break;
+            }}
+            if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
+                if(locatable_ids.indexOf(instance.relationships[i].target_id) > -1){
+                    places.push(instance.relationships[i].label+" "+instance.relationships[i].target_name);
                 }
-            }
-            if (location==null) {
-                response.message="I don't know where that is.";
-                return response;
-            }
-            response.message=location.name;
-            console.log(response);
-            return response;
-
+            }}
+            if(places.length == 0){return "I don't know where "+instance.name+" is.";}
+            return instance.name+" "+places.join(" and ")+".";
         }
     }
 
@@ -469,15 +472,19 @@ function CENode(){
             instance_list = instances;
         }
         else if(concept_type != null && (recurse == null || recurse == false)){
-            var concept = null;
-            for(var i = 0; i < concepts.length; i++){
-                if(concepts[i].name == concept_type){
-                    concept = concepts[i];
-                    break;
-                }
-            }
+            var concept = get_concept_by_name(concept_type);;
             for(var i = 0; i < instances.length; i++){
                 if(instances[i].concept_id == concept.id){
+                    instance_list.push(instances[i]);
+                }
+            }
+        }
+        else if(concept_type != null && recurse == true){
+            var all_children = get_recursive_children(get_concept_by_name(concept_type));
+            var children_ids = [];
+            for(var i = 0; i < all_children.length; i++){children_ids.push(all_children[i].id);}
+            for(var i = 0; i < instances.length; i++){
+                if(children_ids.indexOf(instances[i].concept_id) > -1){
                     instance_list.push(instances[i]);
                 }
             }
@@ -494,8 +501,7 @@ function CENode(){
     this.update_model = function(ce){
         ce = ce.replace("{now}", new Date().getTime());
         ce = ce.replace("{uid}", new_card_id());
-
-        parse_ce(ce);
+        return parse_ce(ce);
     }
 
     this.init = function(){
@@ -576,18 +582,41 @@ MODELS = {
         "conceptualise a ~ location ~ L that is an entity",
         "conceptualise a ~ human ~ H that is an entity",
     ],
-    TEST : [
-        "conceptualise the human H ~ is supervised by ~ the human G",
-        "there is a location named 'N215'",
-        "there is a human named 'Alun Preece' that has the location 'N215' as office",
-        "there is a human named 'Will' that is supervised by the human 'Alun Preece' and has the location 'S309' as office"
-
-    ],
     SHERLOCK : [
-        "conceptualise a ~ company ~",
-        "conceptualise a ~ room ~ that is a location",
-        "conceptualise a ~ character ~ that has the value V as ~ shirt colour ~",
-        "conceptualise the character C ~ works for ~ the company D and has the room R as ~ room ~",
-        "there is a character named 'Prof Plum'"
-    ]
+        "conceptualise a ~ sherlock thing ~ that is an entity",
+        "conceptualise a ~ company ~ that is a sherlock thing",
+        "conceptualise a ~ fruit ~ that is a sherlock thing and has the room R as ~ room ~",
+        "conceptualise a ~ room ~ that is a location and is a sherlock thing",
+        "conceptualise the room R ~ contains ~ the sherlock thing S",
+        "conceptualise a ~ character ~ that is a sherlock thing and has the value V as ~ shirt colour ~ and has the value W as ~ hobby ~",
+        "conceptualise the character C ~ works for ~ the company D and ~ eats ~ the fruit F and ~ is in ~ the location L",
+        "conceptualise a ~ question ~ that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
+        "conceptualise the question Q ~ concerns ~ the sherlock thing C",
+
+        "there is a character named 'Prof Plum'",
+        "there is a character named 'Dr White'",
+        "there is a character named 'Col Mustard'",
+        "there is a character named 'Sgt Peacock'",
+        "there is a character named 'Rev Green'",
+        "there is a character named 'Capt Scarlett'",
+        "there is a room named 'S211'",
+        "there is a room named 'WX314'",
+        "there is a room named 'S303'",
+        "there is a room named 'S309'",
+        "there is a room named 'N215'",
+        "there is a fruit named 'apple'",
+        "there is a fruit named 'banana'",
+        "there is a fruit named 'orange'",
+        "there is a fruit named 'lemon'",
+
+        "there is a question named 'q1' that has 'What colour shirt is Prof Plum wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q2' that has 'What room is Prof Plum in?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q3' that has 'What fruit does Prof Plum eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q4' that has 'What hobby does Dr White have?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q5' that has 'What colour shirt is Dr White wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q6' that has 'Where is Col Mustard?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q7' that has 'What colour shirt is Sgt Peacock wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
+    ]   
 }
