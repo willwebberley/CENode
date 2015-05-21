@@ -100,7 +100,7 @@
         }
         document.getElementById("input").onkeydown = function(event){
             if(event.keyCode == 13){
-                var r = node.update_model(document.getElementById("input").value);
+                var r = node.add_sentence(document.getElementById("input").value);
                 if(r != null){alert(r);}
                 document.getElementById("input").value = "";
                 check_answers(node.get_instances());

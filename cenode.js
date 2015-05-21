@@ -497,8 +497,7 @@ function CENode(){
     this.get_sentences = function(){
         return sentences;
     }
-    
-    this.update_model = function(ce){
+    this.add_sentence = function(ce){
         ce = ce.replace("{now}", new Date().getTime());
         ce = ce.replace("{uid}", new_card_id());
         return parse_ce(ce);
@@ -507,7 +506,7 @@ function CENode(){
     this.init = function(){
         for(var i = 0; i < this.models.length; i++){
             for(var j = 0; j < this.models[i].length; j++){
-                this.update_model(this.models[i][j]);
+                this.add_sentence(this.models[i][j]);
             }
         }
     }
@@ -545,7 +544,7 @@ function CEAgent(n){
                 if(timestamp != null){
                     if(timestamp > last_polled_timestamp && to == agent_name){
                         last_polled_timestamp = timestamp;
-                        var data = node.update_model(content); 
+                        var data = node.add_sentence(content); 
                         if(data != null){ 
                             node.reveive_caed("there is an tell card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
                         }
