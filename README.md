@@ -1,51 +1,83 @@
-# Pure JavaScript CEStore Implementation
+# Pure JavaScript CENode Implementation
 
-## Preamble
-This library provides methods to support a 'lite' version of the IBM/ITA Controlled English data store and interpretation engine. The current version understands and is able to parse a subset of the full CE grammar and update its internal model appropriately. It is currently only in a proof-of-concept phase, where new parts of the grammar can easily be dropped out over time.
+A pure JavScript implementation of the ITA project's CEStore - called CENode. CENode is able to understand the basic sentence types parsed by the CEStore, such as conceptualising and instance creation.
 
-The store is not persisted at all currently, so any page-refreshes will reset the store to its default concepts and instances. There are plans to persist the store to local storage. However, since the implementation is designed to work on the server as well as the browser, this will need to be considered further.
+## Blackboard architecture
 
-## Implementation Details 
-The store works through the same blackboard architecture as the original version, and all communication between agents (machine or human) is done through cards. The store receives cards, which are parsed and stored in memory as instances (or child instances) of `card`. Therefore, the `card` concept exists as a default concept. Methods are exposed for receiving cards and querying of instances.
+As with the CEStore, CENode supports the blackboard architecture. Concepts such as `card` and `tell card` are included in CENode's core model, and instances of these nodes automatically spin up an agent to read and write to the store, as necessary, using such cards. In these scenarios, only cards addressed to the Node's agent (default is named 'Moira') will be examined for updating the node. This means that a node can act as a router of messages for other nodes to read and add to.
 
-Moira is a machine agent that is launched when the store is initialised. Any cards sent to Moira are periodically picked up and parsed. Moira is able to manipulate data in the store directly, so updates to the store should be done by sending cards to this agent.
+## Models
 
-Currently, the following sentence types are understood:
-* Concept creation (e.g. `conceptualise a person`)
-* Synonym declaration (e.g. `the entity concept person can be expressed by 'human'`)
-* Instance creation (e.g.`there is a person named 'Henry'`)
+The current version of the CENode includes models that might be useful for instantiating nodes for different purposes. When the `cenode` library is included or imported into an application, exposed is a `MODELS` object. The core model (`MODELS.CORE`) is nearly always required, since this provides support for the blackboard architecture and allows question-asking (see later), but additional models can easily be chained too (such as `MODELS.SHERLOCK`).
 
-Caveats:
-* Only single-word concepts and instances are understood
+Models are simply lists of CE that are parsable by the CENode, and thus the ordering of loaded models is important.
 
-## CEStore API
-The following methods are exposed by the API.
+The node's `get_sentences()` method can be used for returning all of the sentences required to return the node to its current state, and can therefore be taken and stored to be used to instantiate future nodes. For example:
+
+```javascript
+var node = new CENode(MODELS.CORE);
+... // Updates to the node
+
+var sentences = node.get_sentences();
+store_model(sentences); // Store the model for later use
+
+... // Some time later 
+var custom_model = load_model();
+var node2 = new CENode(custom_model);
+```
+
+## Installation and usage
+
+Simply include the file `cenode.js` as you normally would in your HTML file of JavaScript program.
+
+## CENode API
+
+### `CENode CENode([model1 [, model2 [, model3 ...]]])`
+Instantiate a new CENode with any number of models. Generally, the CORE model is always required, but you may also want extra features. For example, for Sherlock experiments, a typical instantiation may look like this:
+
+```javascript
+var node = new CENode(MODELS.CORE, MODELS.SHERLOCK);
+```
 
 ### `String guess_next(String input)`
 Return a guess of the next CE phrase given an input string. Useful for autocompletion.
 
-### `instance[] get_instances(String* concept_type)`
-Return a list of instances. If `concept_type` is specified, only instances directly of this concept type are returned.
+_Note that this feature is still under development._
 
-### `concept[] get_concepts()`
-Return a list of known concepts.
+### `instance[] get_instances([String concept_type [, Bool recurse]])`
+Return a list of instances.
+
+* If `concept_type` is specified, only instances directly of this concept type are returned.
+* If `recurse` is specified (and `true`), then all instances of the concept's child, grandchild, etc., concepts are returned.
 
 ### `String[] get_sentences()`
-Return a list of sentences (cards) received by the store.
+Return a list of CE sentences that have been used to update the store. The result of this method can then be used later to instantiate future stores.
 
-### `void receive_card(String sentence)`
-Use to add a new card sentence to the store.
+### `String add_sentence(String sentence)`
+Add a CE sentence to the node's conceptual model. As long as `sentence` is valid CE (and understandable by the node), this will immediately update the node's model. The returned string is `null` in most cases, but will contain a response if `sentence` is a question understandable by the node (see below).
 
-## Example usage
-Include the file `cestore.js` in the normal way (in your HTML file or Node application).
+#### Example blackboard architecture
 
-### Initialise the store
-`var store = new CEStore();`
+If `sentence` wraps additional CE (e.g. as a `tell card`), then only the outer wrapping of CE will be parsed and used for updating. For example, consider the following sentence:
 
-### Send new sentences to the store
-`store.receive_card("there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has 'conceptualise a person' as content and has the timestamp '{now}' as timestamp.");`
+```javascript
+node.add_sentence("there is a tell card named 'msg1' that is to the agent 'Moira' and has 'there is a person named \'Fred\'' as content.");
+```
 
-`store.receive_card("there is a tell_card named 'msg_{uid}' that is from the individual 'test_user' and is to the agent 'Moira' and has 'there is a person named 'Harry'' as content and has the timestamp '{now}' as timestamp.");`
+In this scenario (as long as the `CORE` model has been loaded), the node will create a new instance of `tell card` with the content `there is a person named 'Fred'`, and no new `person` will be instantiated. If the node's agent is named 'Moira', then the agent will (eventually) find this card and see that it is addressed to itself. It will then add the card's content to the node's model, and (as long as `person` is a valid concept) 'Fred' will be added to the model.
 
-### Query the store
-`var people = store.get_instances("person");`
+If the card is addressed to something other than the node's own agent's name, then no further action will occur, since the agent will ignore the card. The method `get_instances("tell card")` can be used by another agent to see if there are any appropriately-addressed cards to be retrieved.
+
+*Note that the above example is simplified for clarity. `tell card`s also need a timestamp attribute to be properly understood by the agent. For example, `... and has the timestamp '{now}' as timestamp...`, where `{now}` will be replaced by the node by the current system time.*
+
+#### Question-asking
+
+If `sentence` is asking a question understandable by the node, then this method will return a string representing a response reflecting the node's current model state. Currently, the following types of question are supported:
+
+* `who is Prof Plum?`
+* `what is N215?`
+* `where is Prof Plum?`
+
+The first two questions have identical internal meaning, and both simply return the conceptual type of the instance, if it exists. 
+
+The 'where' question will return all of the known locations of the instance name, where a 'location' is any instance of a concept that is a child, grandchild, etc., of the concept `location`.
