@@ -159,7 +159,7 @@ function CENode(){
             }
         }
 
-        if(t.match(/^conceptualise the/)){
+        else if(t.match(/^conceptualise the/)){
             var concept = {};
             var concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/);
             var concept_name = concept_info[1];
@@ -226,7 +226,7 @@ function CENode(){
             }
         }
 
-        if(t.match(/^there is [a|an]/)) {
+        else if(t.match(/^there is [a|an]/)) {
             var instance = {};
             var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^']*)'/);
             var concept_name = names[1];
@@ -324,7 +324,6 @@ function CENode(){
                     relationship.label = relationship_label;
                     relationship.target_name = relationship_instance_name;
                     relationship.target_id = relationship_instance.id;
-                    console.log(relationship);
 
                     for(var j = 0; j < possible_relationships.length; j++){
                         if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label){
@@ -335,7 +334,7 @@ function CENode(){
             instances.push(instance);
         }
 
-        if(t.match(/^the ([a-zA-Z0-9 ]*) '([^']*)'/)) {
+        else if(t.match(/^the ([a-zA-Z0-9 ]*) '([^']*)'/)) {
             var names = t.match(/^the ([a-zA-Z0-9 ]*) '([^']*)'/);
             var concept_name = names[1];
             var instance_name = names[2];
@@ -434,10 +433,9 @@ function CENode(){
         }
 
 
-        if(t.match(/^(\bwho\b|\bwhat\b) is/)){
+        else if(t.match(/^(\bwho\b|\bwhat\b) is/)){
             var name = t.match(/^(?:\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/(\bthe\b|\ba\b)/g, '').trim();
             var instance = get_instance_by_name(name);
-            console.log(instance);
             if(instance == null){
                 return "I don't know who or what that is.";
             }
@@ -445,7 +443,7 @@ function CENode(){
             return name+" is a "+concept.name+".";
         }
 
-        if(t.match(/^where is/)){
+        else if(t.match(/^where is/)){
             var thing = t.match(/^where is ([a-zA-Z0-9 ]*)/)[1].replace(/\?/g, '').replace(/(\bthe\b|\ba\b)/g, '').trim();
             var instance = get_instance_by_name(thing);
             if(instance == null){return "I don't know what "+thing+" is.";}
@@ -465,6 +463,24 @@ function CENode(){
             }}
             if(places.length == 0){return "I don't know where "+instance.name+" is.";}
             return instance.name+" "+places.join(" and ")+".";
+        }
+
+        // Here, assume addressing an instance directly and try and guess which
+        else{
+            var tokens = t.split(" ");
+            var instance_name_guess = [];
+            while(instance_name_guess.length < tokens.length){
+                instance_name_guess.push(tokens[instance_name_guess.length]);
+                var instance_guess = get_instance_by_name(instance_name_guess.join(" "));
+                if(instance_guess != null){
+                    var concept = get_concept_by_id(instance_guess.concept_id);
+                    var regexp = new RegExp(instance_guess.name, "i");
+                    t = t.replace(regexp, "'"+instance_guess.name+"'");
+                    t = "the "+concept.name+" "+t;
+                    parse_ce(t);
+                    break;
+                }
+            }
         }
     }
 
