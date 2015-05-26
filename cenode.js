@@ -28,6 +28,31 @@ function CENode(){
         return last_card_id;
     }
 
+    this.get_instance_values = function(instance, value_descriptor){
+        var values = []
+        for(var i = 0; i < instance.values.length; i++){
+            if(instance.values[i].descriptor == value_descriptor){
+                if(instance.values[i].type_id != 0){
+                    values.push(get_instance_by_id(instance.values[i].type_id));
+                }
+                else{
+                    values.push(instance.values[i].type_name);
+                }
+            }
+        }
+        return values;
+    }
+
+    this.get_instance_relationships = function(instance, relationship_label){
+        var relationships = [];
+        for(var i = 0; i < instance.values.length; i++){
+            if(instance.relationships[i].label == relationship_label){
+                relationships.push(get_instance_by_id(instance.relationships[i].target_id));
+            }
+        }
+        return relationships;
+    }
+
     var get_concept_by_id = function(id){
         for(var i = 0; i < concepts.length; i++){
             if(concepts[i].id == id){return concepts[i];}
@@ -548,6 +573,8 @@ function CEAgent(n){
     var last_polled_timestamp = 0;
     var node = n;
 
+    var unsent_cards = [];
+
     this.set_name = function(n){
         name = n;
     }
@@ -555,45 +582,94 @@ function CEAgent(n){
         return name;
     }
 
+    var handle_card = function(card){
+        var timestamp = node.get_instance_values(card, "timestamp")[0].name;
+        var content = node.get_instance_values(card, "content")[0];
+        var from = node.get_instance_relationships(card, "is from")[0];
+        var tos = node.get_instance_relationships(card, "is to");
+        if(timestamp != null && timestamp > last_polled_timestamp){
+            for(var i = 0; i < tos.length; i++){
+                if(to.toLowerCase() == tos[i].name.toLowerCase()){
+                    unsent_cards.push(card);
+                    last_polled_timestamp = timestamp;
+                    var data = node.add_sentence(content); 
+                    if(data != null){ 
+                        node.add_sentence("there is an tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the agent '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
+                    }
+                }
+            }
+        }
+    }
+
     var poll_cards = function(){
         setTimeout(function(){
             var card_list = node.get_instances("tell card");
             for(var i = 0; i < card_list.length; i++){
-                var card = card_list[i]; 
-                var timestamp, to, from, content;
-                for(var j = 0; j < card.values.length; j++){
-                    if(card.values[j].descriptor=="timestamp"){
-                        timestamp = parseInt(card.values[j].type_name);
-                    }
-                    if(card.values[j].descriptor=="content"){
-                        content = card.values[j].type_name;
-                    }
-                }
-                for(var j = 0; j < card.relationships.length; j++){
-                    if(card.relationships[j].label=="is from"){
-                        from = card.relationships[j].target_name;
-                    }
-                    if(card.relationships[j].label=="is to"){
-                        to = card.relationships[j].target_name;
-                    }
-                }
-                if(timestamp != null){
-                    if(timestamp > last_polled_timestamp && to.toLowerCase() == name.toLowerCase()){
-                        last_polled_timestamp = timestamp;
-                        var data = node.add_sentence(content); 
-                        if(data != null){ 
-                            node.reveive_caed("there is an tell card named 'msg_{uid}' that is from the agent 'Moira' and is to the individual '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
-                        }
-                    }
-                }
+                handle_card(card_list[i]); 
             }
             poll_cards();
         }
         , 200);
     }
 
+    var enact_policies = function(){
+        setTimeout(function(){
+            var tell_policies = node.get_instances("tell policy");
+            var listen_policies = node.get_instances("listen policy");
+            var tellall_policies = node.get_instances("tellall policy");
+
+            // Send all untold cards to each required node in turn.
+            // Cards are sent as one per line
+            for(var i = 0; i < tell_policies.length; i++){
+                var target = node.get_instance_value(tell_policies[i], "target");
+                var data = "";
+                while(unsent_cards.length > 0){
+                    var card = unsent_cards.pop();
+                    var content = node.get_instance_value(card, content).replace(/'/g, "\'");
+                    data += "there is a tell card named 'msg_{uid}' that is to the agent '"+target.name+"' and is from the agent '"+name+"' and has the timestamp '{now}' as timestamp and has '"+content+"' as content.\n"
+                }
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", node.get_instance_value(target, "address"));
+                xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                xhr.send(data);
+            }
+
+            for(var i = 0; i < listen_policies.length; i++){
+                var target = node.get_instance_value(listen_policies[i], "target");
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", node.get_instance_value(target, "address"));
+                xhr.onreadystatechange = function(){
+                    if(xhr.readyState==4 && xhr.status==200){
+                        var cards = xhr.responseText.split("\n");
+                        for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
+
+                    }
+                };
+                xhr.send();
+            }
+
+            for(var i = 0; i < tellall_policies.length; i++){
+                if(node.get_instance_value(tellall_policies[i], "enabled") == "true"){
+                    var agents = node.get_instances("agent");
+                    while(unsent_cards.length > 0){
+                        for(var j = 0; j < agents.length; j++){
+                            var card = unsent_cards.pop();
+                            var relationship = {};
+                            relationship.label = "is to";
+                            relationship.target_id = agents[i].id;
+                            relationship.target_name = agents[i].name;
+                            card.relationships.push(relationship);
+                        }
+                    }               
+                    break;
+                }
+            }
+        }, 1000); 
+    }
+
     this.init = function(){
         poll_cards();
+        enact_policies();
     }
     this.init();
 }
@@ -610,13 +686,17 @@ MODELS = {
     CORE : [
         "conceptualise an ~ entity ~",
         "conceptualise a ~ timestamp ~ T that is an entity",
-        "conceptualise an ~ agent ~ A that is an entity",
+        "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
         "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~",
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise a ~ location ~ L that is an entity",
         "conceptualise a ~ human ~ H that is an entity",
+        "conceptualise a ~ policy ~ P",
+        "conceptualise a ~ tell policy ~ P that is a policy and has the agent A as ~ target ~",
+        "conceptualise a ~ tellall policy ~ P that is a policy and has the value V as ~ enabled ~",
+        "conceptualise a ~ listen policy ~ P that is a policy and has the agent A as ~ target ~"
     ],
     SHERLOCK : [
         "conceptualise a ~ sherlock thing ~ that is an entity",
@@ -655,4 +735,16 @@ MODELS = {
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
     ]   
+}
+
+// If running as a Node.js app...
+if(!(typeof window != 'undefined' && window.document)){
+    var http = require('http');
+    http.createServer(function(request,response){
+        console.log(request.method);
+        response.writeHead(200, {"Content-Type": "text/plain"});
+        response.write("Hello World");
+        response.end();
+    }).listen(5555);
+    console.log("listening");
 }
