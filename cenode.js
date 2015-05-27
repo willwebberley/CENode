@@ -143,6 +143,7 @@ function CENode(){
             var stored_concept = get_concept_by_name(concept_name);
             var concept = null;
             if(stored_concept != null){ // if exists, simply modify existing concept
+                return; // TEMPORARY (maybe) - can't conceptualise same thing twice
                 concept = stored_concept;
             }
             else{ // otherwise create a new one and add it to list
@@ -179,7 +180,9 @@ function CENode(){
                     var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
                     var parent = get_concept_by_name(parent_name);
                     if(parent == null){return;}
-                    concept.parents.push(parent.id);
+                    if(concept.parents.indexOf(parent.id) == -1){
+                        concept.parents.push(parent.id);
+                    }
                 }
             }
         }
@@ -257,11 +260,17 @@ function CENode(){
             var concept_name = names[1];
             instance.name = names[2];
             var concept = get_concept_by_name(concept_name);
+            var current_instance = get_instance_by_name(instance.name);
             if(concept == null){return;}
+            if(current_instance != null && current_instance.concept_id == concept.id){
+                return; // Don't create 2 instances with same name and same concept id
+            }
             instance.concept_id = concept.id;
             instance.relationships = [];
             instance.values = [];
             instance.id = new_instance_id();
+            instance.sentences = [];
+            instance.sentences.push(t);
 
             var parents = get_recursive_parents(concept);
             var possible_relationships = [];
@@ -290,6 +299,8 @@ function CENode(){
                         new_instance.name = value_instance_name;
                         new_instance.concept_id = get_concept_by_name(value_type).id;
                         new_instance.id = new_instance_id();
+                        new_instance.sentences = [];
+                        new_instance.sentences.push(t);
                         instances.push(new_instance);
                         value_instance = new_instance;
                     }
@@ -341,6 +352,8 @@ function CENode(){
                         new_instance.name = relationship_instance_name;
                         new_instance.concept_id = relationship_type.id;
                         new_instance.id = new_instance_id();;
+                        new_instance.sentences = [];
+                        new_instance.sentences.push(t);
                         instances.push(new_instance);
                         relationship_instance = new_instance;
                     }
@@ -367,6 +380,8 @@ function CENode(){
             var instance = get_instance_by_name(instance_name);
             var concept = get_concept_by_name(concept_name);
             if(concept == null || instance == null){return;}
+
+            instance.sentences.push(t);
 
             var parents = get_recursive_parents(concept);
             var possible_relationships = [];
@@ -589,7 +604,8 @@ function CEAgent(n){
         var tos = node.get_instance_relationships(card, "is to");
         if(timestamp != null && timestamp > last_polled_timestamp){
             for(var i = 0; i < tos.length; i++){
-                if(to.toLowerCase() == tos[i].name.toLowerCase()){
+                if(tos[i].name.toLowerCase() == name.toLowerCase()){
+                    console.log(card);
                     unsent_cards.push(card);
                     last_polled_timestamp = timestamp;
                     var data = node.add_sentence(content); 
@@ -696,9 +712,9 @@ MODELS = {
         "conceptualise a ~ policy ~ P",
         "conceptualise a ~ tell policy ~ P that is a policy and has the agent A as ~ target ~",
         "conceptualise a ~ tellall policy ~ P that is a policy and has the value V as ~ enabled ~",
-        "conceptualise a ~ listen policy ~ P that is a policy and has the agent A as ~ target ~"
+        "conceptualise a ~ listen policy ~ P that is a policy and has the agent A as ~ target ~",
     ],
-    SHERLOCK : [
+    SHERLOCK_CORE : [
         "conceptualise a ~ sherlock thing ~ that is an entity",
         "conceptualise a ~ company ~ that is a sherlock thing",
         "conceptualise a ~ fruit ~ that is a sherlock thing and has the room R as ~ room ~",
@@ -734,7 +750,15 @@ MODELS = {
         "there is a question named 'q7' that has 'What colour shirt is Sgt Peacock wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
-    ]   
+    ],
+    SHERLOCK_SERVER : [
+        "there is a tellall policy named 'p1' that has 'true' as enabled"
+    ],
+    SHERLOCK_CLIENT : [
+        "there is an agent named 'Master' that has 'http://cenode.sentinelstream.net' as address",
+        "there is a tell policy named 'p2' that has the agent 'Master' as target",
+        "there is a listen policy named 'p3' that has the agent 'Master' as target"
+    ]
 }
 
 // If running as a Node.js app...
@@ -744,6 +768,7 @@ if(!(typeof window != 'undefined' && window.document)){
     var node = new CENode();
 
     http.createServer(function(request,response){
+        response.setHeader("Access-Control-Allow-Origin", "*");
         if(request.method == "GET"){
             if(request.url == "/"){
                 var ins = node.get_instances();
@@ -760,8 +785,13 @@ if(!(typeof window != 'undefined' && window.document)){
                 response.end(s);
             }
             else if(request.url == "/card"){
-                response.writeHead(200, {"Content-Type": "text/plain"});
-                response.write("Hello World");
+                var cards = node.get_instances("tell card", true);
+                var s = "";
+                for(var i = 0; i < cards.length; i++){
+                    s+=cards[i].sentences[0]+"\n";    
+                }
+                response.writeHead(200, {"Content-Type": "text/ce"});
+                response.write(s);
                 response.end();
             }
             else{
@@ -783,7 +813,6 @@ if(!(typeof window != 'undefined' && window.document)){
                     );
                     if('sentence' in components){
                         var sentence = decodeURIComponent(components.sentence).replace(/\+/g, ' ');
-                        console.log(sentence);
                         node.add_sentence(sentence);
                     }
                     if('sentences' in components){
