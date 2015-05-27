@@ -740,11 +740,93 @@ MODELS = {
 // If running as a Node.js app...
 if(!(typeof window != 'undefined' && window.document)){
     var http = require('http');
+    var PORT = 5555;
+    var node = new CENode();
+
     http.createServer(function(request,response){
-        console.log(request.method);
-        response.writeHead(200, {"Content-Type": "text/plain"});
-        response.write("Hello World");
-        response.end();
-    }).listen(5555);
-    console.log("listening");
+        if(request.method == "GET"){
+            if(request.url == "/"){
+                var ins = node.get_instances();
+                var con = node.get_concepts();
+                var s = '<html><head><title>CENode Management</title></head><body><h1>CeNode Server Admin Interface</h1>';
+                s+='<h2>Load models</h2><form action="/model" method="POST"><select name="model">';
+                for(key in MODELS){s+='<option value="'+key+'">'+key+'</option>';}
+                s +='</select><br /><input type="submit"></form>';
+                s+='<h2>Add sentences</h2><form action="/sentence" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence"></textarea><br /><br /><input type="submit" /></form>';
+                s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(con, undefined, 2)+'</textarea></div>';
+                s+='<div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(ins, undefined, 2)+'</textarea></div>';
+                s+='</ul><body></html>';
+                response.writeHead(200, {"Content-Type": "text/html"});
+                response.end(s);
+            }
+            else if(request.url == "/card"){
+                response.writeHead(200, {"Content-Type": "text/plain"});
+                response.write("Hello World");
+                response.end();
+            }
+            else{
+                response.writeHead(404);
+                response.end("404: Resource not found for method GET.");
+            }
+        }
+        else if(request.method == "POST"){
+            if(request.url == "/sentence"){
+                var body = "";
+                request.on('data', function(chunk){
+                    body+=chunk;
+                });       
+                request.on('end', function(){
+                    var components = {};
+                    body.replace(
+                        new RegExp("([^?=&]+)(=([^&]*))?", "g"),
+                            function($0, $1, $2, $3) { components[$1] = $3; }
+                    );
+                    if('sentence' in components){
+                        var sentence = decodeURIComponent(components.sentence).replace(/\+/g, ' ');
+                        console.log(sentence);
+                        node.add_sentence(sentence);
+                    }
+                    if('sentences' in components){
+                        var sentences = components.sentences.split(/\n/g);
+                        for(var i = 0; i < sentences.length; i++){
+                            var sentence = decodeURIComponent(sentences[i]).replace(/\+/g, ' ');
+                            node.add_sentence(sentence);
+                        }
+                    }
+                    response.writeHead(302, { 'Location': '/'});
+                    response.end();
+                });
+            }
+            else if(request.url == "/model"){
+                var body = "";
+                request.on('data', function(chunk){
+                    body+=chunk;
+                });
+                request.on('end', function(){
+                    var components = {};
+                    body.replace(
+                        new RegExp("([^?=&]+)(=([^&]*))?", "g"),
+                            function($0, $1, $2, $3) { components[$1] = $3; }
+                    );
+                    if(components.model in MODELS){
+                        var model = MODELS[components.model];
+                        for(var i = 0; i < model.length; i++){
+                            node.add_sentence(model[i]);           
+                        }
+                    }
+                });
+                response.writeHead(302, { 'Location': '/'});
+                response.end();
+            }
+            else{
+                response.writeHead(404);
+                response.end("404: Resource not found for method POST.");
+            }      
+        }
+        else{
+            response.writeHead(405);
+            response.end("405: Method not allowed on this server.");
+        }
+    }).listen(PORT);
+    console.log("CENode server instance running on port "+PORT+"...");
 }

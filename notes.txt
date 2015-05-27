@@ -1,6 +1,0 @@
-
-06/05/2015:
-    for next week:
-        * creating and modifying instances
-        * traverse upwards through tree from target concept to build list of all allowed relationships and values
-        * then fill in the gaps using the input sentence.
