@@ -767,6 +767,10 @@ if(!(typeof window != 'undefined' && window.document)){
     var PORT = 5555;
     var node = new CENode();
 
+    if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
+    else{node.set_agent_name("Master");}
+    console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
+
     http.createServer(function(request,response){
         response.setHeader("Access-Control-Allow-Origin", "*");
         if(request.method == "GET"){
