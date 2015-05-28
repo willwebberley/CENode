@@ -45,7 +45,7 @@ function CENode(){
 
     this.get_instance_relationships = function(instance, relationship_label){
         var relationships = [];
-        for(var i = 0; i < instance.values.length; i++){
+        for(var i = 0; i < instance.relationships.length; i++){
             if(instance.relationships[i].label == relationship_label){
                 relationships.push(get_instance_by_id(instance.relationships[i].target_id));
             }
@@ -566,6 +566,31 @@ function CENode(){
     this.get_sentences = function(){
         return sentences;
     }
+    this.get_instance_ce = function(instance){
+        var concept = get_concept_by_id(instance.concept_id);
+        if(concept == null){return;}
+        var ce = "there is a "+concept.name+" named '"+instance.name+"'";
+        var facts = [];
+        for(var i = 0; i < instance.values.length; i++){
+            var value = instance.values[i];
+            if(value.type_id == 0){
+                facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor)
+            }
+            else{
+                var value_instance = get_instance_by_id(value.type_id);
+                var value_concept = get_concept_by_id(value_instance.concept_id);
+                facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
+            }
+        }
+        for(var i = 0; i < instance.relationships.length; i++){
+            var relationship = instance.relationships[i];
+            var relationship_instance = get_instance_by_id(relationship.target_id);
+            var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
+            facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
+        }
+        if(facts.length > 0){ce += " that "+facts.join(" and ");}
+        return ce;
+    }
     this.add_sentence = function(ce){
         ce = ce.replace("{now}", new Date().getTime());
         ce = ce.replace("{uid}", new_card_id());
@@ -587,8 +612,8 @@ function CEAgent(n){
     var name = "Moira";
     var last_polled_timestamp = 0;
     var node = n;
-
     var unsent_cards = [];
+    var handled_cards = [];
 
     this.set_name = function(n){
         name = n;
@@ -598,19 +623,18 @@ function CEAgent(n){
     }
 
     var handle_card = function(card){
-        var timestamp = node.get_instance_values(card, "timestamp")[0].name;
-        var content = node.get_instance_values(card, "content")[0];
         var from = node.get_instance_relationships(card, "is from")[0];
         var tos = node.get_instance_relationships(card, "is to");
-        if(timestamp != null && timestamp > last_polled_timestamp){
+        var content = node.get_instance_values(card, "content")[0];
+        if(handled_cards.indexOf(card.name) == -1){
             for(var i = 0; i < tos.length; i++){
                 if(tos[i].name.toLowerCase() == name.toLowerCase()){
+                    handled_cards.push(card.name);
                     unsent_cards.push(card);
-                    last_polled_timestamp = timestamp;
                     if(content != null){
                         var data = node.add_sentence(content); 
                         if(data != null){ 
-                            node.add_sentence("there is an tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the agent '"+card.from+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
+                            node.add_sentence("there is an tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the agent '"+from.name+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
                         }
                     }
                 }
@@ -630,7 +654,7 @@ function CEAgent(n){
     }
 
     var enact_policies = function(){
-        setTimeout(function(){
+        setTimeout(function(){try{
             var tell_policies = node.get_instances("tell policy");
             var listen_policies = node.get_instances("listen policy");
             var tellall_policies = node.get_instances("tellall policy");
@@ -640,31 +664,40 @@ function CEAgent(n){
             for(var i = 0; i < tell_policies.length; i++){
                 var target = node.get_instance_values(tell_policies[i], "target")[0];
                 var data = "";
-                while(unsent_cards.length > 0){
-                    var card = unsent_cards.pop();
-                    var content = node.get_instance_values(card, "content")[0].replace(/'/g, "\\'");
-                    data += "there is a tell card named 'msg_{uid}' that is to the agent '"+target.name+"' and is from the agent '"+name+"' and has the timestamp '{now}' as timestamp and has '"+content+"' as content.\n"
+                for(var j = 0; j < unsent_cards.length; j++){
+                    var card = unsent_cards[j];
+                    var from = node.get_instance_relationships(card, "is from")[0];
+                    if(from.name.toLowerCase() != target.name.toLowerCase()){
+                        var content = node.get_instance_values(card, "content")[0].replace(/'/g, "\\'");
+                        data += "there is a tell card named '"+name+"_forward_{uid}' that is to the agent '"+target.name+"' and is from the agent '"+name+"' and has the timestamp '{now}' as timestamp and has '"+content+"' as content.\n";
+                    }
                 }
                 if(data != ""){
-                    console.log("POST "+ node.get_instance_values(target, "address")[0]+"/sentence"); 
+                    console.log("POST "+ node.get_instance_values(target, "address")[0]+"/sentences"); 
                     var xhr = new XMLHttpRequest();
-                    xhr.open("POST", node.get_instance_values(target, "address")[0]+"/sentence");
+                    xhr.open("POST", node.get_instance_values(target, "address")[0]+"/sentences");
+                    xhr.onreadystatechange = function(){
+                        if(xhr.readyState==4 && xhr.status!=200){
+                        }
+                    };
                     xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                    xhr.send("sentence="+data);
+                    xhr.send(data);
+                }
+                if(i == tell_policies.length-1){
+                    unsent_cards = [];
                 }
             }
 
             for(var i = 0; i < listen_policies.length; i++){
                 var target = node.get_instance_values(listen_policies[i], "target")[0];
-                console.log("GET "+node.get_instance_values(target, "address")[0]+"/cards");   
+                console.log("GET "+node.get_instance_values(target, "address")[0]+"/cards?agent="+name);   
                 var xhr = new XMLHttpRequest();
-                xhr.open("GET", node.get_instance_values(target, "address")[0]+"/cards");
+                xhr.open("GET", node.get_instance_values(target, "address")[0]+"/cards?agent="+name);
                 xhr.onreadystatechange = function(){
                     if(xhr.readyState==4 && xhr.status==200){
                         var cards = xhr.responseText.split("\n");
                         console.log(cards);
                         for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
-
                     }
                 };
                 xhr.send();
@@ -672,26 +705,57 @@ function CEAgent(n){
 
             // If there is one enabled tellall policy, then forward any cards sent to THIS agent
             // to every other known agent.
+            var tellall = false;
             for(var i = 0; i < tellall_policies.length; i++){
                 if(node.get_instance_values(tellall_policies[i], "enabled")[tellall_policies[i].values.length-1] == "true"){
-                    var agents = node.get_instances("agent");
-                    while(unsent_cards.length > 0){
-                        var card = unsent_cards.pop();
+                    tellall = true;
+                }
+            }
+            if(tellall == true){
+                var agents = node.get_instances("agent");
+                var cards = node.get_instances("tell card");
+                for(var i = 0; i < cards.length; i++){
+                    var card = cards[i];
+                    var to_agent = false;
+                    var tos = node.get_instance_relationships(card, "is to");
+                    for(var j = 0; j < tos.length; j++){
+                        if(tos[j].name == name){ // If card sent to THIS agent
+                            to_agent = true;
+                        }
+                    }
+                    if(to_agent == true){
                         var content = node.get_instance_values(card, "content")[0].replace(/'/g, "\\'");
-                        var card_ce = "there is a tell card named '"+name+"_tellall{uid}' that has '"+content+"' as content and has the timestamp '{now}' as timestamp and is from the agent '"+name+"'";
+                        var card_ce = "there is a tell card named '"+card.name+"' that has '"+content+"' as content and has the timestamp '{now}' as timestamp and is from the agent '"+name+"'";
                         var from = node.get_instance_relationships(card, "is from")[0];
+                        var added_agent = false;
 
                         // Add each other agent as a recipient, but not THIS agent or the original author
                         for(var j = 0; j < agents.length; j++){
-                            if(agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
+                            var agent_is_recipient = false;
+                            for(var k = 0; k < tos.length; k++){
+                                if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
+                                    agent_is_recipient = true;
+                                    break;   
+                                }
+                            }
+                            if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
                                 card_ce+= " and is to the agent '"+agents[j].name+"'";
+                                var relationship = {};
+                                relationship.label = "is to";
+                                relationship.target_name = agents[j].name;
+                                relationship.target_id = agents[j].id;
+                                card.relationships.push(relationship);
+                                added_agent = true;
                             }
                         }
-                        console.log(card_ce);
-                        node.add_sentence(card_ce);
-                    }               
-                    break;
-                }
+                        if(added_agent == true){
+                            card.sentences.push(card_ce);
+                        }
+                    }
+                }               
+            }
+            }catch(err){
+                console.log(err);
             }
             enact_policies();
         }, 5000); 
@@ -782,7 +846,6 @@ if(!(typeof window != 'undefined' && window.document)){
     var node = new CENode(MODELS.CORE, MODELS.SHERLOCK_CORE, MODELS.SHERLOCK_SERVER);
 
     if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
-    else{node.set_agent_name("Master");}
     console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
 
     http.createServer(function(request,response){
@@ -791,22 +854,29 @@ if(!(typeof window != 'undefined' && window.document)){
             if(request.url == "/"){
                 var ins = node.get_instances();
                 var con = node.get_concepts();
-                var s = '<html><head><title>CENode Management</title></head><body><h1>CeNode Server Admin Interface</h1>';
+                var s = '<html><head><title>CENode Management</title></head><body><h1>CENode Server Admin Interface</h1>';
                 s+='<h2>Load models</h2><form action="/model" method="POST"><select name="model">';
                 for(key in MODELS){s+='<option value="'+key+'">'+key+'</option>';}
-                s +='</select><br /><input type="submit"></form>';
-                s+='<h2>Add sentences</h2><form action="/sentence" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence"></textarea><br /><br /><input type="submit" /></form>';
+                s +='</select><br /><br /><input type="submit"></form>';
+                s+='<h2>Add sentences</h2><form action="/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:400px;height:100px;"></textarea><br /><br /><input type="submit" /></form>';
                 s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(con, undefined, 2)+'</textarea></div>';
                 s+='<div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(ins, undefined, 2)+'</textarea></div>';
                 s+='</ul><body></html>';
                 response.writeHead(200, {"Content-Type": "text/html"});
                 response.end(s);
             }
-            else if(request.url == "/cards"){
+            else if(request.url.indexOf("/cards") == 0){
+                var agent = request.url.match(/agent=([a-zA-Z0-9 ]*)/)[1];
                 var cards = node.get_instances("tell card");
                 var s = "";
                 for(var i = 0; i < cards.length; i++){
-                    s+=cards[i].sentences[0]+"\n";    
+                    var tos = node.get_instance_relationships(cards[i], "is to");
+                    for(var j = 0; j < tos.length; j++){
+                        if(agent != null && tos[j].name.toLowerCase() == agent.toLowerCase()){
+                            //s += node.get_instance_ce(cards[i])+"\n";
+                            s+=cards[i].sentences[cards[i].sentences.length-1]+"\n";    
+                        }
+                    }
                 }
                 response.writeHead(200, {"Content-Type": "text/ce"});
                 response.write(s);
@@ -818,27 +888,16 @@ if(!(typeof window != 'undefined' && window.document)){
             }
         }
         else if(request.method == "POST"){
-            if(request.url == "/sentence"){
+            if(request.url == "/sentences"){
                 var body = "";
                 request.on('data', function(chunk){
                     body+=chunk;
                 });       
                 request.on('end', function(){
-                    var components = {};
-                    body.replace(
-                        new RegExp("([^?=&]+)(=([^&]*))?", "g"),
-                            function($0, $1, $2, $3) { components[$1] = $3; }
-                    );
-                    if('sentence' in components){
-                        var sentence = String(decodeURIComponent(components.sentence).replace(/\+/g, ' ').replace(/\\n/g,''));
-                        node.add_sentence(sentence);
-                    }
-                    if('sentences' in components){
-                        var sentences = components.sentences.split(/\n/g);
-                        for(var i = 0; i < sentences.length; i++){
-                            var sentence = decodeURIComponent(sentences[i]).replace(/\+/g, ' ');
-                            node.add_sentence(sentence);
-                        }
+                    body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
+                    var sentences = body.split(/\n/g);
+                    for(var i = 0; i < sentences.length; i++){
+                        node.add_sentence(sentences[i]);
                     }
                     response.writeHead(302, { 'Location': '/'});
                     response.end();
