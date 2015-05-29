@@ -479,8 +479,7 @@ function CENode(){
             if(instance == null){
                 return "I don't know who or what that is.";
             }
-            var concept = get_concept_by_id(instance.concept_id);
-            return name+" is a "+concept.name+".";
+            return node.get_instance_ce(instance);;
         }
 
         else if(t.match(/^where is/)){
@@ -596,6 +595,11 @@ function CENode(){
         ce = ce.replace("{uid}", new_card_id());
         return parse_ce(ce);
     }
+    this.reset_all = function(){
+        instances = [];
+        concepts = [];
+        sentences = [];
+    }
 
     this.init = function(){
         for(var i = 0; i < this.models.length; i++){
@@ -612,7 +616,7 @@ function CEAgent(n){
     var name = "Moira";
     var last_polled_timestamp = 0;
     var node = n;
-    var unsent_cards = [];
+    var unsent_cards = {};
     var handled_cards = [];
 
     this.set_name = function(n){
@@ -630,7 +634,12 @@ function CEAgent(n){
             handled_cards.push(card.name);
             for(var i = 0; i < tos.length; i++){
                 if(tos[i].name.toLowerCase() == name.toLowerCase()){
-                    unsent_cards.push(card);
+                    var tell_policies = node.get_instances("tell policy");
+                    for(var j = 0; j < tell_policies.length; j++){
+                        var target_name = node.get_instance_values(tell_policies[j], "target")[0].name;
+                        if(!(target_name in unsent_cards)){unsent_cards[target_name] = [];}
+                        unsent_cards[target_name].push(card); 
+                    }
                     if(content != null){
                         var data = node.add_sentence(content); 
                         if(data != null){ 
@@ -659,13 +668,15 @@ function CEAgent(n){
             var listen_policies = node.get_instances("listen policy");
             var tellall_policies = node.get_instances("tellall policy");
 
-            // Send all untold cards to each required node in turn.
-            // Cards are sent as one per line
+            // For each tell policy in place, send all currently-untold cards to each target
+            // To save on transit costs, if there are multiple cards to be sent to one target, they are 
+            // separated by new line (\n)
             for(var i = 0; i < tell_policies.length; i++){
                 var target = node.get_instance_values(tell_policies[i], "target")[0];
+                var cards = unsent_cards[target.name];
                 var data = "";
-                for(var j = 0; j < unsent_cards.length; j++){
-                    var card = unsent_cards[j];
+                for(var j = 0; j < cards.length; j++){
+                    var card = cards[j];
                     var from = node.get_instance_relationships(card, "is from")[0];
                     if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                         var rel = {};
@@ -674,8 +685,6 @@ function CEAgent(n){
                         rel.label = "is to";
                         card.relationships.push(rel);
                         data += node.get_instance_ce(card)+"\n";
-                        //var content = node.get_instance_values(card, "content")[0].replace(/'/g, "\\'");
-                        //data += "there is a tell card named '"+name+"_forward_{uid}' that is to the agent '"+target.name+"' and is from the agent '"+name+"' and has the timestamp '{now}' as timestamp and has '"+content+"' as content.\n";
                     }
                 }
                 if(data != ""){
@@ -683,17 +692,16 @@ function CEAgent(n){
                     var xhr = new XMLHttpRequest();
                     xhr.open("POST", node.get_instance_values(target, "address")[0]+"/sentences");
                     xhr.onreadystatechange = function(){
-                        if(xhr.readyState==4 && xhr.status!=200){
+                        if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302)){
+                            unsent_cards[target.name] = [];
                         }
                     };
                     xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
                     xhr.send(data);
                 }
-                if(i == tell_policies.length-1){
-                    unsent_cards = [];
-                }
             }
 
+            // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
             for(var i = 0; i < listen_policies.length; i++){
                 var target = node.get_instance_values(listen_policies[i], "target")[0];
                 console.log("GET "+target.name+"/cards?agent="+name);   
@@ -702,7 +710,6 @@ function CEAgent(n){
                 xhr.onreadystatechange = function(){
                     if(xhr.readyState==4 && xhr.status==200){
                         var cards = xhr.responseText.split("\n");
-                        console.log(cards);
                         for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
                     }
                 };
@@ -734,7 +741,7 @@ function CEAgent(n){
                     if(to_agent == true){
                         var from = node.get_instance_relationships(card, "is from")[0];
 
-                        // Add each other agent as a recipient, but not THIS agent or the original author
+                        // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
                         for(var j = 0; j < agents.length; j++){
                             var agent_is_recipient = false;
                             for(var k = 0; k < tos.length; k++){
@@ -855,10 +862,14 @@ if(!(typeof window != 'undefined' && window.document)){
                 var ins = node.get_instances();
                 var con = node.get_concepts();
                 var s = '<html><head><title>CENode Management</title></head><body><h1>CENode Server Admin Interface</h1>';
-                s+='<h2>Load models</h2><form action="/model" method="POST"><select name="model">';
+                s+='<div style="width:48%;float:left;"><h2>Conceptual model</h2><p>Load a bundled model to the node:</p><form action="/model" method="POST"><select name="model">';
                 for(key in MODELS){s+='<option value="'+key+'">'+key+'</option>';}
-                s +='</select><br /><br /><input type="submit"></form>';
-                s+='<h2>Add sentences</h2><form action="/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:400px;height:100px;"></textarea><br /><br /><input type="submit" /></form>';
+                s +='</select><input type="submit"></form>';
+                s+='<p>Add CE sentences to the node:</p><form action="/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
+                s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent_name"><input type="text" name="name" value="'+node.get_agent_name()+'" /><input type="submit" /></form>';
+                s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Reset model</button>';
+                s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST /sentences (body= space-delimited set of senteces)<br />- GET /cards?agent=NAME (get all known cards sent to NAME)</p>';
+                s+='</div><div style="clear:both;"></div>';
                 s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(con, undefined, 2)+'</textarea></div>';
                 s+='<div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(ins, undefined, 2)+'</textarea></div>';
                 s+='</ul><body></html>';
@@ -866,21 +877,32 @@ if(!(typeof window != 'undefined' && window.document)){
                 response.end(s);
             }
             else if(request.url.indexOf("/cards") == 0){
-                var agent = request.url.match(/agent=([a-zA-Z0-9 ]*)/)[1];
+                var agent_regex = request.url.match(/agent=([a-zA-Z0-9 ]*)/);
+                var agent = null;
+                if(agent_regex != null){agent = agent_regex[1];}
                 var cards = node.get_instances("tell card");
                 var s = "";
                 for(var i = 0; i < cards.length; i++){
-                    var tos = node.get_instance_relationships(cards[i], "is to");
-                    for(var j = 0; j < tos.length; j++){
-                        if(agent != null && tos[j].name.toLowerCase() == agent.toLowerCase()){
-                            s += node.get_instance_ce(cards[i])+"\n";
-                            //s+=cards[i].sentences[cards[i].sentences.length-1]+"\n";    
-                            break;
+                    if(agent == null){
+                        s += node.get_instance_ce(cards[i])+"\n";
+                    }
+                    else{
+                        var tos = node.get_instance_relationships(cards[i], "is to");
+                        for(var j = 0; j < tos.length; j++){
+                            if(agent != null && tos[j].name.toLowerCase() == agent.toLowerCase()){
+                                s += node.get_instance_ce(cards[i])+"\n";
+                                break;
+                            }
                         }
                     }
                 }
                 response.writeHead(200, {"Content-Type": "text/ce"});
                 response.write(s);
+                response.end();
+            }
+            else if(request.url == "/reset"){
+                node.reset_all();
+                response.writeHead(302, { 'Location': '/'});
                 response.end();
             }
             else{
@@ -924,6 +946,20 @@ if(!(typeof window != 'undefined' && window.document)){
                 });
                 response.writeHead(302, { 'Location': '/'});
                 response.end();
+            }
+            else if(request.url == "/agent_name"){
+                var body = "";
+                request.on('data', function(chunk){
+                    body+=chunk;
+                });       
+                request.on('end', function(){
+                    body = decodeURIComponent(body.replace("name=","").replace(/\+/g, ' '));
+                    node.set_agent_name(body);
+                    console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
+                    response.writeHead(302, { 'Location': '/'});
+                    response.end();
+                });
+
             }
             else{
                 response.writeHead(404);
