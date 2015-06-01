@@ -28,6 +28,11 @@ function CENode(){
         return agent.get_name()+last_card_id;
     }
 
+    /*
+     * Get all the values of this instance with descriptor matching value_descriptor
+     * If the value is a VALUE (i.e. not typed), the value names will be in the list
+     * If the value is a typed value, the value's instances will be in the list
+     * */
     this.get_instance_values = function(instance, value_descriptor){
         var values = []
         for(var i = 0; i < instance.values.length; i++){
@@ -43,6 +48,29 @@ function CENode(){
         return values;
     }
 
+    /*
+     * Get THE MOST RECENT value for this instance matching value_descriptor
+     * Return types as above.
+     */
+    this.get_instance_value = function(instance, value_descriptor){
+        var value = null;
+        for(var i = 0; i < instance.values.length; i++){
+            if(instance.values[i].descriptor == value_descriptor){
+                if(instance.values[i].type_id != 0){
+                    value = get_instance_by_id(instance.values[i].type_id);
+                }
+                else{
+                    value = instance.values[i].type_name;
+                }
+            }
+        }
+        return value;
+    }
+
+    /*
+     * Get all relationships of this instance with label matching relationship_label
+     * Returned is list of instances that are related to 'instance' in this way
+     */
     this.get_instance_relationships = function(instance, relationship_label){
         var relationships = [];
         for(var i = 0; i < instance.relationships.length; i++){
@@ -51,6 +79,20 @@ function CENode(){
             }
         }
         return relationships;
+    }
+
+    /*
+     * Get THE MOST RECENT relationship of this instance with label matching relationship_label
+     * Return types as above.
+     */
+    this.get_instance_relationship = function(instance, relationship_label){
+        var relationship = null;
+        for(var i = 0; i < instance.relationships.length; i++){
+            if(instance.relationships[i].label == relationship_label){
+                relationship = get_instance_by_id(instance.relationships[i].target_id);
+            }
+        }
+        return relationship;
     }
 
     var get_concept_by_id = function(id){
@@ -532,7 +574,10 @@ function CENode(){
             instance_list = instances;
         }
         else if(concept_type != null && (recurse == null || recurse == false)){
-            var concept = get_concept_by_name(concept_type);;
+            var concept = get_concept_by_name(concept_type);
+            if(concept == null){
+                return instance_list;
+            }
             for(var i = 0; i < instances.length; i++){
                 if(instances[i].concept_id == concept.id){
                     instance_list.push(instances[i]);
@@ -627,18 +672,20 @@ function CEAgent(n){
     }
 
     var handle_card = function(card){
-        var from = node.get_instance_relationships(card, "is from")[0];
+        var from = node.get_instance_relationship(card, "is from");
         var tos = node.get_instance_relationships(card, "is to");
-        var content = node.get_instance_values(card, "content")[0];
+        var content = node.get_instance_value(card, "content");
         if(handled_cards.indexOf(card.name) == -1){
             handled_cards.push(card.name);
             for(var i = 0; i < tos.length; i++){
                 if(tos[i].name.toLowerCase() == name.toLowerCase()){
                     var tell_policies = node.get_instances("tell policy");
                     for(var j = 0; j < tell_policies.length; j++){
-                        var target_name = node.get_instance_values(tell_policies[j], "target")[0].name;
-                        if(!(target_name in unsent_cards)){unsent_cards[target_name] = [];}
-                        unsent_cards[target_name].push(card); 
+                        if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
+                            var target_name = node.get_instance_value(tell_policies[j], "target").name;
+                            if(!(target_name in unsent_cards)){unsent_cards[target_name] = [];}
+                            unsent_cards[target_name].push(card); 
+                        }
                     }
                     if(content != null){
                         var data = node.add_sentence(content); 
@@ -646,6 +693,7 @@ function CEAgent(n){
                             node.add_sentence("there is an tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the agent '"+from.name+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
                         }
                     }
+                    break;
                 }
             }
         }
@@ -663,21 +711,21 @@ function CEAgent(n){
     }
 
     var enact_policies = function(){
-        setTimeout(function(){try{
+        setTimeout(function(){//try{
             var tell_policies = node.get_instances("tell policy");
             var listen_policies = node.get_instances("listen policy");
-            var tellall_policies = node.get_instances("tellall policy");
+            var forwardall_policies = node.get_instances("forwardall policy");
 
             // For each tell policy in place, send all currently-untold cards to each target
             // To save on transit costs, if there are multiple cards to be sent to one target, they are 
             // separated by new line (\n)
             for(var i = 0; i < tell_policies.length; i++){
-                var target = node.get_instance_values(tell_policies[i], "target")[0];
+                var target = node.get_instance_value(tell_policies[i], "target");
                 var cards = unsent_cards[target.name];
                 var data = "";
                 for(var j = 0; j < cards.length; j++){
                     var card = cards[j];
-                    var from = node.get_instance_relationships(card, "is from")[0];
+                    var from = node.get_instance_relationship(card, "is from");
                     if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                         var rel = {};
                         rel.target_name = target.name;
@@ -690,7 +738,7 @@ function CEAgent(n){
                 if(data != ""){
                     console.log("POST "+target.name+"/sentences"); 
                     var xhr = new XMLHttpRequest();
-                    xhr.open("POST", node.get_instance_values(target, "address")[0]+"/sentences");
+                    xhr.open("POST", node.get_instance_value(target, "address")+"/sentences");
                     xhr.onreadystatechange = function(){
                         if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302)){
                             unsent_cards[target.name] = [];
@@ -703,67 +751,74 @@ function CEAgent(n){
 
             // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
             for(var i = 0; i < listen_policies.length; i++){
-                var target = node.get_instance_values(listen_policies[i], "target")[0];
+                var target = node.get_instance_value(listen_policies[i], "target");
                 console.log("GET "+target.name+"/cards?agent="+name);   
                 var xhr = new XMLHttpRequest();
-                xhr.open("GET", node.get_instance_values(target, "address")[0]+"/cards?agent="+name);
+                xhr.open("GET", node.get_instance_value(target, "address")+"/cards?agent="+name);
                 xhr.onreadystatechange = function(){
                     if(xhr.readyState==4 && xhr.status==200){
                         var cards = xhr.responseText.split("\n");
+                        console.log(cards);
                         for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
                     }
                 };
                 xhr.send();
             }
 
-            // If there is one enabled tellall policy, then forward any cards sent to THIS agent
+            // If there is one enabled forwardall policy, then forward any cards sent to THIS agent
             // to every other known agent.
-            var tellall = false;
-            for(var i = 0; i < tellall_policies.length; i++){
-                if(node.get_instance_values(tellall_policies[i], "enabled")[tellall_policies[i].values.length-1] == "true"){
-                    tellall = true;
-                    break;
-                }
-            }
-            if(tellall == true){
-                var agents = node.get_instances("agent");
-                var cards = node.get_instances("tell card");
-                for(var i = 0; i < cards.length; i++){
-                    var card = cards[i];
-                    var to_agent = false;
-                    var tos = node.get_instance_relationships(card, "is to");
-                    for(var j = 0; j < tos.length; j++){
-                        if(tos[j].name == name){ // If card sent to THIS agent
-                            to_agent = true;
-                            break;
-                        }
+            for(var i = 0; i < forwardall_policies.length; i++){
+                var policy = forwardall_policies[i];
+                if(node.get_instance_value(policy, "enabled") == "true"){
+                    var agents = [];
+                    if(node.get_instance_value(policy, "all agents") == "true"){
+                        agents = node.get_instances("agent");
                     }
-                    if(to_agent == true){
-                        var from = node.get_instance_relationships(card, "is from")[0];
-
-                        // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
-                        for(var j = 0; j < agents.length; j++){
-                            var agent_is_recipient = false;
-                            for(var k = 0; k < tos.length; k++){
-                                if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
-                                    agent_is_recipient = true;
-                                    break;   
+                    else{
+                        agents = node.get_instance_values(policy, "target");
+                    }
+                    var cards = node.get_instances("tell card");
+                    var start_time = node.get_instance_value(policy, "start time").name;
+                    for(var i = 0; i < cards.length; i++){
+                        var card = cards[i];
+                        var to_agent = false;
+                        var tos = node.get_instance_relationships(card, "is to");
+                        var card_timestamp = node.get_instance_value(card, "timestamp").name;
+                        if(parseInt(card_timestamp) > parseInt(start_time)){
+                            for(var j = 0; j < tos.length; j++){
+                                if(tos[j].name == name){ // If card sent to THIS agent
+                                    to_agent = true;
+                                    break;
                                 }
                             }
-                            if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
-                                var relationship = {};
-                                relationship.label = "is to";
-                                relationship.target_name = agents[j].name;
-                                relationship.target_id = agents[j].id;
-                                card.relationships.push(relationship);
+                            if(to_agent == true){
+                                var from = node.get_instance_relationships(card, "is from")[0];
+
+                                // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
+                                for(var j = 0; j < agents.length; j++){
+                                    var agent_is_recipient = false;
+                                    for(var k = 0; k < tos.length; k++){
+                                        if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
+                                            agent_is_recipient = true;
+                                            break;   
+                                        }
+                                    }
+                                    if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
+                                        var relationship = {};
+                                        relationship.label = "is to";
+                                        relationship.target_name = agents[j].name;
+                                        relationship.target_id = agents[j].id;
+                                        card.relationships.push(relationship);
+                                    }
+                                }
                             }
                         }
-                    }
-                }               
+                    }               
+                }
             }
-            }catch(err){
-                console.log(err);
-            }
+            //}catch(err){
+            //    console.log(err);
+            //}
             enact_policies();
         }, 5000); 
     }
@@ -794,10 +849,10 @@ MODELS = {
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise a ~ location ~ L that is an entity",
         "conceptualise a ~ human ~ H that is an entity",
-        "conceptualise a ~ policy ~ P",
-        "conceptualise a ~ tell policy ~ P that is a policy and has the agent A as ~ target ~",
-        "conceptualise a ~ tellall policy ~ P that is a policy and has the value V as ~ enabled ~",
-        "conceptualise a ~ listen policy ~ P that is a policy and has the agent A as ~ target ~",
+        "conceptualise a ~ policy ~ P that has the value V as ~ enabled ~ and has the agent A as ~ target ~",
+        "conceptualise a ~ tell policy ~ P that is a policy",
+        "conceptualise a ~ listen policy ~ P that is a policy",
+        "conceptualise a ~ forwardall policy ~ P that is a policy and has the timestamp T as ~ start time ~ and has the value V as ~ all agents ~",
     ],
     SHERLOCK_CORE : [
         "conceptualise a ~ sherlock thing ~ that is an entity",
@@ -837,12 +892,12 @@ MODELS = {
         "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
     ],
     SHERLOCK_SERVER : [
-        "there is a tellall policy named 'p1' that has 'true' as enabled"
+        "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled"
     ],
     SHERLOCK_CLIENT : [
         "there is an agent named 'Master' that has 'http://cenode.sentinelstream.net' as address",
-        "there is a tell policy named 'p2' that has the agent 'Master' as target",
-        "there is a listen policy named 'p3' that has the agent 'Master' as target"
+        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Master' as target and has 'true' as enabled",
+        "there is a listen policy named 'p3' that has 'true' as enabled and has the agent 'Master' as target and has 'true' as enabled"
     ]
 }
 
@@ -867,8 +922,8 @@ if(!(typeof window != 'undefined' && window.document)){
                 s +='</select><input type="submit"></form>';
                 s+='<p>Add CE sentences to the node:</p><form action="/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
                 s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent_name"><input type="text" name="name" value="'+node.get_agent_name()+'" /><input type="submit" /></form>';
-                s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Reset model</button>';
-                s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST /sentences (body= space-delimited set of senteces)<br />- GET /cards?agent=NAME (get all known cards sent to NAME)</p>';
+                s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Empty model</button>';
+                s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST /sentences (body = newline-delimited set of sentences)<br />- GET /cards?agent=NAME (get all known cards sent to NAME)</p>';
                 s+='</div><div style="clear:both;"></div>';
                 s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(con, undefined, 2)+'</textarea></div>';
                 s+='<div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(ins, undefined, 2)+'</textarea></div>';
@@ -877,7 +932,8 @@ if(!(typeof window != 'undefined' && window.document)){
                 response.end(s);
             }
             else if(request.url.indexOf("/cards") == 0){
-                var agent_regex = request.url.match(/agent=([a-zA-Z0-9 ]*)/);
+                var url = decodeURIComponent(request.url);
+                var agent_regex = url.match(/agent=([a-zA-Z0-9 ]*)/);
                 var agent = null;
                 if(agent_regex != null){agent = agent_regex[1];}
                 var cards = node.get_instances("tell card");
