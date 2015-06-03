@@ -168,6 +168,7 @@ function CENode(){
         return children;
     }
     var get_recursive_children = function(concept){
+        if(concept == null){return [];}
         var children = [];
         var stack = [];
         stack.push(concept);
@@ -526,17 +527,50 @@ function CENode(){
         }
 
 
-        else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \ba\b | \bthe\b | )/i)){
-            var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ba\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
+        else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )/i)){
+            var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
             var instance = get_instance_by_name(name);
             if(instance == null){
-                return "I don't know who or what that is.";
+                var concept = get_concept_by_name(name);
+                if(concept == null){
+                    var possibilities = [];
+                    for(var i = 0; i < concepts.length; i++){
+                        for(var j = 0; j < concepts[i].values.length; j++){
+                            var v = concepts[i].values[j];
+                            if(v.descriptor.toLowerCase() == name.toLowerCase()){
+                                if(v.type == 0){
+                                    possibilities.push("is a possible value of a type of "+concepts[i].name+" (e.g. \"the "+concepts[i].name+" 'NAME' has 'VALUE' as "+name+"\")");
+                                }
+                                else{
+                                    var val_type = get_concept_by_id(v.type);
+                                    possibilities.push("is a possible "+val_type.name+" type of a type of "+concepts[i].name+" (e.g. \"the "+concepts[i].name+" 'NAME' has the "+val_type.name+" VALUE NAME' as "+name+"\")");
+                                }
+                            }       
+                        }
+                        for(var j = 0; j < concepts[i].relationships.length; j++){
+                            var r = concepts[i].relationships[j];
+                            if(r.label.toLowerCase() == name.toLowerCase()){
+                                var r_type = get_concept_by_id(r.target);
+                                possibilities.push("describes the relationship between a type of "+concepts[i].name+" and a type of "+r_type.name+" (e.g. \"the "+concepts[i].name+" 'NAME' "+name+" the "+r_type.name+" 'TARGET NAME'\")");
+                            }
+                        }
+                    }
+                    if(possibilities.length > 0){
+                        return "'"+name+"' "+possibilities.join(" and ")+".";         
+                    }
+                    else{return "I don't know who or what that is.";}
+                }
+                else{
+                    return node.get_concept_gist(concept);
+                }
             }
-            return node.get_instance_description_ce(instance);
+            else{
+                return node.get_instance_gist(instance);
+            }
         }
 
         else if(t.match(/^where is/i)){
-            var thing = t.match(/^where is(?: \ba\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
+            var thing = t.match(/^where is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
             var instance = get_instance_by_name(thing);
             if(instance == null){return "I don't know what "+thing+" is.";}
             var locatable_instances = node.get_instances("location", true);
@@ -622,7 +656,7 @@ function CENode(){
     this.get_sentences = function(){
         return sentences;
     }
-    this.get_instance_creation_ce = function(instance){
+    this.get_instance_ce = function(instance){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
         var ce = "there is a "+concept.name+" named '"+instance.name+"'";
@@ -647,7 +681,7 @@ function CENode(){
         if(facts.length > 0){ce += " that "+facts.join(" and ");}
         return ce+".";
     }
-    this.get_instance_description_ce = function(instance){
+    this.get_instance_gist = function(instance){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
         var ce = instance.name+" is a "+concept.name+".";
@@ -671,7 +705,74 @@ function CENode(){
         }
         if(facts.length > 0){ce += " "+instance.name+" "+facts.join(" and ")+".";}
         return ce;
+    }
+    this.get_concept_ce = function(concept){
+        var ce = "conceptualise a ~ "+concept.name+" ~ "+concept.name.charAt(0).toUpperCase();
+        if(concept.parents.length > 0){ce += " that";}
+        for(var i = 0; i < concept.parents.length; i++){
+            p = get_concept_by_id(concept.parents[i]);
+            ce+= " is a "+p.name;
+            if(i < concept.parents.length-1){ce+=" and";}
+        }
+        var facts = [];
+        var alph = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
+        for(var i = 0; i < concept.values.length; i++){
+            if(concept.values[i].type == 0){
+                facts.push("has the value "+alph[i]+" as "+concept.values[i].descriptor);
+            }
+            else{
+                var val_type = get_concept_by_id(concept.values[i].type);
+                facts.push("has the "+val_type.name+" "+val_type.name.charAt(0).toUpperCase()+" as "+concept.values[i].descriptor);
+            }
+        }    
+        if(facts.length > 0){
+            ce += " "+facts.join(" and ");
+        }
+        ce+=".";
+        if(concept.relationships.length > 0){
+            facts = [];
+            ce += "\nconceptualise the "+concept.name+" "+concept.name.charAt(0).toUpperCase();
+            for(var i = 0; i < concept.relationships.length; i++){
+                var rel_type = get_concept_by_id(concept.relationships[i].target);
+                facts.push("~ "+concept.relationships[i].label+" ~ the "+rel_type.name+" "+rel_type.name.charAt(0).toUpperCase());
+            }
+            if(facts.length > 0){
+                ce += " "+facts.join(" and ")+".";
+            }
+        }
 
+        return ce;
+    }
+    this.get_concept_gist = function(concept){
+        var ce = "";
+        if(concept.parents.length > 0){ce += "A "+concept.name;}
+        for(var i = 0; i < concept.parents.length; i++){
+            p = get_concept_by_id(concept.parents[i]);
+            ce+= " is a type of "+p.name;
+            if(i < concept.parents.length-1){ce+=" and";}
+        }
+        if(concept.parents.length > 0){ce+=".";}
+        var facts = [];
+        for(var i = 0; i < concept.values.length; i++){
+            if(concept.values[i].type == 0){
+                facts.push("has a value called "+concept.values[i].descriptor);
+            }
+            else{
+                var val_type = get_concept_by_id(concept.values[i].type);
+                facts.push("has a type of "+val_type.name+" called "+concept.values[i].descriptor);
+            }
+        }    
+        for(var i = 0; i < concept.relationships.length; i++){
+            var rel_type = get_concept_by_id(concept.relationships[i].target);
+            facts.push(concept.relationships[i].label+" a type of "+rel_type.name);
+        }
+        if(facts.length > 0){
+            ce += " An instance of "+concept.name+" "+facts.join(" and ")+".";
+        }
+        else if(facts.length == 0 && concept.parents.length == 0){
+            ce += "A "+concept.name+" has no attributes or relationships.";
+        }
+        return ce;
     }
     this.add_sentence = function(ce){
         ce = ce.replace("{now}", new Date().getTime());
@@ -720,10 +821,24 @@ function CEAgent(n){
             for(var i = 0; i < tos.length; i++){
                 if(tos[i].name.toLowerCase() == name.toLowerCase()){
                     if(type == "ask card"){
+                        var ask_policies = node.get_instances("ask policy");
+                        for(var j = 0; j < ask_policies.length; j++){
+                            var target = node.get_instance_value(ask_policies[j], "target");
+                            if(node.get_instance_value(ask_policies[i], "enabled") == 'true'){
+                                var c = "there is an ask card named 'msg_{uid}' that is from the agent '"+name+"' and is from the individual '"+from.name+"' and is to the agent '"+target.name+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+                                net.make_request("POST", node.get_instance_value(target, "address"), "/sentences", c);
+                            }
+                        }
                         var data = node.add_sentence(content);
                         if(data != null){
                             data = data.replace(/'/g, "\\'");
-                            node.add_sentence("there is an tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the agent '"+from.name+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content.");
+                            var froms = node.get_instance_relationships(card, "is from");
+                            var c = "there is a tell card named 'msg_{uid}' that is from the agent '"+name+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content";
+                            for(var j = 0; j < froms.length; j++){
+                                var type = node.get_instance_type(froms[j]);
+                                c+=" and is to the "+type+" '"+froms[j].name+"'";
+                            }
+                            node.add_sentence(c);
                         }
                     }
                     else if(type == "tell card"){
@@ -737,7 +852,7 @@ function CEAgent(n){
                         }
                         var data = node.add_sentence(content); 
                         if(data != null && data == false){
-                            node.add_sentence("there is an tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the agent '"+from.name+"' and has the timestamp '{now}' as timestamp and has 'Sorry - your message was not understood.' as content.");
+                            node.add_sentence("there is a tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the individual '"+from.name+"' and has the timestamp '{now}' as timestamp and has 'Sorry - your message was not understood.' as content.");
                         }
                     }
                     break;
@@ -779,36 +894,24 @@ function CEAgent(n){
                         rel.target_id = target.id;
                         rel.label = "is to";
                         card.relationships.push(rel);
-                        data += node.get_instance_creation_ce(card)+"\n";
+                        data += node.get_instance_ce(card)+"\n";
                     }
                 }
                 if(data != ""){
-                    console.log("POST "+target.name+"/sentences"); 
-                    var xhr = new XMLHttpRequest();
-                    xhr.open("POST", node.get_instance_value(target, "address")+"/sentences");
-                    xhr.onreadystatechange = function(){
-                        if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302)){
-                            unsent_cards[target.name] = [];
-                        }
-                    };
-                    xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-                    xhr.send(data);
+                    net.make_request("POST", node.get_instance_value(target, "address"), "/sentences", data, function(resp){
+                        unsent_cards[target.name] = [];
+                    });
                 }
             }
 
             // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
             for(var i = 0; i < listen_policies.length; i++){
                 var target = node.get_instance_value(listen_policies[i], "target");
-                console.log("GET "+target.name+"/cards?agent="+name);   
-                var xhr = new XMLHttpRequest();
-                xhr.open("GET", node.get_instance_value(target, "address")+"/cards?agent="+name);
-                xhr.onreadystatechange = function(){
-                    if(xhr.readyState==4 && xhr.status==200){
-                        var cards = xhr.responseText.split("\n");
-                        for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
-                    }
-                };
-                xhr.send();
+                net.make_request("GET", node.get_instance_value(target, "address"), "/cards?agent="+name, null, function(resp){
+                    var cards = resp.split("\n");
+                    for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
+
+                });
             }
 
             // If there is one enabled forwardall policy, then forward any cards sent to THIS agent
@@ -900,6 +1003,7 @@ MODELS = {
         "conceptualise a ~ human ~ H that is an entity",
         "conceptualise a ~ policy ~ P that has the value V as ~ enabled ~ and has the agent A as ~ target ~",
         "conceptualise a ~ tell policy ~ P that is a policy",
+        "conceptualise an ~ ask policy ~ P that is a policy",
         "conceptualise a ~ listen policy ~ P that is a policy",
         "conceptualise a ~ forwardall policy ~ P that is a policy and has the timestamp T as ~ start time ~ and has the value V as ~ all agents ~",
     ],
@@ -907,8 +1011,10 @@ MODELS = {
         "conceptualise a ~ sherlock thing ~ that is an entity",
         "conceptualise a ~ company ~ that is a sherlock thing",
         "conceptualise a ~ fruit ~ that is a sherlock thing and is a locatable thing and has the room R as ~ room ~",
-        "conceptualise a ~ room ~ that is a location and is a sherlock thing",
-        "conceptualise the room R ~ contains ~ the sherlock thing S",
+        "conceptualise a ~ room ~ that is a location and is a sherlock thing and has the location L as ~ location ~",
+        "conceptualise the room R ~ contains ~ the sherlock thing S and ~ is located in ~ the location L and ~ is located on ~ the location M",
+        "conceptualise a ~ floor ~ that is a location",
+        "conceptualise a ~ building ~ that is a location",
         "conceptualise a ~ character ~ that is a sherlock thing and is a locatable thing and has the value V as ~ shirt colour ~ and has the value W as ~ hobby ~",
         "conceptualise the character C ~ works for ~ the company D and ~ eats ~ the fruit F",
         "conceptualise a ~ question ~ that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
@@ -940,21 +1046,126 @@ MODELS = {
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
     ],
-    SHERLOCK_SERVER : [
-        "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled"
+    SHERLOCK_MASTER : [
+        "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
+        "there is a buulding named 'North Building'",
+        "there is a floor named '2nd Floor'",
+        "the room 'N215' is located in the building 'North Bulding' and is located on the floor '2nd Floor'"
     ],
-    SHERLOCK_CLIENT : [
+    SHERLOCK_NODE : [
         "there is an agent named 'Master' that has 'http://cenode.sentinelstream.net' as address",
-        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Master' as target and has 'true' as enabled",
-        "there is a listen policy named 'p3' that has 'true' as enabled and has the agent 'Master' as target and has 'true' as enabled"
+        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Master' as target",
+        "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Master' as target",
+        "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Master' as target"
     ]
 }
 
+/*
+ * HELPER UTILITIES
+ */
+var util = {
+    on_client: function(){
+        if(typeof window != 'undefined' && window.document){
+            return true;
+        }
+    },
+    store_node: function(key, node){
+        if(util.onclient()){store_node_client(key, node);}
+        else{store_node_node(key, node);}
+    },
+    store_node_client: function(key, node){
+        try{
+            localStorage.setItem(key+"_instances", JSON.stringify(node.get_instances()));
+            localStortage.setItem(key+"_concepts", JSON.stringify(node.get_concepts()));
+        }
+        catch(err){console.log(err);}
+    },
+    store_node_node: function(key, node){
+        var fs = require('fs');
+        var file = JSON.stringify(node.get_concepts())+"NODESEPARATOR"+JSON.stringify(node.get_instances);
+        fs.writeFile("./"+key+"_node", file, function(err){
+            if(err){console.log(err);}
+        });
+    },
+    load_node: function(key){
+        if(util.onclient()){load_node_client(key);}
+        else{load_node_node(key);}
+    },
+    load_node_client: function(key){
+        try{
+            var data = {};
+            data.instances = JSON.parse(localStorage.getItem(key+"_instances"));
+            data.concepts = JSON.parse(localStorage.getItem(key+"_concepts"));
+            return node;
+        }
+        catch(err){console.log(err);}
+    },
+    load_instances_node: function(key, callback){
+        var fs = require('fs');
+        var data = {};
+        fs.readFile("./"+key+"_node", 'utf8', function(err, str){
+            if(err){console.log(err);}
+            else{
+                try{
+                    var split = str.split("NODESEPARATOR");
+                    data.concepts = JSON.parse(split[0]);
+                    data.instances = JSON.parse(split[1]);
+                    if(callback){callback(data);}
+                }
+                catch(err){console.log(err);if(callback){callback();}}
+            }
+        });
+    }
+}
+var net = {
+    make_request: function(method, node_url, path, data, callback){
+        if(util.on_client()){net.make_request_client(method, node_url, path, data, callback);}
+        else{make_request_node(net.method, node_url, path, data, callback);}
+    },  
+    make_request_client: function(method, node_url, path, data, callback){
+        console.log(method+" "+path);
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, node_url+path);
+        xhr.onreadystatechange = function(){
+            if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302) && callback != null){
+                callback(xhr.responseText);
+            }
+        };
+        if(data != null){
+            xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+            xhr.send(data);
+        }
+        else{
+            xhr.send();
+        }
+
+    },
+    make_request_node: function(method, node_url, path, data, callback){
+        var http = require('http');
+        var options = {
+            host: node_url,
+            path: path,
+            method: method,
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+        };
+        var req = http.request(options, function(response){
+            var body = '';
+            response.on('data', function(chunk){body+=data;});
+            response.on('end', function(){
+                body = decodeURIComponent(body.replace(/\+/g, ' '));
+                callback(body);
+            });
+        });
+        if(data != null){req.write(data);}
+        req.end();
+    }
+}
+
 // If running as a Node.js app...
-if(!(typeof window != 'undefined' && window.document)){
+if(!util.on_client() && require.main === module){
     var http = require('http');
     var PORT = 5555;
-    var node = new CENode(MODELS.CORE, MODELS.SHERLOCK_CORE, MODELS.SHERLOCK_SERVER);
+    var node = new CENode(MODELS.CORE, MODELS.SHERLOCK_CORE, MODELS.SHERLOCK_MASTER);
 
     if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
     console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
@@ -989,13 +1200,13 @@ if(!(typeof window != 'undefined' && window.document)){
                 var s = "";
                 for(var i = 0; i < cards.length; i++){
                     if(agent == null){
-                        s += node.get_instance_creation_ce(cards[i])+"\n";
+                        s += node.get_instance_ce(cards[i])+"\n";
                     }
                     else{
                         var tos = node.get_instance_relationships(cards[i], "is to");
                         for(var j = 0; j < tos.length; j++){
                             if(agent != null && tos[j].name.toLowerCase() == agent.toLowerCase()){
-                                s += node.get_instance_creation_ce(cards[i])+"\n";
+                                s += node.get_instance_ce(cards[i])+"\n";
                                 break;
                             }
                         }
@@ -1078,3 +1289,5 @@ if(!(typeof window != 'undefined' && window.document)){
     }).listen(PORT);
     console.log("CENode server instance running on port "+PORT+"...");
 }
+
+;
