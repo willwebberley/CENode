@@ -611,8 +611,45 @@ function CENode(){
         }
     }
 
-    this.guess_next = function(s){
-        return "";
+    this.guess_next = function(t){
+        t = t.trim().toLowerCase();
+        var tokens = t.split(" ");
+        var starters = ["conceptualise the ", "conceptualise a ~ ", "there is a ", "the "];
+        var last_concept = concepts[concepts.length-1];
+        var possible_words = [];
+        if(t == ""){return t;}
+        if(tokens.length < 3){
+            for(var i = 0; i < starters.length; i++){
+                if(starters[i].indexOf(t) == 0){
+                    if(starters[i] == "conceptualise the "){
+                        return starters[i] + last_concept.name+" "+last_concept.name.charAt(0).toUpperCase()+" has ";  
+                    }
+                    if(starters[i] == "there is a "){
+                        return starters[i] + last_concept.name+" named '";  
+                    }if(starters[i] == "the "){
+                        return starters[i] + last_concept 
+                    }
+                }
+            }
+        }
+        else{
+            for(var i = 0; i < instances.length; i++){
+                possible_words.push(instances[i].name);
+            }
+            for(var i = 0; i < concepts.length; i++){
+                possible_words.push(concepts[i].name);
+                for(var j = 0; j < concepts[i].values.length; j++){possible_words.push(concepts[i].values[j].descriptor);}
+                for(var j = 0; j < concepts[i].relationships.length; j){possible_words.push(concepts[i].relationships[j].label;}
+            }
+            possible_words.push("and has the ");
+            possible_words.push("and is ");
+            possible_words.push("the ");
+            for(var i = 0; i < possible_words.length; i++){
+                if(possible_words[i].toLowerCase().indexOf(tokens[tokens.length-1])){
+                    return tokens.splice(tokens.length-1,1).(join(" ")+possible_words[i];
+                }
+            }
+        }
     }
     this.get_instances = function(concept_type, recurse){
         var instance_list = [];
@@ -1048,7 +1085,7 @@ var MODELS = {
     ],
     SHERLOCK_MASTER : [
         "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
-        "there is a buulding named 'North Building'",
+        "there is a building named 'North Building'",
         "there is a floor named '2nd Floor'",
         "the room 'N215' is located in the building 'North Bulding' and is located on the floor '2nd Floor'"
     ],
@@ -1084,8 +1121,8 @@ var util = {
     },
     store_node_node: function(key, node){
         var fs = require('fs');
-        var file = JSON.stringify(node.get_concepts())+"NODESEPARATOR"+JSON.stringify(node.get_instances);
-        fs.writeFile("./"+key+"_node", file, function(err){
+        var file = JSON.stringify(node.get_concepts())+"NODESEPARATOR"+JSON.stringify(node.get_instances());
+        fs.writeFile("./"+key+"_node", file, function(err){u
             if(err){console.log(err);}
         });
     },
