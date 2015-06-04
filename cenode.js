@@ -987,7 +987,7 @@ function CEAgent(n){
  *
  * Example: node = new CENode(MODELS.CORE, MODELS.SHERLOCK);
  */
-MODELS = {
+var MODELS = {
     CORE : [
         "conceptualise an ~ entity ~",
         "conceptualise a ~ timestamp ~ T that is an entity",
@@ -1059,6 +1059,9 @@ MODELS = {
         "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Master' as target"
     ]
 }
+
+exports.MODELS = MODELS;
+exports.CENode = CENode;
 
 /*
  * HELPER UTILITIES
@@ -1168,6 +1171,7 @@ if(!util.on_client() && require.main === module){
     var node = new CENode(MODELS.CORE, MODELS.SHERLOCK_CORE, MODELS.SHERLOCK_MASTER);
 
     if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
+    if(process.argv.length > 3){PORT = parseInt(process.argv[3]);}
     console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
 
     http.createServer(function(request,response){
@@ -1289,5 +1293,3 @@ if(!util.on_client() && require.main === module){
     }).listen(PORT);
     console.log("CENode server instance running on port "+PORT+"...");
 }
-
-;

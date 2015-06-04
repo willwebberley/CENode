@@ -1,7 +1,8 @@
-\documentclass{article}
-\usepackage{textcomp}
+\documentclass{scrartcl}
+\usepackage{framed}
 
 \title{\texttt{cenode.js}}
+\subtitle{Revision 1.0}
 \author{A.D. Preece \& W.M. Webberley \\ \textit{Cardiff University}}
 \date{}
 
@@ -24,14 +25,14 @@ All communication with instances of CENode should be made through CE. Indeed, mo
 The rest of this document highlights the key features of CENode and describes ways in which it can be deployed and used for a wide range of applications.
 
 \section{ITA Controlled English \& Dialects}
-The CE language has already been thoroughly documented (see the document entitled `Summary of Controlled English' by D. Mott for more information), and CENode aims to be fully compatible with this specification, enabling multi-agent systems to include both CENode instances and the CEStore. This section describes the key types of sentences understandable by CENode any additional supported dialects.
+The CE language has already been thoroughly documented (see the document entitled `Summary of Controlled English' by D. Mott for more information), and CENode aims to be fully compatible with this specification, enabling multi-agent systems to include both CENode instances and the CEStore. This section describes the key types of sentences understandable by CENode and some additional supported dialects.
 
 Please note that CENode does not (currently) support CE rules or the `expressed by' clause used to declare synonyms.
 
 \subsection{Key Sentence Types}
 All modifications to the underlying CENode conceptual model are made through \texttt{conceptualise} statements.\\
 
-For example, the sentence below creates a new concept, called `teacher' as a subclass of the concept `person` (assuming that `person' has already been conceptualise):\\
+For example, the sentence below creates a new concept, called `teacher' as a subclass of the concept `person` (assuming that `person' has already been conceptualised):\\
 \texttt{conceptualise a $\sim$ teacher $\sim$ T that is a person}\\
 
 Since, in this example, we have declared that a teacher is a type of person, then the CENode will allow instances of teacher to be made with the properties associated with the person concept.\\ 
@@ -88,7 +89,7 @@ would give:\\
 The CORE model includes a concept called \texttt{location} which can be used as a parent of other types of location (e.g. a building, a room, a road, etc.). As long as the instance in question has a property relating to any concept that has \texttt{location} as an ancestor, then a meaningful response can be obtained.\\
 
 For example, let's assume that the \texttt{person} concept (that \texttt{teacher} inherits from) supports a relationship called `lives in' that targets an instance of type \texttt{house}, which is a child of \texttt{location}:\\
-\texttt{Mrs Smith lives in the house 'Number 23'}.\\
+\texttt{the teacher Mrs Smith lives in the house 'Number 23'}.\\
 
 We can now ask a `where' question:\\
 \texttt{Where is Mrs Smith?}\\
@@ -102,17 +103,31 @@ In general, CENode ignores stop words, so the following are all valid questions:
 
 
 \section{Node `Models'}
+\label{models}
+A CE model is essentially a collection of CE sentences that can be delivered to a node in order to develop its conceptual model and populate it with instances. Since the CENode library is written in JavaScript, then a model is simply an array of CE sentences. For example, consider a simple model:\\
+\begin{verbatim}
+var my_model = [
+    "conceptualise a ~ teacher ~ T",
+    "conceptualise a ~ class ~ C",
+    "conceptualise the teacher T ~ teaches ~ the class C",
+    "there is a teacher named 'Mrs Smith' that teaches the class 'B2'"
+];
+\end{verbatim}
+
+This model can then be loaded into an instance of CENode when it is instantiated. See Section \ref{api} for more details on this.\\
+
 \texttt{cenode.js} comes bundled with models that can be used to initialise a CENode instance with some basic knowledge. As mentioned previously, loading such a model is sometimes mandatory (for example, when querying for an instance's location), since the models may include concepts and instances necessary for interacting with such information. As we progress through this document, the purpose of core models will become more clear.
 
-It is usually recommended that \textit{any} instance of CENode is at least supplied the CORE model, as this includes the \texttt{location} concept, as well as other concepts that are useful to subclass when further populating the model. These models are included in \texttt{cenode.js}'s \texttt{MODELS} object, so that the CORE model can be accessed by \texttt{MODELS.CORE}.
+It is usually recommended that \textit{any} instance of CENode is at least supplied the CORE model, as this includes the \texttt{location} concept, as well as other concepts that are useful to subclass when further populating the model. These models are included in \texttt{cenode.js}'s \texttt{MODELS} object, so that the CORE model can be accessed by \texttt{MODELS.CORE}. 
 
 Currently, only the CORE model is recommended for general use. Instantiating a CENode with a particular model in different types of applications is described later on.
+
 
 
 \section{CENode Agents}
 Each CENode instance is accompanied by its own agent. A node's agent is spawned upon the node's instantiation and represents the recommended interface between the node's knowledge base and its user. In a multi-node system, agents also handle any node-node interaction through the respect of `policies' (see later).
 
-A CENode agent, although bundled with \texttt{cenode.js}, is actually entirely separate from the node's model, and in fact has no more access to the model than another user programmatically using the library. Agents only work properly when the CORE model has been loaded, and each agent in a given CENode system should be given a unique name. A node can be told about a given agent using normal CE as follows (given that the CORE model has been loaded):\\
+A CENode agent, although bundled with \texttt{cenode.js}, is actually entirely separate from the node's model, and in fact has no more access to the model than another user programmatically using the library. Agents only work properly when the CORE model has been loaded, and each agent in a given CENode system should have a unique name. A node can be told about a given agent using normal CE as follows (given that the CORE model has been loaded):\\
 \texttt{there is an agent named 'agent1'}.
 
 \subsection{Cards}
@@ -126,14 +141,17 @@ A \texttt{tell card} should be used to tell a particular agent some information,
 
 
 \subsection{Blackboard Architecture}
+\label{blackboard_architecture}
 
 As mentioned, agents begin their life when the CENode they are associated with is instantiated. Agents continuously check their node's knowledge base for any cards that are addressed to itself. If a card is found that is addressed to and hasn't yet been seen by the agent, then the agent will act upon it.
 
 If the card is a tell card, then the agent will open up the CE content contained within and feed it into its node with the aim of modifying its conceptual model. If the card is an ask card, then the agent will attempt to answer the question and send a response back to the entity that initially sent the card.
 
-If the card instance exists in a node and the node's local agent is \textit{not} a recipient, then no further action will take place on the node. Of course, any programs using the \texttt{cestore.js} library may decide to do something with it, but generally it will be ignored by the local agent (unless its name is changed to that of the intended recipient). 
+If a card instance exists in a node and the node's local agent is \textit{not} a recipient, then no further action will occur for this card on this node. Of course, any programs using the \texttt{cestore.js} library may decide to do something with it, but generally it will be ignored by the local agent (unless its name is changed to that of the intended recipient).
 
-Although this may seem useless, it actually forms the basis for the blackboard architecture, in which agents and users can read and write cards from and to a node. Later on in this document we'll cover \textit{policies}, which allow agents to communicate automatically with each other in different ways. Submitting CE to agents wrapped in cards allows only the information that is actually needed by each node to be read by the agent of that node.
+Although this may seem useless, it actually forms the basis for the blackboard architecture, in which agents and users can read and write cards from and to a node. Later on in this document we'll cover \textit{policies}, which allow agents to communicate automatically with each other in different ways. Submitting CE to agents wrapped in cards allows only the information that is actually needed by each node to be read by the agent of that node.\\
+
+In general, any valid CE submitted to a node will be parsed immediately and the node's conceptual model appropriately updated. Sometimes, the node will return a response immediately (either programmatically or in a response to a HTTP request) containing some relevant information. This usually only occurs when the CE represents a who/what/where question. However, when submitting CE within a card envelope, no response will be returned. This is because creating instances does not invoke a response fom the node and agents work separately and asynchronously from the rest of the CENode process. Agents will read cards from their node in their own time and will write responses back to it when necessary (e.g. in the case of an `ask card' being submitted). When submitting cards, the contained CE is, essentially, parsed twice. Once when the card is initially submitted to the node (a process which involves adding an instance of `card' along with its associated information). The second time is when the agent comes round to picking cards from the node and re-submitting the contained CE directly.
 
 
 \section{Using CENode}
@@ -142,7 +160,7 @@ Generally, the installation and inclusion of CENode into your project is very si
 \subsection{In a Web Application or Webpage}
 \label{as_a_webapp}
 In a web application or webpage, the \texttt{cenode.js} library can be easily imported:\\
-\texttt{<script src="cenode.js"></script}\\
+\texttt{<script src="cenode.js"></script>}\\
 
 Once imported, a new CENode instance can be instantiated in a later \texttt{<script>} block and any required models can be passed as arguments. After instantiation, sentences can be added as direct CE (or embedded within cards):
 \begin{verbatim}
@@ -160,7 +178,7 @@ node.add_sentence("there is a tell card named '{uid}' that is to the agent
 
 Since we have set the node's agent's name to `agent1', both of the \texttt{add\_sentence} lines would have equal functionality (although the node will prevent multiple instances being created with the same name and same type). In the former case, the CE will be parsed directly and the teacher will be added to the model. In the latter, the card will be added to the model, and the local agent will eventually find the card and update the model with the relevant information.\\
 
-Both \texttt{\{uid\}} and \texttt{\{now\}} are special character sequences that will be modified by the node once received. Please see the Section entitled `CENode API' for more information on these and for other features available to applications using the library in such a way.
+Both \texttt{\{uid\}} and \texttt{\{now\}} are special character sequences that will be modified by the node once received. Please see Section \ref{api} for more information on these and for other features available to applications using the library in such a way.
 
 \subsection{In a JavaScript Application}
 \label{as_an_app}
@@ -172,7 +190,7 @@ with Ubuntu:\\
 and with OS X (with Homebrew installed):\\
 \texttt{\$ brew install node}\\
 
-Please note that the library is also mostly compatible with other JavaScript runtimes, such as io.js.\\
+Please note that the library is also mostly compatible with other JavaScript runtimes, such as \texttt{io.js}.\\
 
 Once Node.js has been installed, you can create a simple Node.js app in a similar way to using the library in a web app:
 \begin{verbatim}
@@ -184,7 +202,7 @@ node.add_sentence(...)
 ... etc.
 \end{verbatim}
 
-Beyond this point, functionality is precisely the same as that when the library is used as a web application. For more information on the programmatic API, please see later in this document.
+Beyond this point, functionality is precisely the same as that when the library is used in a web application. For more information on the programmatic API, please see Section \ref{api}.
 
 \subsection{As a RESTful Service}
 \label{as_a_service}
@@ -199,7 +217,7 @@ By default this will start a web server on port 5555 with a local agent named `M
 
 The CENode instance run in this way provdes a webpage that you can use to administer the instance. To do so, visit \texttt{localhost:5555} in a web browser (or the hostname of the machine running the instance if not local). You will be presented with a display indicating some information about the node instance and will allow some simple controls (such as model-loading and sentence-inputs).\\
 
-The CENode instance can be launched with different configurations by supplying command-line arguments. For example the below command will start the server on port 5432 and will set the name of the agent to `agent1' (the output from the server is included below for your information):\\
+The CENode instance can be launched with different configurations by supplying command-line arguments. For example the below command will start the service on port 5432 and will set the name of the agent to `agent1' (the output from the server is included below for your information):\\
 
 \begin{verbatim}
 $ node cenode.js agent1 5432
@@ -207,19 +225,19 @@ Set local agent's name to `agent1'.
 CENode server instance running on port 5432...
 \end{verbatim}
 
-Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see later on in this document.
+Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see Section \ref{api_rest}.
 
 \section{Multi-Node Systems}
 As described earlier, CENode instances can either be run independently or as part of a multi-node system. This section outlines methods on how this might be accomplished. In a typical muli-node system, at least one of the nodes will need to be run as a service exposing the required HTTP endpoints.
 
 \subsection{General}
-All CENode instances in a multi-node system are, by default, equal in terms of functionality and behaviour. This is the case even if each node is deployed in a different way (e.g. some nodes may be running as a service, some as a web application, and some as a programmatic JavaScript application). Providing information to (and retrieving information from) a local Node is simple, as shown briefly earlier and in more detail later on, and supporting inter-node communication is also relatively easy.
+All CENode instances in a multi-node system are, by default, equal in terms of functionality and behaviour. This is the case even if each node is deployed in a different way (e.g. some nodes may be running as a service, some as a web application, and some as a programmatic JavaScript application). Providing information to (and retrieving information from) a local node is simple, as shown briefly earlier and in more detail later on, and supporting inter-node communication is also relatively easy.
 
 The \texttt{cenode.js} library comes equipped with the ability to allow agents to communicate over the network with other agents, and will adapt automatically to the environment it exists in. For example, if running in a web page it will use the browser's \texttt{XMLHttpRequest} object, and if running as a Node.js app it will use Node.js's \texttt{http} module. Either way, there is no intervention required by users when deploying a CENode as part of a multi-node system on a variety of platforms.
 
 
 \subsection{Policies}
-All inter-node communication should be described by \textit{policies}. These are essentially instructions, written in CE that instruct individual nodes to communicate with each other in different ways. All policy types understood by the agent are included in the CORE model.\\
+All inter-node communication should be described by \textit{policies}. These are essentially instructions, written in CE, that instruct individual nodes to communicate with each other in different ways. All policy types understood by the agent are included in the CORE model (see Section \label{models}).\\
 
 Policies written to a particular CENode represent instructions to its local agent. Agents periodically query the policies that are in their node's knowledge base and act upon them accordingly. As such, policies can be created and modified using plain CE once the CENode instance is running with almost immediate effect.
 
@@ -245,13 +263,28 @@ Any cards which do not have `agent1' as a recipient (or any other type of card) 
 An \texttt{ask policy} works in almost exactly the same way as a tell policy (with our local agent named `agent1'):\\
 \texttt{there is an ask policy named 'p1' that has 'true' as enabled and has the agent 'agent2' as target}\\
 
-In this scenario, every \texttt{ask card} sent to `agent1' will also be sent to `agent2' using a HTTP POST request. As with targets of a \texttt{tell policy}, target agents of an \texttt{ask policy} must be instances running as a service instance.
+In this scenario, every \texttt{ask card} sent to `agent1' will also be sent to `agent2' using a HTTP POST request. As with targets of a \texttt{tell policy}, target agents of an \texttt{ask policy} must be instances running as a service instance.\\
 
+Ask policies are mostly useless unless the agent acting on the policy is able to receive a response from the policy's target. As discussed in Section \ref{blackboard_architecture}, communication between agents and individuals using cards is \textit{asynchronous}, and therefore an answer to a question cannot be included in the response of the POST reequest made as a result of the policy. In reality, when an `ask card' is POSTed to the target, its agent will get round to reading the card in its own time and will write a card back to its \textit{own} store if the card requires a reply.
+
+Therefore, most multi-node setups using an `ask policy' will also involve a `listen policy' targeting the same target as the `ask policy'. See Section \ref{listen_policy} for more information.
 
 \subsubsection{\texttt{listen policy}}
-A \texttt{listen policy} instructs the local agent, `agent1', to periodically poll the target agent for instances of tell card sent to `agent1'. Any cards found are opened and the content is added to the agent's node's knowledge base as normal.\\
+\label{listen_policy}
+A \texttt{listen policy} instructs the local agent, `agent1', to periodically poll the target agent for instances of `tell card' sent to `agent1'. Any cards found are opened and the content is added to the agent's node's knowledge base as normal.\\
 
-As with the previous two policy types, any target agent must be in a node running a as a service instance.
+As with the previous two policy types, any target agent must be in a node running a as a service instance.\\
+
+Listen policies are useful in conjunction with ask policies, since they enable a response to be retrieved from the target of the ask policy. For example, consider the following setup (assuming the local agent is named `agent1'):\\
+\begin{verbatim}
+- there is an agent named 'agent2' that has 'agent2.com' as address
+- there is an ask policy named 'p1' that has 'true' as enabled and
+    has the agent 'agent2' as target
+- there is a listen policy named 'p2' that has 'true' as enabled and
+    has the agent 'agent2' as target
+\end{verbatim}
+
+This setup will cause `agent1' to forward all ask cards it receives to `agent2' and will be able to receive a response from `agent2', through the listen policy, once `agent2' has read and replied to the ask card.
 
 \subsubsection{\texttt{forwardall policy}}
 A \texttt{forwardall policy} is slightly more complex because it has more options in its configuration. The general principle is that the agent the policy is active on will forward some tell cards that have been sent to this agent on to a set of other agents as required. Unlike the other policy types, a \texttt{forwardall policy} does not trigger any network requests. Instead, any card-forwardings are made simply by adding targets as \textit{recipients} of the cards. These can then be retrieved by other agents who have a \texttt{listen policy} targeting this node.\\
@@ -261,14 +294,14 @@ As with the previous examples, imagine the local agent which is acting on the \t
 The construction of a \texttt{forwardall policy} might look like this:\\
 \texttt{there is a forwardall policy named 'p1' that has 'true' as enabled and has the timestamp '0' as start time and has 'true' as all agents}\\
 
-In the above example, any tell cards that have been sent to `agent1' will have every agent known by agent1's node added as a recipient. Then, if any of these agents make a request (as a result of a \texttt{listen policy} or otherwise), they can access these cards.\\
+In the above example, any tell cards that have previously been sent to `agent1' and any arriving in future whilest the policy is enabled will have every agent known by agent1's node added as a recipient. Then, if any of these agents make a request to this node (as a result of a \texttt{listen policy} or otherwise), they can access these cards.\\
 
-The `start time' field spercifies that the policy should only affect cards with a timestamp greater than this, and so this can be set to `0' to activate the policy for all tell cards sent to `agent1' during its lifetime. the `all agents' field is a boolean which, if `true' specifies that \textit{all} known agents should be added as a recipient.\\
+The `start time' field specifies that the policy should only affect cards with a timestamp greater than this, and so this can be set to `0' to activate the policy for all tell cards sent to `agent1' during its lifetime. The `all agents' field is a boolean which, if `true', specifies that \textit{all} known agents should be added as a recipient.\\
 
 If `all agents' is set to `false' instead, then a set of agent recipients can be specified. Consider the more complex example below:\\
 \texttt{there is a forwardall policy named 'p2' that has 'true' as enabled and has the timestamp '12345' as start time and has the agent 'agent2' as target and has the agent 'agent3' as target}\\
 
-In the above example, the policy will cause the agent `agent1' to add both `agent2' and `agent3' as recipients to all tell cards sent to `agent1' with a timestamp greater than `12345'.
+In the above example, the policy will cause the agent `agent1' to add both `agent2' and `agent3' as recipients to all tell cards sent to `agent1' with a timestamp greater than `12345' from now until the policy is disabled.
 
 \subsection{Example Network Topologies Using Policies}
 Using policies in a sensible way allows for a large variety of possible network topologies. Combining policies allow for useful configurations of multi-node setups. This section outlines a couple of examples for inspiration.
@@ -316,25 +349,103 @@ Secondly, the router node needs to simply forward every message it receives on t
 
 
 \section{CENode API}
+\label{api}
 As discussed throughout this document, \texttt{cenode.js} can be used programmatically in a JavaScript or web application as well as a web service for receiving RESTful requests. This section describes the methods available on both types of interface.
 
 \subsection{Programmatic Interface}
-When used as a library as part of a JavaScript application or within a webpage (see Sections \ref{as_a_webapp} and \ref{as_an_app}), \texttt{CENode} instances expose a number of useful methods:
+When used as a library as part of a JavaScript application or within a webpage (see Sections \ref{as_a_webapp} and \ref{as_an_app}), \texttt{CENode} instances expose a number of useful public methods. All the methods in this section are callable on instances of \texttt{CENode}.
 
-\begin{itemize}
-    \item \texttt{CENode obj CENode([model1 [, model2 [, model3 ...]]])}\\
-            Instantiate a new \texttt{CENode} object with any number of models. Generally, it is recommended that the CORE model at least be loaded. Example:\\
-            \texttt{var node = new CENode(MODELS.CORE, CUSTOM\_MODEL\_1, CUSTOM\_MODEL\_2);}
-        
-\end{itemize}
+\newcommand{\cenodemethod}[5]{
+    \begin{flushleft}
+    \begin{minipage}{1.2\textwidth}
+    \vskip10pt
+    \begin{large}
+        \noindent\texttt{#1 \underline{#2} (#3)}
+    \end{large}
+    \vskip5pt
+    \begin{tabular}{|p{0.9\textwidth}}
+        \textit{#4}
+        \vskip8pt
+        \textbf{Example Usage}\\
+        #5
+    \end{tabular}
+    \end{minipage}
+    \end{flushleft}
+}
+
+\cenodemethod{CENode}{CENode}{[model1 [, model2 [, model3 ...]]]}{Instantiates and returns a new \texttt{CENode} object with any number of models. Generally, it is recommended that the default CORE model at least be loaded. Instantiating a CENode starts the lifecycle of an agent within it, whose name is set to `Moira' by default.}{
+    \texttt{var node = new CENode(MODELS.CORE);}\\
+    The Node can instead be instantiated with custom models. These can be created as described in Section \ref{models} and then loaded in the same way:\\
+    \texttt{var node = new CENode(custom\_model\_1, custom\_model\_2);}
+}
+
+\cenodemethod{String}{guess\_next}{String input}{Returns a guess of the rest of the CE sentence in \texttt{input} for supporting auto-complete. Note that this feature is still under development}{
+    \texttt{var guess = node.guess\_next("there is a p");}\\
+    In this case, the node will look through its knowledge base to find concepts with name starting with `p' (for example, `person'). \texttt{guess} would then contain `there is a person named'.
+}
+
+\cenodemethod{Instance[]}{get\_instances}{[String concept\_name[, Bool recurse]]}{Return a list of instance objects. If \texttt{concept\_name} is included, then only instances of this type will be included. If \texttt{recurse} is set to \texttt{true} then instances of the concept's children, grandchildren, etc., will also be included.}{
+    \texttt{var tell\_cards = node.get\_instances("tell card");}\\
+    \texttt{var all\_cards = node.get\_instances("card", true);}
+}
+
+\cenodemethod{String}{add\_sentence}{String sentence}{Adds a CE sentence to the node's conceptual model. As long as \texttt{sentence} is valid CE and understandable by the node, then this will immediately update the node's model. The returned string is \texttt{null} in most cases but will contain a response if \texttt{sentence} is a direct question. If \texttt{sentence} is a card with CE wrapped within, then the card will be added as an instance to the node, but the contents will only be handled (asynchronously) by the agent the card is addressed to. \newline\texttt{add\_sentence} can parse special character sequences to aid users in creating cards. The sequence \texttt{\{now\}} will be replaced by the current timestamp of the node's environment and \texttt{\{uid\}} will be replaced by an an appropriate identifier for the card.}{
+    \texttt{node.add\_sentence("there is a teacher named 'Mrs Smith'");}\\
+    \texttt{var answer = node.add\_sentence("Who is Mrs Smith?");}\\
+    \vskip5pt 
+    The example below illustrates the use of special character sequences.
+    \texttt{node.add\_sentence("there is a tell card named '\{uid\}' that has the timestamp '\{now\}' as timestamp ...");}
+}
+
+\cenodemethod{void}{set\_agent\_name}{String name}{Sets a new name for the node's local agent. Updating this value will mean the agent will open different cards and will ignore any further cards sent to its previous name. Note that agent names are case-insensitive when qualifying card recipients.}{
+    \texttt{node.set\_agent\_name("Agent 1");}
+}
+
+\cenodemethod{String}{get\_agent\_name}{}{Retrieves the name of the local agent.}{
+    \texttt{var agent\_name = node.get\_agent\_name();}
+}
 
 
 \subsection{RESTful HTTP Interface}
-When run as a service (see Section \ref{as_a_service}), the node instance is able to accept requests on appropriate endpoints:
+\label{api_rest}
+When run as a service (see Section \ref{as_a_service}), which runs on port 555 by default, users can visit \texttt{localhost:5555} to administer the node (use a different hostname if not running the node locally). The webpage served at this address allows administers to submit new sentences to the node, inspect instances and concepts, change the name of the local agent, load models, and reset the store.\\
 
-\begin{itemize}
-    \item \texttt{POST /sentences} - 
-    \item \texttt{GET /cards} - 
-\end{itemize}
+In addition to these features, a node that is running as a service also exposes a RESTful interface for other nodes (or applications) to make HTTP requests to. There is no authentiation mechanism implemented on \texttt{cenode.js} and the service will accept requests from any domain (i.e. CORS is enabled) so that nodes can be accessed from within web applications run within a browser. In fact, these RESTful endpoints are the same ones that are used by the agents themselves when acting on policies applied to them.
+
+\cenodemethod{POST}{/sentences}{}{Submit a newline-separated set of CE sentences to the node. The sentences should be in the body of the request and no key is necessary. Nodes will not return any content within the body of the response - instead, \texttt{GET /cards} should be used to retrieve information from a service node.}{
+
+    REQUEST:
+    \begin{framed}
+    \texttt{POST /sentences\newline
+Content-Type: text/ce\newline\newline
+there is a teacher named 'Mrs Smith'\newline
+Mrs Smith teaches the class 'B2'
+    }\end{framed}
+
+    RESPONSE:
+    \begin{framed}
+    \texttt{200 OK\newline
+Content-Length: 0}
+    \end{framed}
+
+}
+
+\cenodemethod{GET}{/cards}{[?agent=NAME]}{Retrieve cards from the node. If `agent' is specified, then only cards addressed to `NAME' are returned. Cards are returned in pure CE in the body of the response, separated by newlines.}{
+    
+    REQUEST:
+    \begin{framed}
+    \texttt{GET /cards?agent=agent1\newline}
+    \end{framed}
+    
+    RESPONSE:
+    \begin{framed}
+    \texttt{200 OK\newline
+Content-Type: text/ce\newline\newline
+there is a tell card named 'msg41' that is to the agent 'agent1'\newline
+there is an ask card named 'msg56' that is to the agent 'agent1'}
+    \end{framed}
+    (Note that the cards have been truncated for clarity).
+}
+
 
 \end{document}
