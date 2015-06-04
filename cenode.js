@@ -1060,8 +1060,7 @@ var MODELS = {
     ]
 }
 
-exports.MODELS = MODELS;
-exports.CENode = CENode;
+
 
 /*
  * HELPER UTILITIES
@@ -1164,7 +1163,13 @@ var net = {
     }
 }
 
-// If running as a Node.js app...
+// If running as a Node.js app, export CENode class and MODELS object.
+if(!util.on_client()){
+    exports.MODELS = MODELS;
+    exports.CENode = CENode;
+}
+
+// If running as a Node.js service, start the server.
 if(!util.on_client() && require.main === module){
     var http = require('http');
     var PORT = 5555;
@@ -1173,6 +1178,51 @@ if(!util.on_client() && require.main === module){
     if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
     if(process.argv.length > 3){PORT = parseInt(process.argv[3]);}
     console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
+
+    function post_sentences(request, response){
+        var body = "";
+        request.on('data', function(chunk){
+            body+=chunk;
+        });       
+        request.on('end', function(){
+            body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
+            var sentences = body.split("\\n");
+            var responses = [];
+            for(var i = 0; i < sentences.length; i++){
+                var r = node.add_sentence(sentences[i].trim());
+                if(r != null && r != false){
+                    responses.push(r);
+                }
+            }
+            response.write(responses.join("\n"));
+            response.end();
+        });
+    }
+
+    function get_cards(request, response){
+        var url = decodeURIComponent(request.url);
+        var agent_regex = url.match(/agent=([a-zA-Z0-9 ]*)/);
+        var agent = null;
+        if(agent_regex != null){agent = agent_regex[1];}
+        var cards = node.get_instances("tell card");
+        var s = "";
+        for(var i = 0; i < cards.length; i++){
+            if(agent == null){
+                s += node.get_instance_ce(cards[i])+"\n";
+            }
+            else{
+                var tos = node.get_instance_relationships(cards[i], "is to");
+                for(var j = 0; j < tos.length; j++){
+                    if(agent != null && tos[j].name.toLowerCase() == agent.toLowerCase()){
+                        s += node.get_instance_ce(cards[i])+"\n";
+                        break;
+                    }
+                }
+            }
+        }
+        response.write(s);
+        response.end();
+    }
 
     http.createServer(function(request,response){
         response.setHeader("Access-Control-Allow-Origin", "*");
@@ -1184,7 +1234,7 @@ if(!util.on_client() && require.main === module){
                 s+='<div style="width:48%;float:left;"><h2>Conceptual model</h2><p>Load a bundled model to the node:</p><form action="/model" method="POST"><select name="model">';
                 for(key in MODELS){s+='<option value="'+key+'">'+key+'</option>';}
                 s +='</select><input type="submit"></form>';
-                s+='<p>Add CE sentences to the node:</p><form action="/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
+                s+='<p>Add CE sentences to the node:</p><form action="/ui/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
                 s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent_name"><input type="text" name="name" value="'+node.get_agent_name()+'" /><input type="submit" /></form>';
                 s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Empty model</button>';
                 s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST /sentences (body = newline-delimited set of sentences)<br />- GET /cards?agent=NAME (get all known cards sent to NAME)</p>';
@@ -1196,29 +1246,8 @@ if(!util.on_client() && require.main === module){
                 response.end(s);
             }
             else if(request.url.indexOf("/cards") == 0){
-                var url = decodeURIComponent(request.url);
-                var agent_regex = url.match(/agent=([a-zA-Z0-9 ]*)/);
-                var agent = null;
-                if(agent_regex != null){agent = agent_regex[1];}
-                var cards = node.get_instances("tell card");
-                var s = "";
-                for(var i = 0; i < cards.length; i++){
-                    if(agent == null){
-                        s += node.get_instance_ce(cards[i])+"\n";
-                    }
-                    else{
-                        var tos = node.get_instance_relationships(cards[i], "is to");
-                        for(var j = 0; j < tos.length; j++){
-                            if(agent != null && tos[j].name.toLowerCase() == agent.toLowerCase()){
-                                s += node.get_instance_ce(cards[i])+"\n";
-                                break;
-                            }
-                        }
-                    }
-                }
                 response.writeHead(200, {"Content-Type": "text/ce"});
-                response.write(s);
-                response.end();
+                get_cards(request, response);            
             }
             else if(request.url == "/reset"){
                 node.reset_all();
@@ -1232,19 +1261,12 @@ if(!util.on_client() && require.main === module){
         }
         else if(request.method == "POST"){
             if(request.url == "/sentences"){
-                var body = "";
-                request.on('data', function(chunk){
-                    body+=chunk;
-                });       
-                request.on('end', function(){
-                    body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
-                    var sentences = body.split(/\n/g);
-                    for(var i = 0; i < sentences.length; i++){
-                        node.add_sentence(sentences[i]);
-                    }
-                    response.writeHead(302, { 'Location': '/'});
-                    response.end();
-                });
+                response.writeHead(200, {"Content-Type": "text/ce"});
+                post_sentences(request, response);            
+            }
+            else if(request.url == "/ui/sentences"){
+                response.writeHead(302, {"Location": "/"});
+                post_sentences(request, response);            
             }
             else if(request.url == "/model"){
                 var body = "";
