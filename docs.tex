@@ -412,20 +412,26 @@ When run as a service (see Section \ref{as_a_service}), which runs on port 555 b
 
 In addition to these features, a node that is running as a service also exposes a RESTful interface for other nodes (or applications) to make HTTP requests to. There is no authentiation mechanism implemented on \texttt{cenode.js} and the service will accept requests from any domain (i.e. CORS is enabled) so that nodes can be accessed from within web applications run within a browser. In fact, these RESTful endpoints are the same ones that are used by the agents themselves when acting on policies applied to them.
 
-\cenodemethod{POST}{/sentences}{}{Submit a newline-separated set of CE sentences to the node. The sentences should be in the body of the request and no key is necessary. Nodes will not return any content within the body of the response - instead, \texttt{GET /cards} should be used to retrieve information from a service node.}{
+\cenodemethod{POST}{/sentences}{}{Submit a newline-separated set of CE sentences to the node. The sentences should be in the body of the request and no key is necessary. Nodes will return any content produced as a result of parsing the input sentences within the body of the response separted by new lines. If there is no response for an input sentence, then this will be represented by an empty string. This means that, for example, line 2 of the response body corresponds to the sentence on line 2 in the body of the request. \newline Remember that agents are asynchronous, so responses from `ask cards' will not be included in the response to \texttt{/sentences} - instead, use \texttt{GET /cards} to check for replies to `ask cards'.}{
 
     REQUEST:
     \begin{framed}
     \texttt{POST /sentences\newline
 Content-Type: text/ce\newline\newline
+what is Mrs Smith?\newline
 there is a teacher named 'Mrs Smith'\newline
+what is Mrs Smith?\newline
 Mrs Smith teaches the class 'B2'
     }\end{framed}
 
     RESPONSE:
     \begin{framed}
     \texttt{200 OK\newline
-Content-Length: 0}
+Content-Type: text/ce\newline\newline
+I don't know what Mrs Smith is.\newline
+ \newline
+Mrs Smith is a teacher.\newline
+}
     \end{framed}
 
 }
