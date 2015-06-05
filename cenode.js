@@ -612,44 +612,59 @@ function CENode(){
     }
 
     this.guess_next = function(t){
-        t = t.trim().toLowerCase();
+        var s = t.trim().toLowerCase();
         var tokens = t.split(" ");
-        var starters = ["conceptualise the ", "conceptualise a ~ ", "there is a ", "the "];
+        var last_word = tokens[tokens.length-1];
         var last_concept = concepts[concepts.length-1];
+        var number_of_tildes = 0;
+        var index_of_first_tilde = 0;
+        for(var i = 0; i < tokens.length; i++){if(tokens[i] == "~"){number_of_tildes++;if(number_of_tildes==1){index_of_first_tilde=i;}}}
         var possible_words = [];
         if(t == ""){return t;}
-        if(tokens.length < 3){
-            for(var i = 0; i < starters.length; i++){
-                if(starters[i].indexOf(t) == 0){
-                    if(starters[i] == "conceptualise the "){
-                        return starters[i] + last_concept.name+" "+last_concept.name.charAt(0).toUpperCase()+" has ";  
-                    }
-                    if(starters[i] == "there is a "){
-                        return starters[i] + last_concept.name+" named '";  
-                    }if(starters[i] == "the "){
-                        return starters[i] + last_concept 
-                    }
-                }
-            }
+        if(number_of_tildes == 1){
+            return t+" ~ "+tokens[index_of_first_tilde+1].charAt(0).toUpperCase()+" ";
         }
-        else{
-            for(var i = 0; i < instances.length; i++){
-                possible_words.push(instances[i].name);
-            }
-            for(var i = 0; i < concepts.length; i++){
-                possible_words.push(concepts[i].name);
-                for(var j = 0; j < concepts[i].values.length; j++){possible_words.push(concepts[i].values[j].descriptor);}
-                for(var j = 0; j < concepts[i].relationships.length; j){possible_words.push(concepts[i].relationships[j].label;}
-            }
-            possible_words.push("and has the ");
+        if(s.match(/^conceptualise a ~ (.*) ~ [A-Z] /)){
+            return t+" that ";
+        }   
+
+        possible_words.push("conceptualise a ~ ");
+        possible_words.push("there is a ");
+        if(tokens.length >2 ){
+            possible_words.push("named '");
+            possible_words.push("that ");
+            possible_words.push("is a ");
             possible_words.push("and is ");
+            possible_words.push("and has the ");
             possible_words.push("the ");
-            for(var i = 0; i < possible_words.length; i++){
-                if(possible_words[i].toLowerCase().indexOf(tokens[tokens.length-1])){
-                    return tokens.splice(tokens.length-1,1).(join(" ")+possible_words[i];
-                }
+        } 
+
+        var mentioned_instances = [];
+
+        for(var i = 0; i < instances.length; i++){
+            possible_words.push(instances[i].name);
+            if(s.indexOf(instances[i].name.toLowerCase()) > -1){
+                mentioned_instances.push(instances[i]);
             }
         }
+        for(var i = 0; i < concepts.length; i++){
+            possible_words.push(concepts[i].name);
+            var concept_mentioned = false;
+            for(var j = 0; j < mentioned_instances.length; j++){
+                if(mentioned_instances[j].concept_id == concepts[i].id){concept_mentioned = true;break;}
+            }
+            if(s.indexOf(concepts[i].name.toLowerCase()) > -1 || concept_mentioned){
+                for(var j = 0; j < concepts[i].values.length; j++){possible_words.push(concepts[i].values[j].descriptor);}
+                for(var j = 0; j < concepts[i].relationships.length; j++){possible_words.push(concepts[i].relationships[j].label);}
+            }
+        }
+        for(var i = 0; i < possible_words.length; i++){
+            if(possible_words[i].toLowerCase().indexOf(tokens[tokens.length-1].toLowerCase()) == 0){
+                tokens[tokens.length-1] = possible_words[i];
+                return tokens.join(" ");
+            }
+        }
+        return t;
     }
     this.get_instances = function(concept_type, recurse){
         var instance_list = [];
