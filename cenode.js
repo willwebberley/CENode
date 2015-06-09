@@ -195,7 +195,7 @@ function CENode(){
             var stored_concept = get_concept_by_name(concept_name);
             var concept = null;
             if(stored_concept != null){ // if exists, simply modify existing concept
-                return; // TEMPORARY (maybe) - can't conceptualise same thing twice
+                return "This concept already exists."; // TEMPORARY (maybe) - can't conceptualise same thing twice
                 concept = stored_concept;
             }
             else{ // otherwise create a new one and add it to list
@@ -222,7 +222,7 @@ function CENode(){
 
                     if(type_name == "value"){value.type = 0;}
                     else if(value_type != null){value.type = value_type.id;}
-                    else if(value.type == null){return;}
+                    else if(value.type == null){return "A property type is unknown: "+type_name;}
 
                     concept.values.push(value);
                 } 
@@ -231,12 +231,13 @@ function CENode(){
                 else if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
                     var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
                     var parent = get_concept_by_name(parent_name);
-                    if(parent == null){return;}
+                    if(parent == null){return "Parent concept is unknown: "+parent_name;}
                     if(concept.parents.indexOf(parent.id) == -1){
                         concept.parents.push(parent.id);
                     }
                 }
             }
+            return t;
         }
 
         else if(t.match(/^conceptualise the/)){
@@ -245,7 +246,7 @@ function CENode(){
             var concept_name = concept_info[1];
             
             concept = get_concept_by_name(concept_name);
-            if(concept == {}){return;} // if can't find concept, just fail silently
+            if(concept == {}){return "Concept "+concept_name+" not known.";} // if can't find concept, then fail
 
             if(concept.relationships == null){concept.relationships = [];}
             if(concept.parents == null){concept.parents = [];}
@@ -261,7 +262,7 @@ function CENode(){
                     var target = {};
                     var target_name = facts_info[4];
                     target = get_concept_by_name(target_name);
-                    if(target == null){return;}
+                    if(target == null){return "The target of one of your input relationships is of an unknown type: "+target_name;}
                     
                     var relationship = {};
                     relationship.target = target.id;
@@ -275,7 +276,7 @@ function CENode(){
                     var target = {};
                     var target_name = facts_info[2];
                     target = get_concept_by_name(target_name);
-                    if(target == null){return;}
+                    if(target == null){return "The target of one of your input relationships is of an unknown type: "+target_name;}
                     
                     var relationship = {};
                     relationship.target = target.id;
@@ -293,7 +294,7 @@ function CENode(){
                     else if(type != null){
                         value.type = type.id;
                     }
-                    else{return;}
+                    else{return "There is an invalid value in your sentence: "+type_name;}
                     value.descriptor = facts_info[3];
                     concept.values.push(value);
                 }
@@ -304,6 +305,7 @@ function CENode(){
                     concept.parents.push(get_concept_by_name(parent_name).id);
                 }
             }
+            return t;
         }
 
         else if(t.match(/^there is [a|an]/)) {
@@ -313,9 +315,9 @@ function CENode(){
             instance.name = names[2];
             var concept = get_concept_by_name(concept_name);
             var current_instance = get_instance_by_name(instance.name);
-            if(concept == null){return;}
+            if(concept == null){return "Instance type unknown: "+concept_name;}
             if(current_instance != null && current_instance.concept_id == concept.id){
-                return; // Don't create 2 instances with same name and same concept id
+                return "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
             }
             instance.concept_id = concept.id;
             instance.relationships = [];
@@ -398,7 +400,7 @@ function CENode(){
                     var relationship_type = get_concept_by_name(relationship_type_name);
                     var relationship_instance = get_instance_by_name(relationship_instance_name);
 
-                    if(relationship_type == null){return;}
+                    if(relationship_type == null){return "Unknown relationship type: "+relationship_type_name;}
                     if(relationship_instance == null){
                         var new_instance = {};
                         new_instance.name = relationship_instance_name;
@@ -422,6 +424,7 @@ function CENode(){
                     }
             }}
             instances.push(instance);
+            return t;
         }
 
         else if(t.match(/^the ([a-zA-Z0-9 ]*) '([^']*)'/)) {
@@ -431,7 +434,7 @@ function CENode(){
 
             var instance = get_instance_by_name(instance_name);
             var concept = get_concept_by_name(concept_name);
-            if(concept == null || instance == null){return;}
+            if(concept == null || instance == null){return "Unknown concept/instance combination: "+concept_name+"/"+instance_name;}
 
             instance.sentences.push(t);
 
@@ -442,11 +445,15 @@ function CENode(){
                 possible_relationships = possible_relationships.concat(parents[i].relationships);
                 possible_values = possible_values.concat(parents[i].values);
             }
-            t = t.replace(/^the ([a-zA-Z0-9 ]*) '([^']*)'/, '').trim();
 
-            var has_concept_facts = t.match(/has the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has concept C as descriptor
-            var has_value_facts = t.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has 'value_name' as value (matches escaped quotes too)
-            var relationship_facts = t.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/g); // does something to the concept 'target'
+            var t2 = t.replace(/^the ([a-zA-Z0-9 ]*) '([^']*)'/, '').trim();
+            var has_concept_facts = t2.match(/has the ([a-zA-Z0-9 ]*) '([^']*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has concept C as descriptor
+            var has_value_facts = t2.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has 'value_name' as value (matches escaped quotes too)
+            var relationship_facts = t2.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^']*)'/g); // does something to the concept 'target'
+
+            if(relationship_facts==null&&has_concept_facts==null&&has_value_facts==null){
+                return "Unable to infer any properties for the "+concept.name+" "+instance.name;
+            }
 
             // "has the concept 'instance_name' as descriptor"
             if(has_concept_facts!=null){for(var i = 0; i < has_concept_facts.length; i++){
@@ -471,11 +478,14 @@ function CENode(){
                 }
                 value.type_name = value_instance.name;
                 value.type_id = value_instance.id;
+                var add = false;
                 for(var j = 0; j < possible_values.length; j++){
                     if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-                        instance.values.push(value);
+                        add = true;
                     }
                 }
+                if(add){instance.values.push(value);}
+                else{return "Invalid property for "+concept.name+": "+value.descriptor;}
             }}
 
             // "has 'value_text' as value" (allows 'value_text' to contain escaped quotes)
@@ -486,11 +496,14 @@ function CENode(){
                 value.descriptor = fact_info[2];
                 value.type_name = fact_info[1].replace(/\\/g, '');
                 value.type_id = 0;
+                var add = false;
                 for(var j = 0; j < possible_values.length; j++){
                     if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-                        instance.values.push(value);
+                        add = true;
                     }
-                }             
+                }    
+                if(add){instance.values.push(value);}
+                else{return "Invalid property for "+concept.name+": "+value.descriptor;}     
             }}
 
             // "is_related_to" the concept 'instance_name'
@@ -517,13 +530,16 @@ function CENode(){
                 }
                 relationship.target_name = target_instance.name;
                 relationship.target_id = target_instance.id;
+                var add = false;
                 for(var j = 0; j < possible_relationships.length; j++){
                     if(possible_relationships[j] != null && possible_relationships[j].label == relationship.label){
-                        instance.relationships.push(relationship);
+                        add = true;
                     }
                 }
+                if(add){instance.relationships.push(relationship);}
+                else{return "Invalid relationship for "+concept.name+": "+relationship.label;}
             }}
-
+            return t;
         }
 
 
@@ -603,12 +619,12 @@ function CENode(){
                     var regexp = new RegExp(instance_guess.name, "i");
                     t = t.replace(regexp, "'"+instance_guess.name+"'");
                     t = "the "+concept.name+" "+t;
-                    parse_ce(t);
-                    return;
+                    return parse_ce(t);
                 }
             }
             return false;
         }
+        return false;
     }
 
     this.guess_next = function(t){
@@ -628,9 +644,14 @@ function CENode(){
             return t+" that ";
         }   
 
-        possible_words.push("conceptualise a ~ ");
-        possible_words.push("there is a ");
-        if(tokens.length >2 ){
+        if(tokens.length < 2){
+            possible_words.push("conceptualise a ~ ");
+            possible_words.push("there is a ");
+            possible_words.push("where is ");
+            possible_words.push("what is ");
+            possible_words.push("who is ");
+        }
+        if(tokens.length > 2){
             possible_words.push("named '");
             possible_words.push("that ");
             possible_words.push("is a ");
@@ -641,10 +662,12 @@ function CENode(){
 
         var mentioned_instances = [];
 
-        for(var i = 0; i < instances.length; i++){
-            possible_words.push(instances[i].name);
-            if(s.indexOf(instances[i].name.toLowerCase()) > -1){
-                mentioned_instances.push(instances[i]);
+        if(s.indexOf("there is") == -1 || tokens.length == 1){
+            for(var i = 0; i < instances.length; i++){
+                possible_words.push(instances[i].name);
+                if(s.indexOf(instances[i].name.toLowerCase()) > -1){
+                    mentioned_instances.push(instances[i]);
+                }
             }
         }
         for(var i = 0; i < concepts.length; i++){
@@ -903,8 +926,28 @@ function CEAgent(n){
                             }
                         }
                         var data = node.add_sentence(content); 
-                        if(data != null && data == false){
-                            node.add_sentence("there is a tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the individual '"+from.name+"' and has the timestamp '{now}' as timestamp and has 'Sorry - your message was not understood.' as content.");
+                        var feedback_policies = node.get_instances("feedback policy");
+                        for(var j = 0; j < feedback_policies.length; j++){
+                            var target = node.get_instance_value(feedback_policies[j], "target");
+                            var enabled = node.get_instance_value(feedback_policies[j], "enabled");
+                            var ack = node.get_instance_value(feedback_policies[j], "acknowledgement");
+                            if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
+                                var target_concept = node.get_instance_type(target);
+                                var c;
+                                if(data != null && data == false){
+                                    if(ack == "basic"){c="OK.";}
+                                    else if(ack=="full"){c= "Sorry - your message was not understood.";}
+                                }
+                                else if(data != null){
+                                    if(ack == "basic"){c="OK.";}
+                                    else if(ack == "full"){c= "OK. "+data;}
+                                }
+                                else if(data == null){
+                                    c = "Your message was understood.";
+                                }
+                                c = c.replace(/'/g, "\\'");
+                                node.add_sentence("there is a tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the "+target_concept+" '"+from.name+"' and has the timestamp '{now}' as timestamp and has '"+c+"' as content.");
+                            }
                         }
                     }
                     break;
@@ -1058,6 +1101,7 @@ var MODELS = {
         "conceptualise an ~ ask policy ~ P that is a policy",
         "conceptualise a ~ listen policy ~ P that is a policy",
         "conceptualise a ~ forwardall policy ~ P that is a policy and has the timestamp T as ~ start time ~ and has the value V as ~ all agents ~",
+        "conceptualise a ~ feedback policy ~ P that is a policy and has the value V as ~ acknowledgement ~"
     ],
     SHERLOCK_CORE : [
         "conceptualise a ~ sherlock thing ~ that is an entity",
