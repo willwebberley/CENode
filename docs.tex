@@ -239,7 +239,7 @@ The \texttt{cenode.js} library comes equipped with the ability to allow agents t
 \subsection{Policies}
 All inter-node communication should be described by \textit{policies}. These are essentially instructions, written in CE, that instruct individual nodes to communicate with each other in different ways. All policy types understood by the agent are included in the CORE model (see Section \label{models}).\\
 
-Policies written to a particular CENode represent instructions to its local agent. Agents periodically query the policies that are in their node's knowledge base and act upon them accordingly. As such, policies can be created and modified using plain CE once the CENode instance is running with almost immediate effect.
+Policies written to a particular CENode represent instructions that apply to its local agent. Agents periodically query the policies that are in their node's knowledge base and act upon them accordingly. As such, policies can be created and modified using plain CE once the CENode instance is running with almost immediate effect.
 
 All policies in the CORE model have an `enabled' field, and any particular policy is active as long as this field is set to `true'. For example, to disable a particular policy, named `p1', you could issue the following CE:\\
 \texttt{the policy 'p1 has 'false' as enabled}\\
@@ -303,6 +303,20 @@ If `all agents' is set to `false' instead, then a set of agent recipients can be
 
 In the above example, the policy will cause the agent `agent1' to add both `agent2' and `agent3' as recipients to all tell cards sent to `agent1' with a timestamp greater than `12345' from now until the policy is disabled.
 
+\subsubsection{\texttt{feedback policy}}
+A \texttt{feedback policy} can be applied to an agent in order to make it give some kind of feedback to the agent or individual that has submitted a `tell card' to it. This behaviour might be useful for providing information on input submitted to the node, and allows the local agent to report any misunderstandings in the input CE.\\
+
+A \texttt{feedback policy} follows a similar setup to the other policy types, in that it can be enabled and can target a particular agent or individual, but, like the \texttt{forwardall policy} it will \textit{not} invoke a network request. Instead, any feedback is included in a \texttt{tell card} addressed to the target, which is written to the agent's own node. Thus, if responses are required over the network, a \texttt{listen policy} must also be used.\\
+
+Since no network activity is directly involved, this type of policy is mostly useful for JavaScript or web applications using the \texttt{cenode.js} library directly. Imagine that the local agent is named `agent1' and there is a user, known as the individual `individual1', that is submitting information to the node's agent through \texttt{tell card}s:\\
+\texttt{there is a feedback policy named 'p1' that has 'true' as enabled and has the individual 'individual1' as target and has 'full' as acknowledgement}\\
+
+With this policy in place, `agent1' will respond to all \texttt{tell card}s sent from `individual1' with a full description of the action taken by `agent1' on the node. If this is an error message, then the node will attempt to include information on which parts of the input sentence were not understood. If the message was understood fully, then the full understood CE will be returned in the response.\\
+
+For security, it may sometimes be necessary for nodes to be restricted on the information returned. For example, in order to keep the inner knowledge of the node obfuscated for whatever reason, the \texttt{acknowledgement} property of the policy can be set to `basic'. In this scenario, only an `OK' will be sent back to the agent or individual that submitted the original tell card, with no indication of the inner knowledge of the node.\\
+
+To keep agents from giving any feedback whatsoever, then simply disable the policy or don't set the policy in the first place.
+
 \subsection{Example Network Topologies Using Policies}
 Using policies in a sensible way allows for a large variety of possible network topologies. Combining policies allow for useful configurations of multi-node setups. This section outlines a couple of examples for inspiration.
 
@@ -328,8 +342,8 @@ Agent2's setup is symmetrical:\\
 \end{verbatim}
 
 
-\subsubsection{`Client-server topology'}
-In this example, one CENode instance acts as a router of information between any number of `client' nodes. The router node needs to be run as a service, but the clients can be run in any configuration. In this scenario, each node will tell the router everything it knows, and the router will forward this information on to every other client node.\\
+\subsubsection{`Star topology'}
+In this example, one CENode instance, at the centre of the star, acts as a router of information between any number of `client' nodes. The router node needs to be run as a service, but the clients can be run in any configuration. In this scenario, each node will tell the router everything it knows, and the router will forward this information on to every other client node.\\
 
 Firstly, each client node needs to know about the router node and to tell it everything and listen for any cards the router node might have for it:\\
 \begin{verbatim}
