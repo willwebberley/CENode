@@ -4,7 +4,7 @@ A pure JavScript implementation of the ITA project's CEStore - called CENode. CE
 
 ## Documentation
 
-Please see the file `documentation.pdf` for an overview and for technical information on the programmatic and RESTful APIs.
+Please see the file `docs/documentation.pdf` for an overview and for technical information on the programmatic and RESTful APIs.
 
 ## License
 
