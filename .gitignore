@@ -1,6 +1,5 @@
 *.sw*
 .DS_Store
-*.pdf
 *.bbl
 *.aux
 *.blg
