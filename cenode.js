@@ -503,7 +503,7 @@ function CENode(){
                     }
                 }
                 if(add){instance.values.push(value);}
-                else{return "Invalid property for "+concept.name+": "+value.descriptor;}
+                //else{return "Invalid property for "+concept.name+": "+value.descriptor;}
             }}
 
             // "has 'value_text' as value" (allows 'value_text' to contain escaped quotes)
@@ -521,7 +521,7 @@ function CENode(){
                     }
                 }    
                 if(add){instance.values.push(value);}
-                else{return "Invalid property for "+concept.name+": "+value.descriptor;}     
+                //else{return "Invalid property for "+concept.name+": "+value.descriptor;}     
             }}
 
             // "is_related_to" the concept 'instance_name'
@@ -625,9 +625,13 @@ function CENode(){
             return instance.name+" "+places.join(" and ")+".";
         }
 
-        // Here, assume addressing an instance directly and try and guess which
+        // Here, try guessing what user meant and parse guessed CE (basic NLP)
         else{
             var tokens = t.split(" ");
+
+            // e.g. "prof plum is in the room 'N215'"
+            // ->
+            // "the character 'Prof Plum' is in the room 'N215'"
             var instance_name_guess = [];
             while(instance_name_guess.length < tokens.length){
                 instance_name_guess.push(tokens[instance_name_guess.length]);
@@ -637,10 +641,116 @@ function CENode(){
                     var regexp = new RegExp(instance_guess.name, "i");
                     t = t.replace(regexp, "'"+instance_guess.name+"'");
                     t = "the "+concept.name+" "+t;
-                    return parse_ce(t);
+
+                    return "Did you mean: "+t;
+                    
+                    //var success = parse_ce(t);
+                    //if(success != null && success != false && success.toLowerCase().indexOf("unable") == -1 && success.toLowerCase().indexOf("sorry") == -1){
+                    //    return success;
+                    //}
                 }
             }
-            return false;
+
+            // Try to find any mentions of known instances and tie them together using
+            // values and relationships.
+            var common_words = ["is", "and", "has", "that", "the"];
+            var focus_instance=null;
+            var smallest_index = 999999;
+            for(var i = 0; i < instances.length; i++){
+                if(t.toLowerCase().indexOf(instances[i].name.toLowerCase()) > -1){
+                    if(t.toLowerCase().indexOf(instances[i].name.toLowerCase()) < smallest_index){
+                        focus_instance = instances[i];
+                        smallest_index = t.toLowerCase().indexOf(instances[i].name.toLowerCase());
+                    }
+                }
+            }
+            if(focus_instance != null){
+                var focus_concept = get_concept_by_id(focus_instance.concept_id);
+
+                var focus_instance_words = focus_instance.name.toLowerCase().split(" ");
+                var focus_concept_words = focus_concept.name.toLowerCase().split(" ");
+                for(var i = 0; i < focus_instance_words.length; i++){common_words.push(focus_instance_words[i]);}
+                for(var i = 0; i < focus_concept_words.length; i++){common_words.push(focus_concept_words[i]);}
+
+                var ce = "the "+focus_concept.name+" '"+focus_instance.name+"' ";
+                var facts = [];
+
+                var parents = get_recursive_parents(focus_concept);
+                var possible_relationships = [];
+                var possible_values = [];
+                for (var i = 0; i<parents.length; i++) {
+                    possible_relationships = possible_relationships.concat(parents[i].relationships);
+                    possible_values = possible_values.concat(parents[i].values);
+                }
+
+                for(var i = 0; i < possible_values.length; i++){
+                    var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
+                    for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
+
+                    if(possible_values[i].type > 0){
+                        var value_concept = get_concept_by_id(possible_values[i].type);
+                        var value_instances = node.get_instances(value_concept.name, true);
+                        for(var j = 0; j < value_instances.length; j++){
+                            if(t.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
+                                facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].descriptor);
+                                break;
+                            }
+                        }
+                    }
+                    else{
+                        if(t.toLowerCase().indexOf(possible_values[i].descriptor.toLowerCase()) > -1){
+                            for(var j = 0; j < tokens.length; j++){
+                                if(common_words.indexOf(tokens[j].toLowerCase()) == -1 ){
+                                    facts.push("has '"+tokens[j]+"' as "+possible_values[i].descriptor);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                for(var i = 0; i < possible_relationships.length; i++){
+                    if(possible_relationships[i].target > 0){
+                        var rel_concept = get_concept_by_id(possible_relationships[i].target);
+                        var rel_instances = node.get_instances(rel_concept.name, true);
+                        for(var j = 0; j < rel_instances.length; j++){
+                            if(t.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
+                                facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
+                                break;
+                            }
+                        }
+                    }
+                }
+                console.log(ce+facts.join(" and "));
+                if(facts.length > 0){
+                    //return parse_ce(ce+facts.join(" and "));
+                    return "Did you mean: "+ce+facts.join(" and ");
+                }
+            }
+
+            for(var i = 0; i < concepts.length; i++){
+                if(t.toLowerCase().indexOf(concepts[i].name.toLowerCase()) > -1){
+                    var concept_words = concepts[i].name.toLowerCase().split(" ");
+                    common_words.push(concepts[i].name.toLowerCase());
+                    for(var j = 0; j < concept_words; j++){
+                        common_words.push(concept_words[j]);
+                    }
+                    var ins = node.get_instances(concepts[i].name);
+                    for(var j = 0; j < ins.length; j++){
+                        if(t.indexOf(ins[j].name.toLowerCase()) > -1){
+                            return false;
+                        }
+                    }
+                    for(var j = 0; j < tokens.length; j++){
+                        if(common_words.indexOf(tokens[j].toLowerCase()) == -1){
+                             //return parse_ce("there is a "+concepts[i].name+" named '"+tokens[j]+"'");
+                             return "Did you mean: "+"there is a "+concepts[i].name+" named '"+tokens[j]+"'";
+                        }
+                    }
+                    //return parse_ce("there is a "+concepts[i].name+" named '"+concepts[i].name+" "+ins.length+1+"'");
+                    return "Did you mean: "+"there is a "+concepts[i].name+" named '"+concepts[i].name+" "+ins.length+1+"'";
+                }
+            }
+
         }
         return false;
     }
@@ -1111,7 +1221,7 @@ var MODELS = {
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
         "conceptualise a ~ location ~ L that is an entity",
-        "conceptualise a ~ locatable thing ~ L that has the location L as ~ location ~",
+        "conceptualise a ~ locatable thing ~ L",
         "conceptualise the locatable thing L ~ is in ~ the location M",
         "conceptualise a ~ human ~ H that is an entity",
         "conceptualise a ~ policy ~ P that has the value V as ~ enabled ~ and has the agent A as ~ target ~",
@@ -1164,7 +1274,7 @@ var MODELS = {
         "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
         "there is a building named 'North Building'",
         "there is a floor named '2nd Floor'",
-        "the room 'N215' is located in the building 'North Bulding' and is located on the floor '2nd Floor'"
+        "the room 'N215' is located in the building 'North Building' and is located on the floor '2nd Floor'"
     ],
     SHERLOCK_NODE : [
         "there is an agent named 'Master' that has 'http://cenode.sentinelstream.net' as address",
