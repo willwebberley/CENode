@@ -165,7 +165,7 @@ In a web application or webpage, the \texttt{cenode.js} library can be easily im
 Once imported, a new CENode instance can be instantiated in a later \texttt{<script>} block and any required models can be passed as arguments. After instantiation, sentences can be added as direct CE (or embedded within cards):
 \begin{verbatim}
 <script>
-var node = new CENode(MODELS.CORE);
+var node = new CENode(MODELS.CORE, MY_CUSTOM_MODEL);
 node.set_agent_name("agent1");
 
 node.add_sentence("there is a teacher named 'Mrs Smith'");
