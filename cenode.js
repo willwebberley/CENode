@@ -1023,10 +1023,30 @@ function CENode(){
         }
         return ce;
     }
-    this.add_sentence = function(ce){
-        ce = ce.replace("{now}", new Date().getTime());
-        ce = ce.replace("{uid}", new_card_id());
-        return parse_ce(ce);
+    this.add_sentence = function(sentence){
+        sentence = sentence.replace("{now}", new Date().getTime());
+        sentence = sentence.replace("{uid}", new_card_id());
+
+        var ce_success, question_success, nl_success;
+        ce_success = parse_ce(sentence);
+        if(ce_success[0] == false){
+            question_success = parse_question(sentence);
+        }
+        else if(ce_success[0] == true){
+            return ce_success[1];
+        }
+        if(question_success != null && question_success[0] == false){
+            nl_success = parse_nl(sentence);
+        }
+        else if(question_success != null && question_success[0] == true){
+            return question_success[1];
+        }
+        if(nl_success != null && nl_success[0] == false){
+            return false;
+        }
+        else if (nl_success != null && nl_success[1] == true){
+            return nl_success[1];
+        }
     }
     this.reset_all = function(){
         instances = [];
