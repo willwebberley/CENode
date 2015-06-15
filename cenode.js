@@ -1048,6 +1048,13 @@ function CENode(){
             return nl_success[1];
         }
     }
+    this.add_sentences = function(sentences){
+        var responses = [];
+        for(var i = 0; i < sentences.length; i++){
+            responses.push(this.add_sentence(sentences[i]));
+        }
+        return responses;
+    }
     this.reset_all = function(){
         instances = [];
         concepts = [];
@@ -1056,9 +1063,7 @@ function CENode(){
 
     this.init = function(){
         for(var i = 0; i < this.models.length; i++){
-            for(var j = 0; j < this.models[i].length; j++){
-                this.add_sentence(this.models[i][j]);
-            }
+            this.add_sentences(this.models[i]);
         }
     }
     this.init();
