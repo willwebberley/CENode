@@ -1026,8 +1026,8 @@ function CENode(){
     this.add_sentence = function(sentence){
         sentence = sentence.replace("{now}", new Date().getTime());
         sentence = sentence.replace("{uid}", new_card_id());
+        var ce_success, question_success, nl_guess; // [bool, str], [bool, str], str
 
-        var ce_success, question_success, nl_success;
         ce_success = parse_ce(sentence);
         if(ce_success[0] == false){
             question_success = parse_question(sentence);
@@ -1036,17 +1036,12 @@ function CENode(){
             return ce_success[1];
         }
         if(question_success != null && question_success[0] == false){
-            nl_success = parse_nl(sentence);
+            nl_guess = parse_nl(sentence);
         }
         else if(question_success != null && question_success[0] == true){
             return question_success[1];
         }
-        if(nl_success != null && nl_success[0] == false){
-            return false;
-        }
-        else if (nl_success != null && nl_success[1] == true){
-            return nl_success[1];
-        }
+        return nl_guess;
     }
     this.add_sentences = function(sentences){
         var responses = [];

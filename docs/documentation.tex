@@ -411,6 +411,23 @@ When used as a library as part of a JavaScript application or within a webpage (
     \texttt{node.add\_sentence("there is a tell card named '\{uid\}' that has the timestamp '\{now\}' as timestamp ...");}
 }
 
+\cenodemethod{String}{add\_sentences}{String[] sentences}{Adds an array of sentences to the model. Internally, this uses \texttt{add\_sentence}, so the above information applies. Responses made by the node are also returned in an array, where the ordered elements in the responses array are associated with the appropriate elements in the sentences array.}{
+    \texttt{var sentences = [\\
+            \texttt{\quad "conceptualise a ~ teacher ~ T that is a person",}\\
+            \texttt{\quad "there is a teacher named 'Mrs Smith'"}\\
+    \texttt{]}\\
+            
+    \texttt{var responses = node.add\_sentences(sentences);}\\
+}
+
+\cenodemethod{void}{set\_agent\_name}{String name}{Sets a new name for the node's local agent. Updating this value will mean the agent will open different cards and will ignore any further cards sent to its previous name. Note that agent names are case-insensitive when qualifying card recipients.}{
+    \texttt{node.set\_agent\_name("Agent 1");}
+}
+
+\cenodemethod{String}{get\_agent\_name}{}{Retrieves the name of the local agent.}{
+    \texttt{var agent\_name = node.get\_agent\_name();}
+}
+
 \cenodemethod{void}{set\_agent\_name}{String name}{Sets a new name for the node's local agent. Updating this value will mean the agent will open different cards and will ignore any further cards sent to its previous name. Note that agent names are case-insensitive when qualifying card recipients.}{
     \texttt{node.set\_agent\_name("Agent 1");}
 }
