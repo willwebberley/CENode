@@ -412,9 +412,9 @@ When used as a library as part of a JavaScript application or within a webpage (
 }
 
 \cenodemethod{String}{add\_sentences}{String[] sentences}{Adds an array of sentences to the model. Internally, this uses \texttt{add\_sentence}, so the above information applies. Responses made by the node are also returned in an array, where the ordered elements in the responses array are associated with the appropriate elements in the sentences array.}{
-    \texttt{var sentences = [\\
-            \texttt{\quad "conceptualise a ~ teacher ~ T that is a person",}\\
-            \texttt{\quad "there is a teacher named 'Mrs Smith'"}\\
+    \texttt{var sentences = [}\\
+            \texttt{"conceptualise a ~ teacher ~ T that is a person",}\\
+            \texttt{"there is a teacher named 'Mrs Smith'"}\\
     \texttt{]}\\
             
     \texttt{var responses = node.add\_sentences(sentences);}\\
