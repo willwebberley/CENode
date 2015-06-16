@@ -40,10 +40,8 @@
             setTimeout(function(){
                 var c = node.get_concepts();
                 var i = node.get_instances();
-                var s = node.get_sentences();
                 concepts.value = JSON.stringify(c, undefined, 2);
                 instances.value = JSON.stringify(i, undefined, 2);
-                cards.value = JSON.stringify(s, undefined, 2);
                 refresh_content();
             },200);
         }

@@ -20,19 +20,30 @@
  * A JS 'class' to represent the CENode, its concepts and instances, and to provide interaction methods.
  */
 function CENode(){
+    // Grab any arguments. These will be the models to be loaded to the node when initialised.
     this.models = arguments;
 
+    // Data structures to maintain the instances and concepts maintained
+    // by the node.
     var concepts = [];
     var instances = [];
-    var cards = [];
-    var sentences = [];
+    var concept_ids = {};
+
     var agent = new CEAgent(this);
     var node = this;
 
+    /*
+     * Code for generating instance, concept, and card IDs.
+     *
+     * Instance/concept IDs based on number of each type so far created
+     * Returns int
+     * 
+     * Card IDs based on number of cards and the local agent's name
+     * Returns str
+     */
     var last_instance_id = instances.length;
     var last_concept_id = concepts.length;
     var last_card_id = 0;
-
     var new_instance_id = function(){
         last_instance_id++;
         return last_instance_id;
@@ -50,7 +61,9 @@ function CENode(){
      * Get all the values of this instance with descriptor matching value_descriptor
      * If the value is a VALUE (i.e. not typed), the value names will be in the list
      * If the value is a typed value, the value's instances will be in the list
-     * */
+     *
+     * Returns [obj{instance.value}]
+     */
     this.get_instance_values = function(instance, value_descriptor){
         var values = []
         for(var i = 0; i < instance.values.length; i++){
@@ -69,6 +82,8 @@ function CENode(){
     /*
      * Get THE MOST RECENT value for this instance matching value_descriptor
      * Return types as above.
+     *
+     * Returns obj{instance.value}
      */
     this.get_instance_value = function(instance, value_descriptor){
         var value = null;
@@ -89,6 +104,8 @@ function CENode(){
     /*
      * Get all relationships of this instance with label matching relationship_label
      * Returned is list of instances that are related to 'instance' in this way
+     *
+     * Returns [obj{instance.relationship}]
      */
     this.get_instance_relationships = function(instance, relationship_label){
         var relationships = [];
@@ -104,6 +121,8 @@ function CENode(){
     /*
      * Get THE MOST RECENT relationship of this instance with label matching relationship_label
      * Return types as above.
+     *
+     * Returns: obj{instance.relationship}
      */
     this.get_instance_relationship = function(instance, relationship_label){
         var relationship = null;
@@ -116,17 +135,33 @@ function CENode(){
         return relationship;
     }
 
+    /*
+     * Get the name of the concept type of this instance.
+     *
+     * Returns: str
+     */
     this.get_instance_type = function(instance){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept != null){return concept.name;}
     }
 
+    /*
+     * Get the concept with ID 'id'
+     *
+     * Returns: obj{concept}
+     */
     var get_concept_by_id = function(id){
         for(var i = 0; i < concepts.length; i++){
             if(concepts[i].id == id){return concepts[i];}
         }
         return null;
     }
+
+    /*
+     * Get the concept with name 'name'
+     *
+     * Returns: obj{concept}
+     */
     var get_concept_by_name = function(name){
         if(name == null){return null;}
         for(var i = 0; i < concepts.length; i++){
@@ -143,6 +178,12 @@ function CENode(){
         }
         return null;
     }
+
+    /*
+     * Get the instance with name 'name'
+     *
+     * Returns: obj{instance}
+     */
     var get_instance_by_name = function(name) {
         if(name==null){return null;}
         for(var i = 0; i<instances.length; i++) {
@@ -152,6 +193,12 @@ function CENode(){
         }
         return null;
     }
+
+    /* 
+     * Get the instance with ID 'id'
+     *
+     * Returns: obj{instance}
+     */
     var get_instance_by_id = function(id) {
         if(id==null){return null;}
         for(var i = 0; i<instances.length; i++) {
@@ -161,6 +208,12 @@ function CENode(){
         }
         return null;
     }
+
+    /*
+     * Get all ancestors of the given concept, INCLUDING the given concept
+     *
+     * Returns: [obj{concept}]
+     */
     var get_recursive_parents = function(concept){
         var parents = [];
         var stack = [];
@@ -176,6 +229,12 @@ function CENode(){
         }
         return parents;
     }
+
+    /*
+     * Get direct children of given concept
+     *
+     * Returns: [obj{concept}]
+     */
     var get_children = function(concept){
         var children = [];
         for(var i = 0; i < concepts.length; i++){
@@ -185,6 +244,12 @@ function CENode(){
         }
         return children;
     }
+
+    /* 
+     * Get all children, grandchildren, etc. of given concept, INCLUDING the given concept
+     *
+     * Returns: [obj{concept}]
+     */
     var get_recursive_children = function(concept){
         if(concept == null){return [];}
         var children = [];
@@ -203,11 +268,16 @@ function CENode(){
         return children;
     }
 
-    // Returns a [bool, str] array
-    // bool = sentence parsed successfully
-    // str = error message or parsed string
+    /*
+     * Submit CE to be processed by node. 
+     * This may result in 
+     *  - new concepts or instances being created
+     *  - modifications to existing concepts or instances
+     *  - no action (i.e. invalid or duplicate CE)
+     * 
+     * Returns: [bool, str] (bool = success, str = error or parsed string)
+     */
     var parse_ce = function(t){
-        //sentences.push(t);
         t = t.replace(/\s+/g, " ").replace(/\.+$/, ""); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
         var success = false;
         var message = "";
@@ -597,9 +667,15 @@ function CENode(){
         return [false, null];
     }
 
-    // Returns a [bool, str] array
-    // bool = question answered successfully
-    // str = response
+    /*
+     * Submit a who/what/where question to be processed by node. 
+     * This may result in 
+     *  - a response to the question returned
+     *  - error returned (i.e. invalid question)
+     * This method does not update the conceptual model.
+     *
+     * Returns: [bool, str] (bool = success, str = error or response)
+     */
     var parse_question = function(t){
         if(t.match(/^(\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )/i)){
             var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
@@ -677,6 +753,15 @@ function CENode(){
 
     // RETURNS A STRING REPRESENTING A QUESTION TO RETURN
     // (e.g. "Did you mean 'x'?"
+    /*
+     * Submit natural language to be processed by node. 
+     * This results in 
+     *  - string representing what the node THINKS the input is trying to say.
+     *      (this could be returned as an ask card, e.g.: "Did you mean 'x'?")
+     * This method does not update the conceptual model.
+     *
+     * Returns: str 
+     */
     var parse_nl = function(t){
         var tokens = t.split(" ");
 
@@ -801,6 +886,14 @@ function CENode(){
         }*/
     }
 
+    /*
+     * Return a string representing a guess at what the user is trying to say next.
+     * Actually what is returned is the input string + the next word/phrase based on:
+     *  - current state of conceptual model (i.e. names/relationships of concepts/instances)
+     *  - key words/phrases (e.g. "conceptualise a ")
+     *
+     * Returns: str
+     */
     this.guess_next = function(t){
         var s = t.trim().toLowerCase();
         var tokens = t.split(" ");
@@ -863,6 +956,22 @@ function CENode(){
         }
         return t;
     }
+
+    /*
+     * Get the current set of instances maintained by the node.
+     *
+     * If concept_type and recurse NULL:
+     *  - Return ALL instances
+     *
+     * If concept_type not NULL and recurse NULL|FALSE:
+     *  - Return all instances with concept type name 'concept_type'
+     *
+     * If recurse TRUE:
+     *  - Return all instances of concepts that are children, grandchildren, etc.
+     *      of concept with name 'concept_type'
+     *
+     * Returns: [obj{instance}]
+     */
     this.get_instances = function(concept_type, recurse){
         var instance_list = [];
         if(concept_type == null){
@@ -891,20 +1000,43 @@ function CENode(){
         }
         return instance_list;
     }    
+
+    /*
+     * Get all concepts known by the node
+     *
+     * Returns: [obj{concept}]
+     */
+    this.get_concepts = function(){
+        return concepts;
+    }
+
+    /*
+     * Set the name of the local agent
+     *
+     * Returns: void
+     */
     this.set_agent_name = function(new_name){
         if(new_name != null){
             agent.set_name(new_name);
         }
     }
+
+    /*
+     * Get the current name of the local agent
+     *
+     * Returns: str
+     */
     this.get_agent_name = function(){
         return agent.get_name();
     }   
-    this.get_concepts = function(){
-        return concepts;
-    }
-    this.get_sentences = function(){
-        return sentences;
-    }
+
+    
+    /*
+     * Generate CE that describes the instance.
+     * e.g.: "there is a teacher named 'T1' that..."
+     *
+     * Returns: str
+     */
     this.get_instance_ce = function(instance){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
@@ -930,6 +1062,13 @@ function CENode(){
         if(facts.length > 0){ce += " that "+facts.join(" and ");}
         return ce+".";
     }
+
+    /* 
+     * Generate gist describing the instance.
+     * e.g.: "T1 is a teahcer. T1 teaches the..."
+     *
+     * Returns: str
+     */
     this.get_instance_gist = function(instance){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
@@ -955,6 +1094,13 @@ function CENode(){
         if(facts.length > 0){ce += " "+instance.name+" "+facts.join(" and ")+".";}
         return ce;
     }
+
+    /*
+     * Generate CE describing conceptualising the given concept.
+     * e.g.: "conceptualise a ~ teacher ~ T that..."
+     *
+     * Returns: str
+     */
     this.get_concept_ce = function(concept){
         var ce = "conceptualise a ~ "+concept.name+" ~ "+concept.name.charAt(0).toUpperCase();
         if(concept.parents.length > 0){ce += " that";}
@@ -992,6 +1138,13 @@ function CENode(){
 
         return ce;
     }
+
+    /* 
+     * Generate gist describing the given concept.
+     * e.g. "A teacher is a type of person and teaches a type of class and ..."
+     *
+     * Returns: str
+     */
     this.get_concept_gist = function(concept){
         var ce = "";
         if(concept.parents.length > 0){ce += "A "+concept.name;}
@@ -1023,6 +1176,18 @@ function CENode(){
         }
         return ce;
     }
+
+    /*
+     * Adds a sentence to be processed by the node.
+     * Method will initially attempt to parse any CE.
+     * If CE-parsing unsuccessful, then try to parse a question.
+     * If no meaning can be found (CE or question), then make a guess.
+     *
+     * Method returns a string indicating errors, responses to questions, etc., depending
+     * on input.
+     *
+     * Returns: str
+     */
     this.add_sentence = function(sentence){
         sentence = sentence.replace("{now}", new Date().getTime());
         sentence = sentence.replace("{uid}", new_card_id());
@@ -1043,6 +1208,15 @@ function CENode(){
         }
         return nl_guess;
     }
+
+    /*
+     * Add an array of CE sentences to the node. Uses add_sentence()
+     * to process these so refer to that method for information.
+     *
+     * Returns an array of responses generated by add_sentence()
+     *
+     * Returns: [str...]
+     */
     this.add_sentences = function(sentences){
         var responses = [];
         for(var i = 0; i < sentences.length; i++){
@@ -1050,12 +1224,22 @@ function CENode(){
         }
         return responses;
     }
+
+    /*
+     * Reset store to 'factory settings' by removing all known instances
+     * and concepts.
+     *
+     * Returns: void
+     */
     this.reset_all = function(){
         instances = [];
         concepts = [];
-        sentences = [];
     }
 
+    /* 
+     * Initialise node by adding any passed models as
+     * sentence sets to be processed.
+     */
     this.init = function(){
         for(var i = 0; i < this.models.length; i++){
             this.add_sentences(this.models[i]);
