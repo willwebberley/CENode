@@ -724,7 +724,7 @@ function CENode(){
             var instance = get_instance_by_name(thing);
             if(instance == null){
                 message = "I don't know what "+thing+" is.";
-                return [success, message];
+                return [true, message];
             }
             var locatable_instances = node.get_instances("location", true);
             var locatable_ids = [];
@@ -742,12 +742,47 @@ function CENode(){
             }}
             if(places.length == 0){
                 message = "I don't know where "+instance.name+" is.";
-                return [success, message];
+                return [true, message];
             }
             message = instance.name+" "+places.join(" and ")+".";
             return [true, message];
         }
 
+        else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b | )/i)){
+            var thing = t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g,'');
+            var instance = null;
+            var locatable_instances = node.get_instances("location", true);
+            var located_instances = [];
+            for(var i = 0; i < locatable_instances.length; i++){
+                if(thing.toLowerCase.indexOf(locatable_instances[i].name.toLowerCase()) > -1){
+                    instance = locatable_instances[i];break;
+                }
+            }
+            if(instance == null){
+                message = thing+" is not a type of location.";
+                return [true, message];
+            }
+            for(var i = 0; i < instances.length; i++){
+                var vals = instances[i].values;
+                var rels = instances[i].relationships;
+                for(var j = 0; j < vals.length; j++){
+                    if(vals[j].type == instance.id){
+                        located_instances.push(instances[j].name+" has "+instance.name+" as "+vals[j].descriptor);
+                    }
+                }       
+                for(var j = 0; j < rels.length; j++){
+                    if(rels[j].target == instance.id){
+                        located_instances.push(instances[j].name+" "+rels[j].descriptor+" "+instance.name);
+                    }
+                }
+            }
+            if(located_instances.length == 0){
+                message = "I don't know what is located at "+instance.name;
+                return [true, message];
+            }
+            message = located_instances.join(" and ")+".";
+            return [true, message];
+        }
         return [false, null];
     }
 
