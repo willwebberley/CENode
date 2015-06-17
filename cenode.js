@@ -1314,15 +1314,14 @@ function CEAgent(n){
                         for(var j = 0; j < ask_policies.length; j++){
                             var target = node.get_instance_value(ask_policies[j], "target");
                             if(node.get_instance_value(ask_policies[i], "enabled") == 'true'){
-                                var c = "there is an ask card named 'msg_{uid}' that is from the agent '"+name+"' and is from the individual '"+from.name+"' and is to the agent '"+target.name+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+                                var c = "there is an ask card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is from the individual '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+target.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
                                 net.make_request("POST", node.get_instance_value(target, "address"), "/sentences", c);
                             }
                         }
                         var data = node.add_sentence(content);
                         if(data != null){
-                            data = data.replace(/'/g, "\\'");
                             var froms = node.get_instance_relationships(card, "is from");
-                            var c = "there is a tell card named 'msg_{uid}' that is from the agent '"+name+"' and has the timestamp '{now}' as timestamp and has '"+data+"' as content";
+                            var c = "there is a tell card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.replace(/'/g, "\\'")+"' as content";
                             for(var j = 0; j < froms.length; j++){
                                 var type = node.get_instance_type(froms[j]);
                                 c+=" and is to the "+type+" '"+froms[j].name+"'";
@@ -1359,8 +1358,7 @@ function CEAgent(n){
                                 else if(data == null){
                                     c = "Your message was understood.";
                                 }
-                                c = c.replace(/'/g, "\\'");
-                                node.add_sentence("there is a tell card named 'msg_{uid}' that is from the agent '"+name+"' and is to the "+target_concept+" '"+from.name+"' and has the timestamp '{now}' as timestamp and has '"+c+"' as content.");
+                                node.add_sentence("there is a tell card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
                             }
                         }
                     }
