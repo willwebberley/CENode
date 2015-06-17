@@ -1225,6 +1225,7 @@ function CENode(){
      * Returns: str
      */
     this.add_sentence = function(sentence){
+        sentence = sentence.trim();
         sentence = sentence.replace("{now}", new Date().getTime());
         sentence = sentence.replace("{uid}", new_card_id());
         var ce_success, question_success, nl_guess; // [bool, str], [bool, str], str
@@ -1289,7 +1290,8 @@ function CEAgent(n){
     var name = "Moira";
     var last_polled_timestamp = 0;
     var node = n;
-    var unsent_cards = {};
+    var unsent_tell_cards = {};
+    var unsent_ask_cards = {};
     var handled_cards = [];
 
     this.set_name = function(n){
@@ -1334,8 +1336,8 @@ function CEAgent(n){
                         for(var j = 0; j < tell_policies.length; j++){
                             if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
                                 var target_name = node.get_instance_value(tell_policies[j], "target").name;
-                                if(!(target_name in unsent_cards)){unsent_cards[target_name] = [];}
-                                unsent_cards[target_name].push(card); 
+                                if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
+                                unsent_tell_cards[target_name].push(card); 
                             }
                         }
                         var data = node.add_sentence(content); 
@@ -1390,7 +1392,7 @@ function CEAgent(n){
             // separated by new line (\n)
             for(var i = 0; i < tell_policies.length; i++){
                 var target = node.get_instance_value(tell_policies[i], "target");
-                var cards = unsent_cards[target.name];
+                var cards = unsent_tell_cards[target.name];
                 var data = "";
                 for(var j = 0; j < cards.length; j++){
                     var card = cards[j];
@@ -1406,7 +1408,7 @@ function CEAgent(n){
                 }
                 if(data != ""){
                     net.make_request("POST", node.get_instance_value(target, "address"), "/sentences", data, function(resp){
-                        unsent_cards[target.name] = [];
+                        unsent_tell_cards[target.name] = [];
                     });
                 }
             }
@@ -1416,8 +1418,7 @@ function CEAgent(n){
                 var target = node.get_instance_value(listen_policies[i], "target");
                 net.make_request("GET", node.get_instance_value(target, "address"), "/cards?agent="+name, null, function(resp){
                     var cards = resp.split("\n");
-                    for(var i = 0; i < cards.length; i++){node.add_sentence(cards[i]);}        
-
+                    node.add_sentences(cards);
                 });
             }
 
@@ -1695,13 +1696,7 @@ if(!util.on_client() && require.main === module){
         request.on('end', function(){
             body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
             var sentences = body.split("\\n");
-            var responses = [];
-            for(var i = 0; i < sentences.length; i++){
-                var r = node.add_sentence(sentences[i].trim());
-                if(r != null && r != false){
-                    responses.push(r);
-                }
-            }
+            var responses = node.add_sentences(sentences);
             response.write(responses.join("\n"));
             response.end();
         });
@@ -1789,9 +1784,7 @@ if(!util.on_client() && require.main === module){
                     );
                     if(components.model in MODELS){
                         var model = MODELS[components.model];
-                        for(var i = 0; i < model.length; i++){
-                            node.add_sentence(model[i]);           
-                        }
+                        node.add_sentences(model);
                     }
                 });
                 response.writeHead(302, { 'Location': '/'});
