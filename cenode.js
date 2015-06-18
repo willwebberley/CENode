@@ -279,7 +279,6 @@ function CENode(){
      */
     var parse_ce = function(t){
         t = t.replace(/\s+/g, " ").replace(/\.+$/, ""); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
-        var success = false;
         var message = "";
 
         if(t.match(/^conceptualise an?/i)){
@@ -288,7 +287,7 @@ function CENode(){
             var concept = null;
             if(stored_concept != null){ // if exists, simply modify existing concept
                 message = "This concept already exists.";
-                return [success , message];
+                return [false, message];
                 concept = stored_concept;
             }
             else{ // otherwise create a new one and add it to list
@@ -317,7 +316,7 @@ function CENode(){
                     else if(value_type != null){value.type = value_type.id;}
                     else if(value.type == null){
                         message = "A property type is unknown: "+type_name;
-                        return [success, message];
+                        return [false, message];
                     }
 
                     concept.values.push(value);
@@ -329,7 +328,7 @@ function CENode(){
                     var parent = get_concept_by_name(parent_name);
                     if(parent == null){
                         message = "Parent concept is unknown: "+parent_name;
-                        return [success, message];
+                        return [false, message];
                     }
                     if(concept.parents.indexOf(parent.id) == -1){
                         concept.parents.push(parent.id);
@@ -347,7 +346,7 @@ function CENode(){
             concept = get_concept_by_name(concept_name);
             if(concept == {}){
                message = "Concept "+concept_name+" not known."; // if can't find concept, then fail
-               return [success, message];
+               return [false, message];
             }
 
             if(concept.relationships == null){concept.relationships = [];}
@@ -366,7 +365,7 @@ function CENode(){
                     target = get_concept_by_name(target_name);
                     if(target == null){
                         message = "The target of one of your input relationships is of an unknown type: "+target_name;
-                        return [success, message];
+                        return [false, message];
                     }
                     
                     var relationship = {};
@@ -383,7 +382,7 @@ function CENode(){
                     target = get_concept_by_name(target_name);
                     if(target == null){
                         message = "The target of one of your input relationships is of an unknown type: "+target_name;
-                        return [success, message];
+                        return [false, message];
                     }
                     
                     var relationship = {};
@@ -404,7 +403,7 @@ function CENode(){
                     }
                     else{
                         message = "There is an invalid value in your sentence: "+type_name;
-                        return [success, message];
+                        return [false, message];
                     }
                     value.descriptor = facts_info[3];
                     concept.values.push(value);
@@ -428,11 +427,11 @@ function CENode(){
             var current_instance = get_instance_by_name(instance.name);
             if(concept == null){
                 message = "Instance type unknown: "+concept_name;
-                return [success, message];
+                return [false, message];
             }
             if(current_instance != null && current_instance.concept_id == concept.id){
                 message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
-                return [success, message];
+                return [false, message];
             }
             instance.concept_id = concept.id;
             instance.relationships = [];
@@ -517,7 +516,7 @@ function CENode(){
 
                     if(relationship_type == null){
                         message = "Unknown relationship type: "+relationship_type_name;
-                        return [success, message];
+                        return [false, message];
                     }
                     if(relationship_instance == null){
                         var new_instance = {};
@@ -554,7 +553,7 @@ function CENode(){
             var concept = get_concept_by_name(concept_name);
             if(concept == null || instance == null){
                 message = "Unknown concept/instance combination: "+concept_name+"/"+instance_name;
-                return [success, message];
+                return [false, message];
             }
 
             instance.sentences.push(t);
@@ -574,7 +573,7 @@ function CENode(){
 
             if(relationship_facts==null&&has_concept_facts==null&&has_value_facts==null){
                message = "Unable to infer any properties for the "+concept.name+" "+instance.name;
-               return [success, message];
+               return [false, message];
             }
 
             // "has the concept 'instance_name' as descriptor"
@@ -659,7 +658,7 @@ function CENode(){
                 if(add){instance.relationships.push(relationship);}
                 else{
                     message = "Invalid relationship for "+concept.name+": "+relationship.label;
-                    return [success, message];
+                    return [false, message];
                 }
             }}
             return [true, t];
@@ -787,43 +786,25 @@ function CENode(){
         return [false, null];
     }
 
-    // RETURNS A STRING REPRESENTING A QUESTION TO RETURN
-    // (e.g. "Did you mean 'x'?"
+    // RETURNS A STRING REPRESENTING A GUESS AT WHAT THE INPUT MEANT 
+    // (e.g. a sort of "Did you mean 'x'?" that can be embedded in a confirm card
     /*
      * Submit natural language to be processed by node. 
      * This results in 
      *  - string representing what the node THINKS the input is trying to say.
-     *      (this could be returned as an ask card, e.g.: "Did you mean 'x'?")
+     *      (this could be returned as a confirm card
      * This method does not update the conceptual model.
      *
      * Returns: str 
      */
     var parse_nl = function(t){
+        t = t.replace(/'/g, '').replace(/\./g, '');
         var tokens = t.split(" ");
-
-        // e.g. "prof plum is in the room 'N215'"
-        // ->
-        // "the character 'Prof Plum' is in the room 'N215'"
-        var instance_name_guess = [];
-        while(instance_name_guess.length < tokens.length){
-            instance_name_guess.push(tokens[instance_name_guess.length]);
-            var instance_guess = get_instance_by_name(instance_name_guess.join(" "));
-            if(instance_guess != null){
-                var concept = get_concept_by_id(instance_guess.concept_id);
-                var regexp = new RegExp(instance_guess.name, "i");
-                t = t.replace(regexp, "'"+instance_guess.name+"'");
-                t = "the "+concept.name+" "+t;
-
-                return "Did you mean: "+t;
-            }
-        }
 
         // Try to find any mentions of known instances and tie them together using
         // values and relationships.
-        /*
-         * DISABLED FOR NOW
-         *
-        var common_words = ["is", "and", "has", "that", "the"];
+        
+        var common_words = ["there", "what", "who", "where", "theres", "is", "and", "has", "that", "the", "a", "an", "named", "conceptualise", "on", "at", "in"];
         var focus_instance=null;
         var smallest_index = 999999;
         for(var i = 0; i < instances.length; i++){
@@ -869,12 +850,15 @@ function CENode(){
                 }
                 else{
                     if(t.toLowerCase().indexOf(possible_values[i].descriptor.toLowerCase()) > -1){
+                        var value_name = "";
                         for(var j = 0; j < tokens.length; j++){
                             if(common_words.indexOf(tokens[j].toLowerCase()) == -1 ){
-                                facts.push("has '"+tokens[j]+"' as "+possible_values[i].descriptor);
-                                break;
+                                value_name += tokens[j]+" ";
                             }
                         }
+                        if(value_name != ""){
+                            facts.push("has '"+value_name.trim()+"' as "+possible_values[i].descriptor);
+                        }   
                     }
                 }
             }
@@ -890,10 +874,8 @@ function CENode(){
                     }
                 }
             }
-            console.log(ce+facts.join(" and "));
             if(facts.length > 0){
-                //return parse_ce(ce+facts.join(" and "));
-                return "Did you mean: "+ce+facts.join(" and ");
+                return [true,ce+facts.join(" and ")];
             }
         }
 
@@ -904,22 +886,19 @@ function CENode(){
                 for(var j = 0; j < concept_words; j++){
                     common_words.push(concept_words[j]);
                 }
-                var ins = node.get_instances(concepts[i].name);
-                for(var j = 0; j < ins.length; j++){
-                    if(t.indexOf(ins[j].name.toLowerCase()) > -1){
-                        return false;
-                    }
-                }
+                var new_instance_name = "";
                 for(var j = 0; j < tokens.length; j++){
                     if(common_words.indexOf(tokens[j].toLowerCase()) == -1){
-                         //return parse_ce("there is a "+concepts[i].name+" named '"+tokens[j]+"'");
-                         return "Did you mean: "+"there is a "+concepts[i].name+" named '"+tokens[j]+"'";
+                        new_instance_name += tokens[j]+" ";
                     }
                 }
-                //return parse_ce("there is a "+concepts[i].name+" named '"+concepts[i].name+" "+ins.length+1+"'");
-                return "Did you mean: "+"there is a "+concepts[i].name+" named '"+concepts[i].name+" "+ins.length+1+"'";
+                if(new_instance_name != ""){
+                    return [true, "there is a "+concepts[i].name+" named '"+new_instance_name.trim()+"'"];
+                }
+                return [true, "there is a "+concepts[i].name+" named '"+concepts[i].name+" "+instances.length+1+"'"];
             }
-        }*/
+        }
+        return [false, "Un-parseable input: "+t];
     }
 
     /*
@@ -1215,35 +1194,106 @@ function CENode(){
 
     /*
      * Adds a sentence to be processed by the node.
+     * This method will ALWAYS return a response by dynamically
+     * checking whether input is pure CE, a question, or NL.
+     *
      * Method will initially attempt to parse any CE.
      * If CE-parsing unsuccessful, then try to parse a question.
      * If no meaning can be found (CE or question), then make a guess.
      *
-     * Method returns a string indicating errors, responses to questions, etc., depending
-     * on input.
+     * Method returns an object with useful information. The 'type' field
+     * specifies the type of the card to respond with (e.g. tell/gist/confirm).
+     * The 'data' field contains the actual body.
      *
-     * Returns: str
+     * Returns: {type: str, data: str}
      */
     this.add_sentence = function(sentence){
         sentence = sentence.trim();
         sentence = sentence.replace("{now}", new Date().getTime());
         sentence = sentence.replace("{uid}", new_card_id());
-        var ce_success, question_success, nl_guess; // [bool, str], [bool, str], str
+        var return_data = {};
 
-        ce_success = parse_ce(sentence);
+        var ce_success = parse_ce(sentence);
         if(ce_success[0] == false){
-            question_success = parse_question(sentence);
+            var question_success = parse_question(sentence);
+            if(question_success[0] == false){
+                var nl_success = parse_nl(sentence);
+                if(nl_success[0] == false){
+                    return_data.type = "gist";
+                }
+                else{
+                    return_data.type = "confirm";
+                }
+                return_data.data = nl_success[1];
+            }
+            else{
+                return_data.type = "gist";
+                return_data.data = question_success[1];
+            }
         }
-        else if(ce_success[0] == true){
-            return ce_success[1];
+        else{
+            return_data.type = "tell";
+            return_data.data = ce_success[1];
         }
-        if(question_success != null && question_success[0] == false){
-            nl_guess = parse_nl(sentence);
+        return return_data;
+    }
+
+    /*
+     * Attempt to parse CE and add data to the node.
+     * Indicates whether CE was successfully parsed.
+     * Output data string is the input text.
+     *
+     * Returns: {success: bool, type: str, data: str}
+     */
+    this.add_ce = function(sentence){
+        sentence = sentence.trim();
+        sentence = sentence.replace("{now}", new Date().getTime());
+        sentence = sentence.replace("{uid}", new_card_id());
+        var return_data = {};
+        var success = parse_ce(sentence);
+        return_data.success = success[0];
+        return_data.type = "gist";
+        return_data.data = success[1];
+        return return_data;
+    }
+
+    /*
+     * Attempt to query the node.
+     * Indicates success of whether a valid question was parsed
+     * Output data string is the response, if any.
+     *
+     * Returns: {success: bool, type: str, data: str}
+     * (Note that type and data will be null unless success = true)
+     */
+    this.ask_question = function(sentence){
+        var return_data = {};
+        var success = parse_question(sentence);
+        return_data.success = success[0];
+        if(success[0] == true){
+            return_data.type = "tell";
+            return_data.data = success[1];
         }
-        else if(question_success != null && question_success[0] == true){
-            return question_success[1];
+        return return_data;
+    }
+
+    /*
+     * Attempt to parse NL.
+     * Method does not update the conceptual model.
+     * Method returns a response representing a CE 'guess' of the input sentence
+     *
+     * Returns: {type: str, data: str}
+     */
+    this.add_nl = function(sentence){
+        var return_data = {};
+        var success = parse_nl(sentence);
+        if(success[0] == true){
+            return_data.type = "confirm";
         }
-        return nl_guess;
+        else{
+            return_data.type = "gist";
+        }
+        return_data.data = success[1];
+        return return_data;
     }
 
     /*
@@ -1321,19 +1371,17 @@ function CEAgent(n){
                             }
                         }
                         var data = node.add_sentence(content);
-                        if(data != null){
-                            var froms = node.get_instance_relationships(card, "is from");
-                            var urls = data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
-                            var c = "there is a tell card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.replace(/'/g, "\\'")+"' as content";
-                            for(var j = 0; j < froms.length; j++){
-                                var type = node.get_instance_type(froms[j]);
-                                c+=" and is to the "+type+" '"+froms[j].name+"'";
-                            }
-                            if(urls!=null){for(var j = 0; j < urls.length; j++){
-                                c+=" and has '"+urls[j]+"' as linked content";
-                            }}
-                            node.add_sentence(c);
+                        var froms = node.get_instance_relationships(card, "is from");
+                        var urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
+                        var c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
+                        for(var j = 0; j < froms.length; j++){
+                            var type = node.get_instance_type(froms[j]);
+                            c+=" and is to the "+type+" '"+froms[j].name+"'";
                         }
+                        if(urls!=null){for(var j = 0; j < urls.length; j++){
+                            c+=" and has '"+urls[j]+"' as linked content";
+                        }}
+                        node.add_sentence(c);
                     }
                     else if(type == "tell card"){
                         var tell_policies = node.get_instances("tell policy");
@@ -1353,18 +1401,19 @@ function CEAgent(n){
                             if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
                                 var target_concept = node.get_instance_type(target);
                                 var c;
-                                if(data != null && data == false){
-                                    if(ack == "basic"){c="OK.";}
-                                    else if(ack=="full"){c= "Sorry - your message was not understood.";}
+                                if(ack == "basic"){c = "OK.";}
+                                else{
+                                    if(data.type == "tell"){
+                                        c = "OK. I added this to my knowledge base: "+data.data;
+                                    }
+                                    else if(data.type == "gist"){
+                                        c = data.data;
+                                    }
+                                    else if(data.type == "ask" || data.type == "confirm"){
+                                        c = data.data;
+                                    }
                                 }
-                                else if(data != null){
-                                    if(ack == "basic"){c="OK.";}
-                                    else if(ack == "full"){c= "OK. "+data;}
-                                }
-                                else if(data == null){
-                                    c = "Your message was understood.";
-                                }
-                                node.add_sentence("there is a tell card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
+                                node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
                             }
                         }
                     }
@@ -1510,6 +1559,9 @@ var MODELS = {
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
+        "conceptualise a ~ gist card ~ G that is a card",
+        "conceptualise an ~ nl card ~ N that is a card",
+        "conceptualise a ~ confirm card ~ C that is a card",
         "conceptualise a ~ location ~ L that is an entity",
         "conceptualise a ~ locatable thing ~ L that is an entity",
         "conceptualise the locatable thing L ~ is in ~ the location M",
