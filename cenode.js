@@ -707,7 +707,7 @@ function CENode(){
         }
 
         else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)){
-            var thing = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g,'').replace(/\bthe\b/g, '');
+            var thing = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g,'').replace(/\bthe\b/g, '').replace(/'/g, '');
             var instance = null;
             var locatable_instances = node.get_instances("location", true);
             var located_instances = [];
@@ -744,7 +744,7 @@ function CENode(){
         }
 
         else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )/i)){
-            var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');
+            var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
             var instance = get_instance_by_name(name);
             if(instance == null){
                 var concept = get_concept_by_name(name);
@@ -1110,7 +1110,7 @@ function CENode(){
         if(concept == null){return;}
         var ce = instance.name+" is a "+concept.name+".";
         var facts = [];
-        for(var i = 0; i < instance.values.length; i++){
+        if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
             var value = instance.values[i];
             if(value.type_id == 0){
                 facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor)
@@ -1120,13 +1120,13 @@ function CENode(){
                 var value_concept = get_concept_by_id(value_instance.concept_id);
                 facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
             }
-        }
-        for(var i = 0; i < instance.relationships.length; i++){
+        }}
+        if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
             var relationship = instance.relationships[i];
             var relationship_instance = get_instance_by_id(relationship.target_id);
             var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
             facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
-        }
+        }}
         if(facts.length > 0){ce += " "+instance.name+" "+facts.join(" and ")+".";}
         return ce;
     }
@@ -1323,11 +1323,15 @@ function CEAgent(n){
                         var data = node.add_sentence(content);
                         if(data != null){
                             var froms = node.get_instance_relationships(card, "is from");
+                            var urls = data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
                             var c = "there is a tell card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.replace(/'/g, "\\'")+"' as content";
                             for(var j = 0; j < froms.length; j++){
                                 var type = node.get_instance_type(froms[j]);
                                 c+=" and is to the "+type+" '"+froms[j].name+"'";
                             }
+                            if(urls!=null){for(var j = 0; j < urls.length; j++){
+                                c+=" and has '"+urls[j]+"' as linked content";
+                            }}
                             node.add_sentence(c);
                         }
                     }
@@ -1497,7 +1501,8 @@ function CEAgent(n){
  */
 var MODELS = {
     CORE : [
-        "conceptualise an ~ entity ~",
+        "conceptualise an ~ entity ~ E",
+        "conceptualise an ~ imageable thing ~ I that has the value V as ~ image ~",
         "conceptualise a ~ timestamp ~ T that is an entity",
         "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
@@ -1506,10 +1511,10 @@ var MODELS = {
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
         "conceptualise a ~ location ~ L that is an entity",
-        "conceptualise a ~ locatable thing ~ L",
+        "conceptualise a ~ locatable thing ~ L that is an entity",
         "conceptualise the locatable thing L ~ is in ~ the location M",
         "conceptualise a ~ human ~ H that is an entity",
-        "conceptualise a ~ policy ~ P that has the value V as ~ enabled ~ and has the agent A as ~ target ~",
+        "conceptualise a ~ policy ~ P that is an entity and has the value V as ~ enabled ~ and has the agent A as ~ target ~",
         "conceptualise a ~ tell policy ~ P that is a policy",
         "conceptualise an ~ ask policy ~ P that is a policy",
         "conceptualise a ~ listen policy ~ P that is a policy",
@@ -1517,7 +1522,7 @@ var MODELS = {
         "conceptualise a ~ feedback policy ~ P that is a policy and has the value V as ~ acknowledgement ~"
     ],
     SHERLOCK_CORE : [
-        "conceptualise a ~ sherlock thing ~ that is an entity",
+        "conceptualise a ~ sherlock thing ~ that is an entity and is an imageable thing",
         "conceptualise a ~ company ~ that is a sherlock thing",
         "conceptualise a ~ fruit ~ that is a sherlock thing and is a locatable thing and has the room R as ~ room ~",
         "conceptualise a ~ room ~ that is a location and is a sherlock thing and has the location L as ~ location ~",
@@ -1529,7 +1534,7 @@ var MODELS = {
         "conceptualise a ~ question ~ that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
         "conceptualise the question Q ~ concerns ~ the sherlock thing C",
 
-        "there is a character named 'Prof Plum'",
+        "there is a character named 'Prof Plum' that has 'http://sherlock.cenode.io/media/plum.jpg' as image",
         "there is a character named 'Dr White'",
         "there is a character named 'Col Mustard'",
         "there is a character named 'Sgt Peacock'",
@@ -1555,17 +1560,17 @@ var MODELS = {
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
     ],
-    SHERLOCK_MASTER : [
+    SHERLOCK_MYCROFT : [
         "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
         "there is a building named 'North Building'",
         "there is a floor named '2nd Floor'",
         "the room 'N215' is located in the building 'North Building' and is located on the floor '2nd Floor'"
     ],
     SHERLOCK_NODE : [
-        "there is an agent named 'Master' that has 'http://cenode.sentinelstream.net' as address",
-        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Master' as target",
-        "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Master' as target",
-        "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Master' as target"
+        "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address",
+        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
+        "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
+        "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
     ]
 }
 
