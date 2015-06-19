@@ -268,16 +268,32 @@ function CENode(){
         return children;
     }
 
+    var create_instance_skeleton = function(name, concept_name){
+        var new_instance = {};
+        new_instance.name = name;
+        new_instance.concept_id = get_concept_by_name(concept_name).id;
+        new_instance.id = new_instance_id();
+        new_instance.sentences = [];
+        new_instance.values = [];
+        new_instance.relationships = [];
+        return new_instance;
+    }
+
     /*
      * Submit CE to be processed by node. 
      * This may result in 
      *  - new concepts or instances being created
      *  - modifications to existing concepts or instances
      *  - no action (i.e. invalid or duplicate CE)
+     *
+     *  THIS METHOD SHOULD BE USED AS THE ONLY WAY TO MODIFY THE MODEL.
+     *
+     *  The nowrite argument is optional. If set to 'true', the method will behave
+     *  as normal, but will not actually modify the node's model.
      * 
      * Returns: [bool, str] (bool = success, str = error or parsed string)
      */
-    var parse_ce = function(t){
+    var parse_ce = function(t, nowrite){
         t = t.replace(/\s+/g, " ").replace(/\.+$/, ""); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
         var message = "";
 
@@ -297,7 +313,11 @@ function CENode(){
                 concept.parents = []
                 concept.name = concept_name;
                 concept.id = new_concept_id();
-                concepts.push(concept);
+
+                // Writepoint
+                if(nowrite == null || nowrite == false){
+                    concepts.push(concept);
+                }
             }
 
             var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b)/g);
@@ -319,7 +339,10 @@ function CENode(){
                         return [false, message];
                     }
 
-                    concept.values.push(value);
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        concept.values.push(value);
+                    }
                 } 
 
                 // "is a parent_concept"
@@ -331,7 +354,10 @@ function CENode(){
                         return [false, message];
                     }
                     if(concept.parents.indexOf(parent.id) == -1){
-                        concept.parents.push(parent.id);
+                        // Writepoint
+                        if(nowrite == null || nowrite == false){
+                            concept.parents.push(parent.id);
+                        }
                     }
                 }
             }
@@ -371,7 +397,11 @@ function CENode(){
                     var relationship = {};
                     relationship.target = target.id;
                     relationship.label = facts_info[3];
-                    concept.relationships.push(relationship);
+
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        concept.relationships.push(relationship);
+                    }
                 }
 
                 // "~ label ~ the target T" (e.g. and ~ loves ~ the person P)
@@ -388,7 +418,11 @@ function CENode(){
                     var relationship = {};
                     relationship.target = target.id;
                     relationship.label = facts_info[1];
-                    concept.relationships.push(relationship);
+
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        concept.relationships.push(relationship);
+                    }
                 }
 
                 // "has the type X as ~ descriptor ~" (e.g. and has the room R as ~ location ~)
@@ -406,25 +440,32 @@ function CENode(){
                         return [false, message];
                     }
                     value.descriptor = facts_info[3];
-                    concept.values.push(value);
+
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        concept.values.push(value);
+                    }
                 }
 
                 // "is a parent_concept" (e.g. and is a entity)
                 else if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
                     var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
-                    concept.parents.push(get_concept_by_name(parent_name).id);
+
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        concept.parents.push(get_concept_by_name(parent_name).id);
+                    }
                 }
             }
             return [true, t];
         }
 
         else if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
-            var instance = {};
             var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
             var concept_name = names[1];
-            instance.name = names[2].replace(/\\/g, '');
+            var instance_name = names[2].replace(/\\/g, '');
             var concept = get_concept_by_name(concept_name);
-            var current_instance = get_instance_by_name(instance.name);
+            var current_instance = get_instance_by_name(instance_name);
             if(concept == null){
                 message = "Instance type unknown: "+concept_name;
                 return [false, message];
@@ -433,12 +474,13 @@ function CENode(){
                 message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
                 return [false, message];
             }
-            instance.concept_id = concept.id;
-            instance.relationships = [];
-            instance.values = [];
-            instance.id = new_instance_id();
-            instance.sentences = [];
-            instance.sentences.push(t);
+
+            var instance = create_instance_skeleton(instance_name, concept_name);
+
+            // Writepoint
+            if(nowrite == null || nowrite == false){
+                instance.sentences.push(t);
+            }
 
             var parents = get_recursive_parents(concept);
             var possible_relationships = [];
@@ -463,23 +505,26 @@ function CENode(){
                     var value_descriptor = facts_info[3];
 
                     if(value_instance == null) {
-                        var new_instance = {};
-                        new_instance.name = value_instance_name;
-                        new_instance.concept_id = get_concept_by_name(value_type).id;
-                        new_instance.id = new_instance_id();
-                        new_instance.sentences = [];
-                        new_instance.sentences.push(t);
-                        instances.push(new_instance);
-                        value_instance = new_instance;
+                        value_instance = create_instance_skeleton(value_instance_name, value_type);
+                        
+                        // Writepoint 
+                        if(nowrite == null || nowrite == false){
+                            value_instance.sentences.push(t);
+                            instances.push(value_instance);
+                        }
                     }
                     var value = {};
                     value.type_id = value_instance.id;
                     value.type_name = value_instance.name;
+                    value.descriptor = value_descriptor;
 
                     for (var j = 0; j < possible_values.length; j++) {
-                        if (possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
-                            value.descriptor = value_descriptor;
-                            instance.values.push(value);
+                        if(possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
+
+                            // Writepoint
+                            if(nowrite == null || nowrite == false){
+                                instance.values.push(value);
+                            }
                         }
                     }
                 }
@@ -499,7 +544,11 @@ function CENode(){
 
                     for (var j = 0; j < possible_values.length; j++) {
                         if (possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
-                            instance.values.push(value);
+
+                            // Writepoint
+                            if(nowrite == null || nowrite == false){
+                                instance.values.push(value);
+                            }
                         }
                     }
                 }
@@ -519,14 +568,13 @@ function CENode(){
                         return [false, message];
                     }
                     if(relationship_instance == null){
-                        var new_instance = {};
-                        new_instance.name = relationship_instance_name;
-                        new_instance.concept_id = relationship_type.id;
-                        new_instance.id = new_instance_id();;
-                        new_instance.sentences = [];
-                        new_instance.sentences.push(t);
-                        instances.push(new_instance);
-                        relationship_instance = new_instance;
+                        relationship_instance = create_instance_skeleton(relationship_instance_name, relationship_type_name);
+
+                        // Writepoint
+                        if(nowrite == null || nowrite == false){
+                            relationship_instance.sentences.push(t);
+                            instances.push(relationship_instance);
+                        }
                     }
 
                     var relationship = {};
@@ -536,11 +584,20 @@ function CENode(){
 
                     for(var j = 0; j < possible_relationships.length; j++){
                         if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label){
-                            instance.relationships.push(relationship);
+
+                            // Writepoint
+                            if(nowrite == null || nowrite == false){
+                                instance.relationships.push(relationship);
+                            }
                         }
                     }
             }}
-            instances.push(instance);
+
+            // Writepoint
+            if(nowrite == null || nowrite == false){
+                instances.push(instance);
+            }
+
             return [true, t];
         }
 
@@ -556,7 +613,10 @@ function CENode(){
                 return [false, message];
             }
 
-            instance.sentences.push(t);
+            // Writepoint
+            if(nowrite == null || nowrite == false){
+                instance.sentences.push(t);
+            }
 
             var parents = get_recursive_parents(concept);
             var possible_relationships = [];
@@ -581,48 +641,59 @@ function CENode(){
                 var fact = has_concept_facts[i].trim();
                 var fact_info = fact.match(/^has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
                 var value = {};
-                value.descriptor = fact_info[3];
 
                 var value_concept = get_concept_by_name(fact_info[1]);
                 var value_instance = get_instance_by_name(fact_info[2]);
 
                 if(value_concept == null){break;}
                 if(value_instance == null){
-                    var new_instance = {};
-                    new_instance.id = new_instance_id();
-                    new_instance.name = fact_info[2].replace(/\\/g, '');
-                    new_instance.concept_id = value_concept.id;
-                    new_instance.values = [];
-                    new_instance.relationships = [];
-                    instances.push(new_instance);
-                    value_instance = new_instance;
-                }
-                value.type_name = value_instance.name;
-                value.type_id = value_instance.id;
-                var add = false;
-                for(var j = 0; j < possible_values.length; j++){
-                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-                        add = true;
+                    value_instance = create_instance_skeleton(fact_info[2].replace(/\\/g, ''), fact_info[1]);
+
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        value_instance.sentences.push(t);
+                        instances.push(value_instance);
                     }
                 }
-                if(add){instance.values.push(value);}
+
+                value.type_name = value_instance.name;
+                value.type_id = value_instance.id;
+                value.descriptor = fact_info[3];
+
+                for(var j = 0; j < possible_values.length; j++){
+                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
+                        
+                        // Writepoint
+                        if(nowrite == null || nowrite == false){
+                            instance.values.push(value);
+                        }
+
+                        break;
+                    }
+                }
             }}
 
             // "has 'value_text' as value" (allows 'value_text' to contain escaped quotes)
             if(has_value_facts!=null){for(var i = 0; i < has_value_facts.length; i++){
                 var fact = has_value_facts[i].trim();
                 var fact_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?!and)/);
+
                 var value = {};
                 value.descriptor = fact_info[2];
                 value.type_name = fact_info[1].replace(/\\/g, '');
                 value.type_id = 0;
-                var add = false;
+
                 for(var j = 0; j < possible_values.length; j++){
                     if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-                        add = true;
+
+                        // Writepoint
+                        if(nowrite == null || nowrite == false){
+                            instance.values.push(value);
+                        }
+
+                        break;
                     }
                 }    
-                if(add){instance.values.push(value);}
             }}
 
             // "is_related_to" the concept 'instance_name'
@@ -638,27 +709,27 @@ function CENode(){
 
                 if(target_type == null){break;}
                 if(target_instance == null){
-                    var new_instance = {};
-                    new_instance.id = new_instance_id();
-                    new_instance.name = fact_info[3];
-                    new_instance.concept_id = target_type.id;
-                    new_instance.relationships = [];
-                    new_instance.values = [];
-                    instances.push(new_instance);
-                    target_instance = new_instance;
-                }
-                relationship.target_name = target_instance.name;
-                relationship.target_id = target_instance.id;
-                var add = false;
-                for(var j = 0; j < possible_relationships.length; j++){
-                    if(possible_relationships[j] != null && possible_relationships[j].label == relationship.label){
-                        add = true;
+                    target_instance = create_instance_skeleton(fact_info[3].replace(/\\/g, ''), fact_info[2]);
+
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        target_instance.sentences.push(t);
+                        instances.push(target_instance);
                     }
                 }
-                if(add){instance.relationships.push(relationship);}
-                else{
-                    message = "Invalid relationship for "+concept.name+": "+relationship.label;
-                    return [false, message];
+
+                relationship.target_name = target_instance.name;
+                relationship.target_id = target_instance.id;
+                for(var j = 0; j < possible_relationships.length; j++){
+                    if(possible_relationships[j] != null && possible_relationships[j].label == relationship.label){
+
+                        // Writepoint
+                        if(nowrite == null || nowrite == false){
+                            instance.relationships.push(relationship);
+                        }
+
+                        break;
+                    }
                 }
             }}
             return [true, t];
@@ -798,13 +869,14 @@ function CENode(){
      * Returns: str 
      */
     var parse_nl = function(t){
-        t = t.replace(/'/g, '').replace(/\./g, '');
+        t = t.replace(/'s/g,'').replace(/'/g, '').replace(/\./g, '');
         var tokens = t.split(" ");
+        var and_facts = t.split(/\band\b/);
 
         // Try to find any mentions of known instances and tie them together using
         // values and relationships.
         
-        var common_words = ["there", "what", "who", "where", "theres", "is", "and", "has", "that", "the", "a", "an", "named", "conceptualise", "on", "at", "in"];
+        var common_words = ["there", "what", "who", "where", "theres", "is", "and", "has", "that", "the", "a", "an", "named", "called", "name", "with", "conceptualise", "on", "at", "in"];
         var focus_instance=null;
         var smallest_index = 999999;
         for(var i = 0; i < instances.length; i++){
@@ -833,6 +905,8 @@ function CENode(){
                 possible_relationships = possible_relationships.concat(parents[i].relationships);
                 possible_values = possible_values.concat(parents[i].values);
             }
+
+
 
             for(var i = 0; i < possible_values.length; i++){
                 var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
@@ -1356,69 +1430,101 @@ function CEAgent(n){
         var tos = node.get_instance_relationships(card, "is to");
         var content = node.get_instance_value(card, "content");
         var type = node.get_instance_type(card);
-        if(handled_cards.indexOf(card.name) == -1){
-            handled_cards.push(card.name);
-            if(content == null){return;}
-            for(var i = 0; i < tos.length; i++){
-                if(tos[i].name.toLowerCase() == name.toLowerCase()){
-                    if(type == "ask card"){
-                        var ask_policies = node.get_instances("ask policy");
-                        for(var j = 0; j < ask_policies.length; j++){
-                            var target = node.get_instance_value(ask_policies[j], "target");
-                            if(node.get_instance_value(ask_policies[i], "enabled") == 'true'){
-                                var c = "there is an ask card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is from the individual '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+target.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
-                                net.make_request("POST", node.get_instance_value(target, "address"), "/sentences", c);
-                            }
-                        }
-                        var data = node.add_sentence(content);
-                        var froms = node.get_instance_relationships(card, "is from");
-                        var urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
-                        var c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
-                        for(var j = 0; j < froms.length; j++){
-                            var type = node.get_instance_type(froms[j]);
-                            c+=" and is to the "+type+" '"+froms[j].name+"'";
-                        }
-                        if(urls!=null){for(var j = 0; j < urls.length; j++){
-                            c+=" and has '"+urls[j]+"' as linked content";
-                        }}
-                        node.add_sentence(c);
-                    }
-                    else if(type == "tell card"){
-                        var tell_policies = node.get_instances("tell policy");
-                        for(var j = 0; j < tell_policies.length; j++){
-                            if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
-                                var target_name = node.get_instance_value(tell_policies[j], "target").name;
-                                if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
-                                unsent_tell_cards[target_name].push(card); 
-                            }
-                        }
-                        var data = node.add_sentence(content); 
-                        var feedback_policies = node.get_instances("feedback policy");
-                        for(var j = 0; j < feedback_policies.length; j++){
-                            var target = node.get_instance_value(feedback_policies[j], "target");
-                            var enabled = node.get_instance_value(feedback_policies[j], "enabled");
-                            var ack = node.get_instance_value(feedback_policies[j], "acknowledgement");
-                            if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
-                                var target_concept = node.get_instance_type(target);
-                                var c;
-                                if(ack == "basic"){c = "OK.";}
-                                else{
-                                    if(data.type == "tell"){
-                                        c = "OK. I added this to my knowledge base: "+data.data;
-                                    }
-                                    else if(data.type == "gist"){
-                                        c = data.data;
-                                    }
-                                    else if(data.type == "ask" || data.type == "confirm"){
-                                        c = data.data;
-                                    }
-                                }
-                                node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
-                            }
-                        }
-                    }
-                    break;
+        var sent_to_this_agent = false;
+
+        // Determine whether or not to read or ignore this card:
+        if(handled_cards.indexOf(card.name) > -1){return;}
+        handled_cards.push(card.name);
+        if(content == null){return;}
+        for(var i = 0; i < tos.length; i++){
+            if(tos[i].name.toLowerCase() == name.toLowerCase()){
+                sent_to_this_agent = true;
+                break;
+            }
+        }
+        if(sent_to_this_agent == false){return;}
+
+        /*
+         * Now handle the actual card:
+         */
+
+        if(type == "ask card"){
+            // Get the relevant information from the node
+            var data = node.add_sentence(content);
+
+            // Add sentence to any active ask policy queues
+            var ask_policies = node.get_instances("ask policy");
+            for(var j = 0; j < ask_policies.length; j++){
+                var target = node.get_instance_value(ask_policies[j], "target");
+                if(node.get_instance_value(ask_policies[i], "enabled") == 'true'){
+                    var c = "there is an ask card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is from the individual '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+target.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+                    net.make_request("POST", node.get_instance_value(target, "address"), "/sentences", c);
                 }
+            }
+
+            // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
+            var froms = node.get_instance_relationships(card, "is from");
+            var urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
+            var c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
+            for(var j = 0; j < froms.length; j++){
+                var type = node.get_instance_type(froms[j]);
+                c+=" and is to the "+type+" '"+froms[j].name+"'";
+            }
+            if(urls!=null){for(var j = 0; j < urls.length; j++){
+                c+=" and has '"+urls[j]+"' as linked content";
+            }}
+            node.add_sentence(c);
+        }
+        else if(type == "tell card"){
+            // Add the CE sentence to the node
+            var data = node.add_sentence(content); 
+
+            // Add sentence to any active tell policy queues
+            var tell_policies = node.get_instances("tell policy");
+            for(var j = 0; j < tell_policies.length; j++){
+                if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
+                    var target_name = node.get_instance_value(tell_policies[j], "target").name;
+                    if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
+                    unsent_tell_cards[target_name].push(card); 
+                }
+            }
+
+            // Check feedback policies to see if input 'tell card' requires a response
+            // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
+            var feedback_policies = node.get_instances("feedback policy");
+            for(var j = 0; j < feedback_policies.length; j++){
+                var target = node.get_instance_value(feedback_policies[j], "target");
+                var enabled = node.get_instance_value(feedback_policies[j], "enabled");
+                var ack = node.get_instance_value(feedback_policies[j], "acknowledgement");
+                if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
+                    var target_concept = node.get_instance_type(target);
+                    var c;
+                    if(ack == "basic"){c = "OK.";}
+                    else{
+                        if(data.type == "tell"){
+                            c = "OK. I added this to my knowledge base: "+data.data;
+                        }
+                        else if(data.type == "gist"){
+                            c = data.data;
+                        }
+                        else if(data.type == "ask" || data.type == "confirm"){
+                            c = data.data;
+                        }
+                    }
+                    node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
+                }
+            }
+        }
+        else if(type == "nl card"){
+            // Firstly, check if card content is valid CE:
+            var data = node.add_ce(content);
+            if(data.success == true){
+                // TODO: autoconfirm, rewrite as tell card and add to any active tell policies
+                // TODO: reply according to feedback policy
+            }   
+            else{
+                data = node.add_nl(content);       
+                // TODO: Return a confirm card (or gist error card)
             }
         }
     }
