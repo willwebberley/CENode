@@ -1317,14 +1317,17 @@ function CENode(){
      * Indicates whether CE was successfully parsed.
      * Output data string is the input text.
      *
+     * nowrite is an optional argument that asks parse_ce() not
+     * to actually update the model.
+     *
      * Returns: {success: bool, type: str, data: str}
      */
-    this.add_ce = function(sentence){
+    this.add_ce = function(sentence, nowrite){
         sentence = sentence.trim();
         sentence = sentence.replace("{now}", new Date().getTime());
         sentence = sentence.replace("{uid}", new_card_id());
         var return_data = {};
-        var success = parse_ce(sentence);
+        var success = parse_ce(sentence, nowrite);
         return_data.success = success[0];
         return_data.type = "gist";
         return_data.data = success[1];
@@ -1450,7 +1453,7 @@ function CEAgent(n){
 
         if(type == "ask card"){
             // Get the relevant information from the node
-            var data = node.add_sentence(content);
+            var data = node.ask_question(content);
 
             // Add sentence to any active ask policy queues
             var ask_policies = node.get_instances("ask policy");
@@ -1477,15 +1480,17 @@ function CEAgent(n){
         }
         else if(type == "tell card"){
             // Add the CE sentence to the node
-            var data = node.add_sentence(content); 
+            var data = node.add_ce(content); 
 
-            // Add sentence to any active tell policy queues
-            var tell_policies = node.get_instances("tell policy");
-            for(var j = 0; j < tell_policies.length; j++){
-                if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
-                    var target_name = node.get_instance_value(tell_policies[j], "target").name;
-                    if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
-                    unsent_tell_cards[target_name].push(card); 
+            if(data.success == true){
+                // Add sentence to any active tell policy queues
+                var tell_policies = node.get_instances("tell policy");
+                for(var j = 0; j < tell_policies.length; j++){
+                    if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
+                        var target_name = node.get_instance_value(tell_policies[j], "target").name;
+                        if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
+                        unsent_tell_cards[target_name].push(card); 
+                    }
                 }
             }
 
@@ -1504,10 +1509,7 @@ function CEAgent(n){
                         if(data.type == "tell"){
                             c = "OK. I added this to my knowledge base: "+data.data;
                         }
-                        else if(data.type == "gist"){
-                            c = data.data;
-                        }
-                        else if(data.type == "ask" || data.type == "confirm"){
+                        else if(data.type == "ask" || data.type == "confirm" || data.type == "gist"){
                             c = data.data;
                         }
                     }
@@ -1516,16 +1518,20 @@ function CEAgent(n){
             }
         }
         else if(type == "nl card"){
-            // Firstly, check if card content is valid CE:
-            var data = node.add_ce(content);
+            var new_card = null;
+            // Firstly, check if card content is valid CE, but without writing to model:
+            var data = node.add_ce(content, true);
+
+            // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
             if(data.success == true){
-                // TODO: autoconfirm, rewrite as tell card and add to any active tell policies
-                // TODO: reply according to feedback policy
+                var new_card = "there is a tell card named 'msg_{uid}' that is from the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
             }   
+            // If invalid CE, then write back a confirm card with relevant data and add it to the model
             else{
                 data = node.add_nl(content);       
-                // TODO: Return a confirm card (or gist error card)
+                var new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
             }
+            node.add_sentence(new_card);
         }
     }
 
