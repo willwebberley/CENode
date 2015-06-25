@@ -165,7 +165,7 @@ function CENode(){
     var get_concept_by_name = function(name){
         if(name == null){return null;}
         for(var i = 0; i < concepts.length; i++){
-            if(concepts[i].name == name.toLowerCase()){
+            if(concepts[i].name.toLowerCase() == name.toLowerCase()){
                 return concepts[i];
             }
             if(concepts[i].synonyms != null){
@@ -278,6 +278,161 @@ function CENode(){
         new_instance.relationships = [];
         return new_instance;
     }
+
+    var parse_instance_concept_values = function(facts, concept, sentence, nowrite){
+        var values = [];
+        if(facts == null){return [true,values];}
+        var parents = get_recursive_parents(concept);
+        var possible_values = [];
+        for (var i = 0; i<parents.length; i++) {
+            possible_values = possible_values.concat(parents[i].values);
+        }
+        for(var i = 0; i < facts.length; i++){
+            if(facts[i] != null){
+                var fact = facts[i].trim();
+                //if(fact.indexOf("and")==0 || fact.indexOf("that")==0){
+                    var value_type, value_instance_name, value_descriptor;
+                    var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
+                    if(facts_info != null){
+                        value_type = facts_info[1];
+                        value_instance_name = facts_info[2].replace(/\\/g, '');
+                        value_descriptor = facts_info[3];
+                    }
+                    else{
+                        facts_info = fact.match(/(?:\bthat\b|\band\b) ?has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/);
+                        var value_type = "";
+                        var type_name_tokens = facts_info[1].split(" ");
+                        for(var j = 0; j < type_name_tokens.length-1; j++){value_type+=type_name_tokens[j]+" ";}
+                        value_type = value_type.trim();
+                        value_instance_name = type_name_tokens[type_name_tokens.length-1].trim();
+                        value_descriptor = facts_info[2];   
+                    }
+                    //console.log("VAL: "+value_descriptor+","+value_type+","+value_instance_name);
+                    if(value_descriptor!=""&&value_type!=""&&value_instance_name!=""){
+                        var value_instance = get_instance_by_name(value_instance_name);
+                        if(value_instance == null) {
+                            value_instance = create_instance_skeleton(value_instance_name, value_type);
+                            
+                            // Writepoint 
+                            if(nowrite == null || nowrite == false){
+                                value_instance.sentences.push(sentence);
+                                instances.push(value_instance);
+                            }
+                        }
+                        var value = {};
+                        value.type_id = value_instance.id;
+                        value.type_name = value_instance.name;
+                        value.descriptor = value_descriptor;
+
+                        for (var j = 0; j < possible_values.length; j++) {
+                            if(possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
+                                values.push(value);
+                            }
+                        }
+                    }
+                //}
+            }
+        }
+        return [true, values];
+    }
+
+    var parse_instance_value_values = function(facts, concept, sentence, nowrite){
+        var values = [];
+        if(facts == null){return [true,values];}
+        var parents = get_recursive_parents(concept);
+        var possible_values = [];
+        for (var i = 0; i<parents.length; i++) {
+            possible_values = possible_values.concat(parents[i].values);
+        }
+        for(var i = 0; i < facts.length; i++){
+            if(facts[i] != null){
+                var fact = facts[i].trim();
+                //if(fact.indexOf("and")==0 || fact.indexOf("that")==0){
+                    var facts_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
+                    var value_value = facts_info[1].replace(/\\/g, '');
+                    var value_descriptor = facts_info[2];
+                    
+                    var value = {};
+                    value.type_name = value_value;
+                    value.type_id = 0;
+                    value.descriptor = value_descriptor;
+
+                    for (var j = 0; j < possible_values.length; j++) {
+                        if (possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
+                            values.push(value);
+                        }
+                    }
+                //}
+                //console.log("VAL: "+value.descriptor+","+value.type_name);
+            }
+        }
+        return [true, values];
+    }
+
+    var parse_instance_relationships = function(facts, concept, sentence, nowrite){
+        var relationships = [];
+        if(facts == null){return [true,relationships];}
+        var parents = get_recursive_parents(concept);
+        var possible_relationships = [];
+        for (var i = 0; i<parents.length; i++) {
+            possible_relationships = possible_relationships.concat(parents[i].relationships);
+        }
+        for(var i = 0; i < facts.length; i++){
+            if(facts[i] != null){
+                var fact = facts[i].trim();
+                var relationship_label, relationship_type_name, relationship_instance_name;
+                var facts_info = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
+                if(facts_info != null){
+                    relationship_label = facts_info[1];
+                    relationship_type_name = facts_info[2];
+                    relationship_instance_name = facts_info[3].replace(/\\/g, '');
+                }
+                else{
+                    facts_info = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/);
+                    var type_instance_tokens = facts_info[2].split(" ");
+                    relationship_type_name = "";
+                    for(var j = 0; j < type_instance_tokens.length-1; j++){relationship_type_name+=type_instance_tokens[j]+" ";}
+                    relationship_label = facts_info[1];
+                    relationship_type_name = relationship_type_name.trim();
+                    relationship_instance_name = type_instance_tokens[type_instance_tokens.length-1].trim();
+                }
+                //console.log("REL: "+relationship_label+","+relationship_type_name+","+relationship_instance_name);
+                if(relationship_label!=""&&relationship_type_name!=""&&relationship_instance_name!=""){
+                    var relationship_type = get_concept_by_name(relationship_type_name);
+                    var relationship_instance = get_instance_by_name(relationship_instance_name);
+                    if(relationship_type == null){
+                        //message = "Unknown relationship type: "+relationship_type_name;
+                        //return [false, message];
+                    }
+                    else{
+                        if(relationship_instance == null){
+                            relationship_instance = create_instance_skeleton(relationship_instance_name, relationship_type_name);
+
+                            // Writepoint
+                            if(nowrite == null || nowrite == false){
+                                relationship_instance.sentences.push(sentence);
+                                instances.push(relationship_instance);
+                            }
+                        }
+
+                        var relationship = {};
+                        relationship.label = relationship_label;
+                        relationship.target_name = relationship_instance.name;
+                        relationship.target_id = relationship_instance.id;
+
+                        for(var j = 0; j < possible_relationships.length; j++){
+                            if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label){
+                                relationships.push(relationship);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return [true, relationships];
+    }
+
+
 
     /*
      * Submit CE to be processed by node. 
@@ -460,8 +615,12 @@ function CENode(){
             return [true, t];
         }
 
-        else if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
+        else if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
             var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+            if(names == null){
+                names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
+                if(names == null){return [false, "Unable to determine name of instance."];}
+            }
             var concept_name = names[1];
             var instance_name = names[2].replace(/\\/g, '');
             var concept = get_concept_by_name(concept_name);
@@ -474,124 +633,45 @@ function CENode(){
                 message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
                 return [false, message];
             }
-
             var instance = create_instance_skeleton(instance_name, concept_name);
+            instance.sentences.push(t);
 
-            // Writepoint
-            if(nowrite == null || nowrite == false){
-                instance.sentences.push(t);
-            }
-
-            var parents = get_recursive_parents(concept);
-            var possible_relationships = [];
-            var possible_values = [];
-
-            for (var i = 0; i<parents.length; i++) {
-                possible_relationships = possible_relationships.concat(parents[i].relationships);
-                possible_values = possible_values.concat(parents[i].values);
-            }
-
-            var concept_facts = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+            var concept_facts_multiword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+            var concept_facts_singleword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
             var value_facts = t.match(/(?:\bthat\b|\band\b) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-            var relationship_facts = t.match(/(?:\bthat\b|\band\b) ([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); 
+            var relationship_facts_multiword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); 
+            var relationship_facts_singleword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
 
-            if(concept_facts!=null){for(var i = 0; i < concept_facts.length; i++){
-                var fact = concept_facts[i].trim();
-                if(fact.indexOf("and")==0 || fact.indexOf("that")==0){
-                    var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
-                    var value_type = facts_info[1];
-                    var value_instance_name = facts_info[2].replace(/\\/g, '');
-                    var value_instance = get_instance_by_name(value_instance_name);
-                    var value_descriptor = facts_info[3];
+            var concept_facts = [];
+            if(concept_facts_multiword == null){concept_facts = concept_facts_singleword;}
+            else{concept_facts = concept_facts_multiword.concat(concept_facts_singleword);}
+            var relationship_facts = [];
+            if(relationship_facts_multiword == null){relationship_facts = relationship_facts_singleword;}
+            else{relationship_facts = relationship_facts_multiword.concat(relationship_facts_singleword);}
 
-                    if(value_instance == null) {
-                        value_instance = create_instance_skeleton(value_instance_name, value_type);
-                        
-                        // Writepoint 
-                        if(nowrite == null || nowrite == false){
-                            value_instance.sentences.push(t);
-                            instances.push(value_instance);
-                        }
-                    }
-                    var value = {};
-                    value.type_id = value_instance.id;
-                    value.type_name = value_instance.name;
-                    value.descriptor = value_descriptor;
-
-                    for (var j = 0; j < possible_values.length; j++) {
-                        if(possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
-
-                            // Writepoint
-                            if(nowrite == null || nowrite == false){
-                                instance.values.push(value);
-                            }
-                        }
-                    }
+            var concept_data = parse_instance_concept_values(concept_facts, concept, t, nowrite);
+            if(concept_data[0] == false){return concept_data;}
+            else{
+                for(var i = 0; i < concept_data[1].length; i++){
+                    instance.values.push(concept_data[1][i]);
                 }
-            }}
+            }
 
-            if(value_facts!=null){for(var i = 0; i < value_facts.length; i++){
-                var fact = value_facts[i].trim();
-                if(fact.indexOf("and")==0 || fact.indexOf("that")==0){
-                    var facts_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
-                    var value_value = facts_info[1].replace(/\\/g, '');
-                    var value_descriptor = facts_info[2];
-                    
-                    var value = {};
-                    value.type_name = value_value;
-                    value.type_id = 0;
-                    value.descriptor = value_descriptor;
-
-                    for (var j = 0; j < possible_values.length; j++) {
-                        if (possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
-
-                            // Writepoint
-                            if(nowrite == null || nowrite == false){
-                                instance.values.push(value);
-                            }
-                        }
-                    }
+            var value_data = parse_instance_value_values(value_facts, concept, t, nowrite);
+            if(value_data[0] == false){return value_data;}
+            else{
+                for(var i = 0; i < value_data[1].length; i++){
+                    instance.values.push(value_data[1][i]);
                 }
-            }}
+            }
 
-            if(relationship_facts!=null){for(var i = 0; i < relationship_facts.length; i++){
-                var fact = relationship_facts[i].trim();
-                    var facts_info = fact.match(/(?:\bthat\b|\band\b) ([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
-                    var relationship_label = facts_info[1];
-                    var relationship_type_name = facts_info[2];
-                    var relationship_instance_name = facts_info[3].replace(/\\/g, '');
-                    var relationship_type = get_concept_by_name(relationship_type_name);
-                    var relationship_instance = get_instance_by_name(relationship_instance_name);
-
-                    if(relationship_type == null){
-                        message = "Unknown relationship type: "+relationship_type_name;
-                        return [false, message];
-                    }
-                    if(relationship_instance == null){
-                        relationship_instance = create_instance_skeleton(relationship_instance_name, relationship_type_name);
-
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            relationship_instance.sentences.push(t);
-                            instances.push(relationship_instance);
-                        }
-                    }
-
-                    var relationship = {};
-                    relationship.label = relationship_label;
-                    relationship.target_name = relationship_instance.name;
-                    relationship.target_id = relationship_instance.id;
-
-                    for(var j = 0; j < possible_relationships.length; j++){
-                        if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label){
-
-                            // Writepoint
-                            if(nowrite == null || nowrite == false){
-                                instance.relationships.push(relationship);
-                            }
-                        }
-                    }
-            }}
+            var relationship_data = parse_instance_relationships(relationship_facts, concept, t, nowrite);
+            if(relationship_data[0] == false){return relationship_data;}
+            else{
+                for(var i = 0; i < relationship_data[1].length; i++){
+                    instance.relationships.push(relationship_data[1][i]);
+                }
+            }
 
             // Writepoint
             if(nowrite == null || nowrite == false){
@@ -601,13 +681,29 @@ function CENode(){
             return [true, t];
         }
 
-        else if(t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
+        else if(t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+            var concept_name, instance_name, concept, instance;
             var names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-            var concept_name = names[1];
-            var instance_name = names[2].replace(/\\/g, '');
-
-            var instance = get_instance_by_name(instance_name);
-            var concept = get_concept_by_name(concept_name);
+            if(names != null){
+                concept_name = names[1];
+                instance_name = names[2].replace(/\\/g, '');
+                instance = get_instance_by_name(instance_name);
+                concept = get_concept_by_name(concept_name);
+            }
+            if(names == null || concept == null || instance == null){
+                names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
+                var name_tokens = names[1].split(" ");
+                for(var i = 0; i < concepts.length; i++){
+                    if(names[1].toLowerCase().indexOf(concepts[i].name.toLowerCase()) == 0){
+                        concept_name = concepts[i].name;
+                        concept = concepts[i];
+                        instance_name = name_tokens[concept.name.split(" ").length];
+                        instance = get_instance_by_name(instance_name);
+                        break;
+                    }
+                }
+            }
+            
             if(concept == null || instance == null){
                 message = "Unknown concept/instance combination: "+concept_name+"/"+instance_name;
                 return [false, message];
@@ -618,120 +714,54 @@ function CENode(){
                 instance.sentences.push(t);
             }
 
-            var parents = get_recursive_parents(concept);
-            var possible_relationships = [];
-            var possible_values = [];
-            for (var i = 0; i<parents.length; i++) {
-                possible_relationships = possible_relationships.concat(parents[i].relationships);
-                possible_values = possible_values.concat(parents[i].values);
-            }
+            var concept_facts_multiword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+            var concept_facts_singleword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
+            var value_facts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+            var relationship_facts_multiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); 
+            var relationship_facts_singleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
 
-            var t2 = t.replace(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i, '').trim();
-            var has_concept_facts = t2.match(/has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has concept C as descriptor
-            var has_value_facts = t2.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has 'value_name' as value (matches escaped quotes too)
-            var relationship_facts = t2.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); // does something to the concept 'target'
+            var concept_facts = [];
+            if(concept_facts_multiword == null){concept_facts = concept_facts_singleword;}
+            else{concept_facts = concept_facts_multiword.concat(concept_facts_singleword);}
+            var relationship_facts = [];
+            if(relationship_facts_multiword == null){relationship_facts = relationship_facts_singleword;}
+            else{relationship_facts = relationship_facts_multiword.concat(relationship_facts_singleword);}
 
-            if(relationship_facts==null&&has_concept_facts==null&&has_value_facts==null){
-               message = "Unable to infer any properties for the "+concept.name+" "+instance.name;
-               return [false, message];
-            }
-
-            // "has the concept 'instance_name' as descriptor"
-            if(has_concept_facts!=null){for(var i = 0; i < has_concept_facts.length; i++){
-                var fact = has_concept_facts[i].trim();
-                var fact_info = fact.match(/^has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
-                var value = {};
-
-                var value_concept = get_concept_by_name(fact_info[1]);
-                var value_instance = get_instance_by_name(fact_info[2]);
-
-                if(value_concept == null){break;}
-                if(value_instance == null){
-                    value_instance = create_instance_skeleton(fact_info[2].replace(/\\/g, ''), fact_info[1]);
+            var concept_data = parse_instance_concept_values(concept_facts, concept, t, nowrite);
+            if(concept_data[0] == false){return concept_data;}
+            else{
+                for(var i = 0; i < concept_data[1].length; i++){
 
                     // Writepoint
                     if(nowrite == null || nowrite == false){
-                        value_instance.sentences.push(t);
-                        instances.push(value_instance);
+                        instance.values.push(concept_data[1][i]);
                     }
                 }
+            }
 
-                value.type_name = value_instance.name;
-                value.type_id = value_instance.id;
-                value.descriptor = fact_info[3];
-
-                for(var j = 0; j < possible_values.length; j++){
-                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-                        
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            instance.values.push(value);
-                        }
-
-                        break;
+            var value_data = parse_instance_value_values(value_facts, concept, t, nowrite);
+            if(value_data[0] == false){return value_data;}
+            else{
+                for(var i = 0; i < value_data[1].length; i++){
+            
+                    // Writepoint
+                    if(nowrite == null || nowrite == false){
+                        instance.values.push(value_data[1][i]);
                     }
                 }
-            }}
+            }
 
-            // "has 'value_text' as value" (allows 'value_text' to contain escaped quotes)
-            if(has_value_facts!=null){for(var i = 0; i < has_value_facts.length; i++){
-                var fact = has_value_facts[i].trim();
-                var fact_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?!and)/);
-
-                var value = {};
-                value.descriptor = fact_info[2];
-                value.type_name = fact_info[1].replace(/\\/g, '');
-                value.type_id = 0;
-
-                for(var j = 0; j < possible_values.length; j++){
-                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            instance.values.push(value);
-                        }
-
-                        break;
-                    }
-                }    
-            }}
-
-            // "is_related_to" the concept 'instance_name'
-            if(relationship_facts!=null){for(var i = 0; i < relationship_facts.length; i++){
-                var fact = relationship_facts[i].trim();
-                var fact_info = fact.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
-                var relationship = {};
-
-                var target_type = get_concept_by_name(fact_info[2]);
-                var target_instance = get_instance_by_name(fact_info[3].replace(/\\/g, ''));
-
-                relationship.label = fact_info[1].replace(/\band\b/g, '').trim();
-
-                if(target_type == null){break;}
-                if(target_instance == null){
-                    target_instance = create_instance_skeleton(fact_info[3].replace(/\\/g, ''), fact_info[2]);
+            var relationship_data = parse_instance_relationships(relationship_facts, concept, t, nowrite);
+            if(relationship_data[0] == false){return relationship_data;}
+            else{
+                for(var i = 0; i < relationship_data[1].length; i++){
 
                     // Writepoint
                     if(nowrite == null || nowrite == false){
-                        target_instance.sentences.push(t);
-                        instances.push(target_instance);
+                        instance.relationships.push(relationship_data[1][i]);
                     }
                 }
-
-                relationship.target_name = target_instance.name;
-                relationship.target_id = target_instance.id;
-                for(var j = 0; j < possible_relationships.length; j++){
-                    if(possible_relationships[j] != null && possible_relationships[j].label == relationship.label){
-
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            instance.relationships.push(relationship);
-                        }
-
-                        break;
-                    }
-                }
-            }}
+            }
             return [true, t];
         }
         return [false, null];
@@ -906,44 +936,47 @@ function CENode(){
                 possible_values = possible_values.concat(parents[i].values);
             }
 
+            var and_facts = t.split(/\band\b/g);
+            for(var k = 0; k < and_facts.length; k++){
+                var f = and_facts[k].toLowerCase(); 
+                var fact_tokens = f.split(" ");
+                for(var i = 0; i < possible_values.length; i++){
+                    var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
+                    for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
 
-
-            for(var i = 0; i < possible_values.length; i++){
-                var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
-                for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
-
-                if(possible_values[i].type > 0){
-                    var value_concept = get_concept_by_id(possible_values[i].type);
-                    var value_instances = node.get_instances(value_concept.name, true);
-                    for(var j = 0; j < value_instances.length; j++){
-                        if(t.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
-                            facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].descriptor);
-                            break;
-                        }
-                    }
-                }
-                else{
-                    if(t.toLowerCase().indexOf(possible_values[i].descriptor.toLowerCase()) > -1){
-                        var value_name = "";
-                        for(var j = 0; j < tokens.length; j++){
-                            if(common_words.indexOf(tokens[j].toLowerCase()) == -1 ){
-                                value_name += tokens[j]+" ";
+                    if(possible_values[i].type > 0){
+                        var value_concept = get_concept_by_id(possible_values[i].type);
+                        var value_instances = node.get_instances(value_concept.name, true);
+                        for(var j = 0; j < value_instances.length; j++){
+                            if(f.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
+                                facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].descriptor);
+                                break;
                             }
                         }
-                        if(value_name != ""){
-                            facts.push("has '"+value_name.trim()+"' as "+possible_values[i].descriptor);
-                        }   
+                    }
+                    else{
+                        if(f.toLowerCase().indexOf(possible_values[i].descriptor.toLowerCase()) > -1){
+                            var value_name = "";
+                            for(var j = 0; j < fact_tokens.length; j++){
+                                if(common_words.indexOf(fact_tokens[j].toLowerCase()) == -1 ){
+                                    value_name += fact_tokens[j]+" ";
+                                }
+                            }
+                            if(value_name != ""){
+                                facts.push("has '"+value_name.trim()+"' as "+possible_values[i].descriptor);
+                            }   
+                        }
                     }
                 }
-            }
-            for(var i = 0; i < possible_relationships.length; i++){
-                if(possible_relationships[i].target > 0){
-                    var rel_concept = get_concept_by_id(possible_relationships[i].target);
-                    var rel_instances = node.get_instances(rel_concept.name, true);
-                    for(var j = 0; j < rel_instances.length; j++){
-                        if(t.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
-                            facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
-                            break;
+                for(var i = 0; i < possible_relationships.length; i++){
+                    if(possible_relationships[i].target > 0){
+                        var rel_concept = get_concept_by_id(possible_relationships[i].target);
+                        var rel_instances = node.get_instances(rel_concept.name, true);
+                        for(var j = 0; j < rel_instances.length; j++){
+                            if(f.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
+                                facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
+                                break;
+                            }
                         }
                     }
                 }
@@ -1524,12 +1557,12 @@ function CEAgent(n){
 
             // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
             if(data.success == true){
-                var new_card = "there is a tell card named 'msg_{uid}' that is from the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+                new_card = "there is a tell card named 'msg_{uid}' that is from the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
             }   
             // If invalid CE, then write back a confirm card with relevant data and add it to the model
             else{
                 data = node.add_nl(content);       
-                var new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
             }
             node.add_sentence(new_card);
         }
@@ -1667,7 +1700,7 @@ var MODELS = {
         "conceptualise a ~ timestamp ~ T that is an entity",
         "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
-        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~",
+        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~",
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
