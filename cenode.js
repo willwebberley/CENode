@@ -714,17 +714,6 @@ function CENode(){
                 instance.sentences.push(t);
             }
 
-            var parents = get_recursive_parents(concept);
-            var possible_relationships = [];
-            var possible_values = [];
-            for (var i = 0; i<parents.length; i++) {
-                possible_relationships = possible_relationships.concat(parents[i].relationships);
-                possible_values = possible_values.concat(parents[i].values);
-            }
-
-            var t2 = t.replace("the "+concept.name+" '"+instance.name+"'", '').replace("the "+concept.name+" "+instance.name).trim();
-            console.log(t2);
-
             var concept_facts_multiword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
             var concept_facts_singleword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
             var value_facts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
@@ -754,6 +743,7 @@ function CENode(){
             if(value_data[0] == false){return value_data;}
             else{
                 for(var i = 0; i < value_data[1].length; i++){
+            
                     // Writepoint
                     if(nowrite == null || nowrite == false){
                         instance.values.push(value_data[1][i]);
@@ -772,115 +762,6 @@ function CENode(){
                     }
                 }
             }
-
-/*
-            var t2 = t.replace(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i, '').trim();
-            var has_concept_facts = t2.match(/has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has concept C as descriptor
-            var has_value_facts = t2.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?:and|$)/g); // has 'value_name' as value (matches escaped quotes too)
-            var relationship_facts = t2.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); // does something to the concept 'target'
-
-            if(relationship_facts==null&&has_concept_facts==null&&has_value_facts==null){
-               message = "Unable to infer any properties for the "+concept.name+" "+instance.name;
-               return [false, message];
-            }
-
-            // "has the concept 'instance_name' as descriptor"
-            if(has_concept_facts!=null){for(var i = 0; i < has_concept_facts.length; i++){
-                var fact = has_concept_facts[i].trim();
-                var fact_info = fact.match(/^has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
-                var value = {};
-
-                var value_concept = get_concept_by_name(fact_info[1]);
-                var value_instance = get_instance_by_name(fact_info[2]);
-
-                if(value_concept == null){break;}
-                if(value_instance == null){
-                    value_instance = create_instance_skeleton(fact_info[2].replace(/\\/g, ''), fact_info[1]);
-
-                    // Writepoint
-                    if(nowrite == null || nowrite == false){
-                        value_instance.sentences.push(t);
-                        instances.push(value_instance);
-                    }
-                }
-
-                value.type_name = value_instance.name;
-                value.type_id = value_instance.id;
-                value.descriptor = fact_info[3];
-
-                for(var j = 0; j < possible_values.length; j++){
-                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-                        
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            instance.values.push(value);
-                        }
-
-                        break;
-                    }
-                }
-            }}
-
-            // "has 'value_text' as value" (allows 'value_text' to contain escaped quotes)
-            if(has_value_facts!=null){for(var i = 0; i < has_value_facts.length; i++){
-                var fact = has_value_facts[i].trim();
-                var fact_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*) ?(?!and)/);
-
-                var value = {};
-                value.descriptor = fact_info[2];
-                value.type_name = fact_info[1].replace(/\\/g, '');
-                value.type_id = 0;
-
-                for(var j = 0; j < possible_values.length; j++){
-                    if(possible_values[j] != null && possible_values[j].descriptor == value.descriptor){
-
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            instance.values.push(value);
-                        }
-
-                        break;
-                    }
-                }    
-            }}
-
-            // "is_related_to" the concept 'instance_name'
-            if(relationship_facts!=null){for(var i = 0; i < relationship_facts.length; i++){
-                var fact = relationship_facts[i].trim();
-                var fact_info = fact.match(/(?:^|and(?! has)) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
-                var relationship = {};
-
-                var target_type = get_concept_by_name(fact_info[2]);
-                var target_instance = get_instance_by_name(fact_info[3].replace(/\\/g, ''));
-
-                relationship.label = fact_info[1].replace(/\band\b/g, '').trim();
-
-                if(target_type == null){break;}
-                if(target_instance == null){
-                    target_instance = create_instance_skeleton(fact_info[3].replace(/\\/g, ''), fact_info[2]);
-
-                    // Writepoint
-                    if(nowrite == null || nowrite == false){
-                        target_instance.sentences.push(t);
-                        instances.push(target_instance);
-                    }
-                }
-
-                relationship.target_name = target_instance.name;
-                relationship.target_id = target_instance.id;
-                for(var j = 0; j < possible_relationships.length; j++){
-                    if(possible_relationships[j] != null && possible_relationships[j].label == relationship.label){
-
-                        // Writepoint
-                        if(nowrite == null || nowrite == false){
-                            instance.relationships.push(relationship);
-                        }
-
-                        break;
-                    }
-                }
-            }}
-            */
             return [true, t];
         }
         return [false, null];
@@ -1055,44 +936,47 @@ function CENode(){
                 possible_values = possible_values.concat(parents[i].values);
             }
 
+            var and_facts = t.split(/\band\b/g);
+            for(var k = 0; k < and_facts.length; k++){
+                var f = and_facts[k].toLowerCase(); 
+                var fact_tokens = f.split(" ");
+                for(var i = 0; i < possible_values.length; i++){
+                    var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
+                    for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
 
-
-            for(var i = 0; i < possible_values.length; i++){
-                var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
-                for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
-
-                if(possible_values[i].type > 0){
-                    var value_concept = get_concept_by_id(possible_values[i].type);
-                    var value_instances = node.get_instances(value_concept.name, true);
-                    for(var j = 0; j < value_instances.length; j++){
-                        if(t.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
-                            facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].descriptor);
-                            break;
-                        }
-                    }
-                }
-                else{
-                    if(t.toLowerCase().indexOf(possible_values[i].descriptor.toLowerCase()) > -1){
-                        var value_name = "";
-                        for(var j = 0; j < tokens.length; j++){
-                            if(common_words.indexOf(tokens[j].toLowerCase()) == -1 ){
-                                value_name += tokens[j]+" ";
+                    if(possible_values[i].type > 0){
+                        var value_concept = get_concept_by_id(possible_values[i].type);
+                        var value_instances = node.get_instances(value_concept.name, true);
+                        for(var j = 0; j < value_instances.length; j++){
+                            if(f.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
+                                facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].descriptor);
+                                break;
                             }
                         }
-                        if(value_name != ""){
-                            facts.push("has '"+value_name.trim()+"' as "+possible_values[i].descriptor);
-                        }   
+                    }
+                    else{
+                        if(f.toLowerCase().indexOf(possible_values[i].descriptor.toLowerCase()) > -1){
+                            var value_name = "";
+                            for(var j = 0; j < fact_tokens.length; j++){
+                                if(common_words.indexOf(fact_tokens[j].toLowerCase()) == -1 ){
+                                    value_name += fact_tokens[j]+" ";
+                                }
+                            }
+                            if(value_name != ""){
+                                facts.push("has '"+value_name.trim()+"' as "+possible_values[i].descriptor);
+                            }   
+                        }
                     }
                 }
-            }
-            for(var i = 0; i < possible_relationships.length; i++){
-                if(possible_relationships[i].target > 0){
-                    var rel_concept = get_concept_by_id(possible_relationships[i].target);
-                    var rel_instances = node.get_instances(rel_concept.name, true);
-                    for(var j = 0; j < rel_instances.length; j++){
-                        if(t.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
-                            facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
-                            break;
+                for(var i = 0; i < possible_relationships.length; i++){
+                    if(possible_relationships[i].target > 0){
+                        var rel_concept = get_concept_by_id(possible_relationships[i].target);
+                        var rel_instances = node.get_instances(rel_concept.name, true);
+                        for(var j = 0; j < rel_instances.length; j++){
+                            if(f.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
+                                facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
+                                break;
+                            }
                         }
                     }
                 }
@@ -1816,7 +1700,7 @@ var MODELS = {
         "conceptualise a ~ timestamp ~ T that is an entity",
         "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
-        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ end time ~",
+        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~",
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
