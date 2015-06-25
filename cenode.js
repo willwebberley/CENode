@@ -869,14 +869,14 @@ function CENode(){
      * Returns: str 
      */
     var parse_nl = function(t){
-        t = t.replace(/'s/g,'').replace(/'/g, '').replace(/\./g, '');
+        t = t.replace(/'/g, '').replace(/\./g, '');
         var tokens = t.split(" ");
         var and_facts = t.split(/\band\b/);
 
         // Try to find any mentions of known instances and tie them together using
         // values and relationships.
         
-        var common_words = ["there", "what", "who", "where", "theres", "is", "and", "has", "that", "the", "a", "an", "named", "called", "name", "with", "conceptualise", "on", "at", "in"];
+        var common_words = ["there", "what", "who", "where", "theres", "is", "as", "and", "has", "that", "the", "a", "an", "named", "called", "name", "with", "conceptualise", "on", "at", "in"];
         var focus_instance=null;
         var smallest_index = 999999;
         for(var i = 0; i < instances.length; i++){
