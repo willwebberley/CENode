@@ -20,13 +20,13 @@
  * Library constants
  */
 var POST_SENTENCES_ENDPOINT = "/sentences";
-var GET_CARDS_ENDPOINT = "/cards";
+var GET_INSTANCES_ENDPOINT = "/instances";
 var MODELS = {
     CORE : [
         "conceptualise an ~ entity ~ E",
         "conceptualise an ~ imageable thing ~ I that has the value V as ~ image ~",
         "conceptualise a ~ timestamp ~ T that is an entity",
-        "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
+        "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~ and has the value W as ~ authorisation type ~ and has the value X as ~ encoded authorisation ~ and has the value Y as ~ get path ~ and has the value Z as ~ post path ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
         "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~",
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
@@ -90,10 +90,13 @@ var MODELS = {
         "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
         "there is a building named 'North Building'",
         "there is a floor named '2nd Floor'",
-        "the room 'N215' is located in the building 'North Building' and is located on the floor '2nd Floor'"
+        "the room 'N215' is located in the building 'North Building' and is located on the floor '2nd Floor'",
+        "there is an agent named 'Moira' that has 'https://sentinel.ita-ce.com/CeStoreWeb/stores/SHERLOCK' as address and has 'basic' as authorisation type and has 'bW9pcmE6Y3IxbXMwbg== ' as encoded authorisation and has '/special/instances-for-multiple-concepts' as get path and has 'sources/Moira?action=save' as post path",
+        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Moira' as target"
     ],
     SHERLOCK_NODE : [
-        "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address",
+        "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address and has '"+POST_SENTENCES_ENDPOINT+"' as post path and has '"+GET_INSTANCES_ENDPOINT+"' as get path",
+        "there is an agent named 'Moira' that has 'https://sentinel.ita-ce.com/CeStoreWeb/stores/SHERLOCK' as address and has 'basic' as authorisation type and has 'bW9pcmE6Y3IxbXMwbg== ' as encoded authorisation and has '/special/instances-for-multiple-concepts' as get path and has 'sources/Moira?action=save' as post path",
         "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
         "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
         "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
@@ -1491,6 +1494,85 @@ function CEAgent(n){
     var unsent_tell_cards = {};
     var unsent_ask_cards = {};
     var handled_cards = [];
+    /*
+     * Utility object to support network tasks.
+     */
+    var net = {
+        get_remote_instances: function(agent, instance_types, data, callback){
+            data.conceptNames = instance_types.join(",");
+            if(util.on_client()){net.make_request_client("GET", agent, data, callback);}
+            else{net.make_request_node("GET", agent, data, callback);}
+        },  
+        post_remote_sentences: function(agent, sentences, callback){
+            var data = sentences.join("\n");
+            if(util.on_client()){net.make_request_client("POST", agent, data, callback);}
+            else{net.make_request_node("POST", agent, data, callback);}
+        },
+        make_request_client: function(method, agent, data, callback){
+            var address = node.get_instance_value(agent, "address");
+            var path = node.get_instance_value(agent, method.toLowerCase()+" path");
+            if(method == "GET" && data != null){
+                var params = [];
+                for(key in data){
+                    params.push(key+"="+data[key]);            
+                }
+                path+="?"+params.join("&");
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open(method, address+path);
+            xhr.onreadystatechange = function(){
+                if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302) && callback != null){
+                    callback(xhr.responseText);
+                }
+            };
+            if(node.get_instance_value(agent, "authorisation type") == "basic"){
+                xhr.setRequestHeader("Authorization", "Basic "+node.get_instance_value(agent, "encoded authorisation"));
+            }
+            console.log(method+" "+agent.name+path);
+            if(method == "POST"){
+                xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                xhr.send(data);
+            }
+            else if(method == "GET"){
+                xhr.setRequestHeader("Accept", "text/plain");
+                xhr.send();
+            }
+        },
+        make_request_node: function(method, agent, data, callback){
+            var http = require('http');
+            var address = node.get_instance_value(agent, "address");
+            var path = node.get_instance_value(agent, method.toLowerCase()+" path");
+            if(method == "GET" && data != null){
+                var params = [];
+                for(key in data){
+                    params.push(key+"="+data[key]);            
+                }
+                path+="?"+params.join("&");
+            }
+
+            var options = {
+                host: address,
+                path: path,
+                method: method,
+                headers: {'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain'}
+            };
+            if(node.get_instance_value(agent, "authorisation type") == "basic"){
+                options.headers.Authorization = "Basic "+node.get_instance_value(agent, "encoded authorisation");
+            }
+            console.log(method+" "+agent.name+path);
+            var req = http.request(options, function(response){
+                var body = '';
+                response.on('data', function(chunk){body+=data;});
+                response.on('end', function(){
+                    body = decodeURIComponent(body.replace(/\+/g, ' '));
+                    callback(body);
+                });
+            });
+            if(data != null){req.write(data);}
+            req.end();
+        }
+    }
 
     this.set_name = function(n){
         name = n;
@@ -1530,8 +1612,10 @@ function CEAgent(n){
             for(var j = 0; j < ask_policies.length; j++){
                 if(node.get_instance_value(ask_policies[j], "enabled") == 'true'){
                     var target_name = node.get_instance_value(ask_policies[j], "target").name;
-                    if(!(target_name in unsent_ask_cards)){unsent_ask_cards[target_name] = [];}
-                    unsent_ask_cards[target_name].push(card); 
+                    if(target_name.toLowerCase() != name.toLowerCase()){
+                        if(!(target_name in unsent_ask_cards)){unsent_ask_cards[target_name] = [];}
+                        unsent_ask_cards[target_name].push(card); 
+                    }
                 }
             }
 
@@ -1547,7 +1631,6 @@ function CEAgent(n){
                 c+=" and has '"+urls[j]+"' as linked content";
             }}
             node.add_sentence(c);
-            console.log(c);
         }
         else if(type == "tell card"){
             // Add the CE sentence to the node
@@ -1559,8 +1642,10 @@ function CEAgent(n){
                 for(var j = 0; j < tell_policies.length; j++){
                     if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
                         var target_name = node.get_instance_value(tell_policies[j], "target").name;
-                        if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
-                        unsent_tell_cards[target_name].push(card); 
+                        if(target_name.toLowerCase() != name.toLowerCase()){
+                            if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
+                            unsent_tell_cards[target_name].push(card); 
+                        }
                     }
                 }
             }
@@ -1641,21 +1726,22 @@ function CEAgent(n){
                 var target = node.get_instance_value(tell_policies[i], "target");
                 var cards = unsent_tell_cards[target.name];
                 if(cards){
-                    var data = "";
+                    var sentences = [];
                     for(var j = 0; j < cards.length; j++){
                         var card = cards[j];
                         var from = node.get_instance_relationship(card, "is from");
-                        if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
+                        var to = node.get_instance_relationship(card, "is to");
+                        if(from.name.toLowerCase() != target.name.toLowerCase() && to.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                             var rel = {};
                             rel.target_name = target.name;
                             rel.target_id = target.id;
                             rel.label = "is to";
                             card.relationships.push(rel);
-                            data += node.get_instance_ce(card)+"\n";
+                            sentences.push(node.get_instance_ce(card));
                         }
                     }
-                    if(data != ""){
-                        net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                    if(sentences.length > 0){
+                        net.post_remote_sentences(target, sentences, function(resp){
                             unsent_tell_cards[target.name] = [];
                         });
                     }
@@ -1669,7 +1755,7 @@ function CEAgent(n){
                 var target = node.get_instance_value(ask_policies[i], "target");
                 var cards = unsent_ask_cards[target.name];
                 if(cards){
-                    var data = "";
+                    var sentences = [];
                     for(var j = 0; j < cards.length; j++){
                         var card = cards[j];
                         var from = node.get_instance_relationship(card, "is from");
@@ -1684,11 +1770,11 @@ function CEAgent(n){
                             rel2.label = "is from";
                             card.relationships.push(rel);
                             card.relationships.push(rel2);
-                            data += node.get_instance_ce(card)+"\n";
+                            sentences.push(node.get_instance_ce(card));
                         }
                     }
-                    if(data != ""){
-                        net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                    if(sentences != []){
+                        net.post_remote_sentences(target, sentences, function(resp){
                             unsent_ask_cards[target.name] = [];
                         });
                     }
@@ -1698,7 +1784,7 @@ function CEAgent(n){
             // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
             for(var i = 0; i < listen_policies.length; i++){
                 var target = node.get_instance_value(listen_policies[i], "target");
-                net.make_request("GET", node.get_instance_value(target, "address"), GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+                net.get_remote_instances(target, ["card"], {agent:name}, function(resp){
                     var cards = resp.split("\n");
                     node.add_sentences(cards);
                 });
@@ -1722,32 +1808,35 @@ function CEAgent(n){
                         var card = cards[i];
                         var to_agent = false;
                         var tos = node.get_instance_relationships(card, "is to");
-                        var card_timestamp = node.get_instance_value(card, "timestamp").name;
-                        if(parseInt(card_timestamp) > parseInt(start_time)){
-                            for(var j = 0; j < tos.length; j++){
-                                if(tos[j].name == name){ // If card sent to THIS agent
-                                    to_agent = true;
-                                    break;
-                                }
-                            }
-                            if(to_agent == true){
-                                var from = node.get_instance_relationships(card, "is from")[0];
-
-                                // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
-                                for(var j = 0; j < agents.length; j++){
-                                    var agent_is_recipient = false;
-                                    for(var k = 0; k < tos.length; k++){
-                                        if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
-                                            agent_is_recipient = true;
-                                            break;   
-                                        }
+                        var card_timestamp = node.get_instance_value(card, "timestamp");
+                        if(card_timestamp != null){
+                            card_timestamp = card_timestamp.name;
+                            if(parseInt(card_timestamp) > parseInt(start_time)){
+                                for(var j = 0; j < tos.length; j++){
+                                    if(tos[j].name == name){ // If card sent to THIS agent
+                                        to_agent = true;
+                                        break;
                                     }
-                                    if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
-                                        var relationship = {};
-                                        relationship.label = "is to";
-                                        relationship.target_name = agents[j].name;
-                                        relationship.target_id = agents[j].id;
-                                        card.relationships.push(relationship);
+                                }
+                                if(to_agent == true){
+                                    var from = node.get_instance_relationships(card, "is from")[0];
+
+                                    // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
+                                    for(var j = 0; j < agents.length; j++){
+                                        var agent_is_recipient = false;
+                                        for(var k = 0; k < tos.length; k++){
+                                            if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
+                                                agent_is_recipient = true;
+                                                break;   
+                                            }
+                                        }
+                                        if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
+                                            var relationship = {};
+                                            relationship.label = "is to";
+                                            relationship.target_name = agents[j].name;
+                                            relationship.target_id = agents[j].id;
+                                            card.relationships.push(relationship);
+                                        }
                                     }
                                 }
                             }
@@ -1833,52 +1922,7 @@ var util = {
     }
 }
 
-/*
- * Utility object to support network tasks.
- */
-var net = {
-    make_request: function(method, node_url, path, data, callback){
-        if(util.on_client()){net.make_request_client(method, node_url, path, data, callback);}
-        else{make_request_node(net.method, node_url, path, data, callback);}
-    },  
-    make_request_client: function(method, node_url, path, data, callback){
-        console.log(method+" "+path);
-        var xhr = new XMLHttpRequest();
-        xhr.open(method, node_url+path);
-        xhr.onreadystatechange = function(){
-            if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302) && callback != null){
-                callback(xhr.responseText);
-            }
-        };
-        if(data != null){
-            xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-            xhr.send(data);
-        }
-        else{
-            xhr.send();
-        }
 
-    },
-    make_request_node: function(method, node_url, path, data, callback){
-        var http = require('http');
-        var options = {
-            host: node_url,
-            path: path,
-            method: method,
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-        };
-        var req = http.request(options, function(response){
-            var body = '';
-            response.on('data', function(chunk){body+=data;});
-            response.on('end', function(){
-                body = decodeURIComponent(body.replace(/\+/g, ' '));
-                callback(body);
-            });
-        });
-        if(data != null){req.write(data);}
-        req.end();
-    }
-}
 
 // If running as a Node.js app, export CENode class and MODELS object.
 if(!util.on_client()){
@@ -1910,32 +1954,45 @@ if(!util.on_client() && require.main === module){
         });
     }
 
-    function get_cards(request, response){
+    function get_instances(request, response){
         var url = decodeURIComponent(request.url);
-        var agent_regex = url.match(/agent=(.*)/);
-        var agent_str = null;
+        var components = {};
+        url.replace(
+            new RegExp("([^?=&]+)(=([^&]*))?", "g"),
+                function($0, $1, $2, $3) { components[$1] = $3; }
+        );
         var agents = [];
-        if(agent_regex != null){agent_str = agent_regex[1];}
-        if(agent_str != null){
-            agents = agent_str.toLowerCase().split(",");
+        if(components.agent != null){
+            agents = components.agent.toLowerCase().split(",");
         }
-        var cards = node.get_instances("card", true);
+        var concept_names = [];
+        if(components.conceptNames != null){
+            concept_names = components.conceptNames.toLowerCase().split(",");
+        }
+        var instances = [];
+        for(var i = 0; i < concept_names.length; i++){
+            instances = instances.concat(node.get_instances(concept_names[i], true));
+        }
         var s = "";
-        for(var i = 0; i < cards.length; i++){
-            if(agents == null || agents.length == 0){
-                s += node.get_instance_ce(cards[i])+"\n";
-            }
-            else{
-                var tos = node.get_instance_relationships(cards[i], "is to");
-                for(var j = 0; j < tos.length; j++){
-                    for(var k = 0; k < agents.length; k++){
-                        if(tos[j].name.toLowerCase() == agents[k]){
-                            s += node.get_instance_ce(cards[i])+"\n";
-                            break;
-                        }
+        for(var i = 0; i < instances.length; i++){
+            if(agents.length > 0){
+                var tos = node.get_instance_relationships(instances[i], "is to");
+                if(tos.length > 0){
+                    for(var j = 0; j < tos.length; j++){
+                        for(var k = 0; k < agents.length; k++){
+                            if(tos[j].name.toLowerCase() == agents[k]){
+                                s += node.get_instance_ce(instances[i])+"\n";
+                            }
+                        }       
                     }
                 }
+                else{
+                    s += node.get_instance_ce(instances[i])+"\n";
+                }
             }
+            else{
+                s += node.get_instance_ce(instances[i])+"\n";
+            }    
         }
         response.write(s);
         response.end();
@@ -1954,7 +2011,7 @@ if(!util.on_client() && require.main === module){
                 s+='<p>Add CE sentences to the node:</p><form action="/ui/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
                 s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent_name"><input type="text" name="name" value="'+node.get_agent_name()+'" /><input type="submit" /></form>';
                 s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Empty model</button>';
-                s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST '+POST_SENTENCES_ENDPOINT+' (body = newline-delimited set of sentences)<br />- GET '+GET_CARDS_ENDPOINT+'?agent=NAME (get all known cards sent to NAME)</p>';
+                s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST '+POST_SENTENCES_ENDPOINT+' (body = newline-delimited set of sentences)<br />- GET '+GET_INSTANCES_ENDPOINT+'?conceptNames=CONCEPTS&agent=NAMES (get all instances with concept name in CONCEPT and, if a card, only those sent to NAMES)</p>';
                 s+='</div><div style="clear:both;"></div>';
                 s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(con, undefined, 2)+'</textarea></div>';
                 s+='<div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2><textarea style="width:100%;height:300px;" readonly>'+JSON.stringify(ins, undefined, 2)+'</textarea></div>';
@@ -1962,9 +2019,9 @@ if(!util.on_client() && require.main === module){
                 response.writeHead(200, {"Content-Type": "text/html"});
                 response.end(s);
             }
-            else if(request.url.indexOf(GET_CARDS_ENDPOINT) == 0){
-                response.writeHead(200, {"Content-Type": "text/ce"});
-                get_cards(request, response);            
+            else if(request.url.indexOf(GET_INSTANCES_ENDPOINT) == 0){
+                response.writeHead(200, {"Content-Type": "text/plain"});
+                get_instances(request, response);            
             }
             else if(request.url == "/reset"){
                 node.reset_all();
@@ -1978,7 +2035,7 @@ if(!util.on_client() && require.main === module){
         }
         else if(request.method == "POST"){
             if(request.url == POST_SENTENCES_ENDPOINT){
-                response.writeHead(200, {"Content-Type": "text/ce"});
+                response.writeHead(200, {"Content-Type": "text/plain"});
                 post_sentences(request, response);            
             }
             else if(request.url == "/ui/sentences"){
