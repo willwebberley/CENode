@@ -1,16 +1,17 @@
 \documentclass{scrartcl}
 \usepackage{framed}
+\usepackage{hyperref}
 
 \title{\texttt{cenode.js}}
-\subtitle{Revision 1.1}
-\author{W.M. Webberley \& A.D. Preece\footnote{CENode is a joint project between School of Computer Science \& Informatics, Cardiff University and IBM UK as part of the ITA Project (www.usukitacs.com/about\_ita).}\\ \textit{Web:} cenode.io - \textit{Mail:} info@cenode.io}
+\subtitle{Revision 1.1.1}
+\author{W.M. Webberley \& A. Preece\footnote{CENode is a joint project between School of Computer Science \& Informatics, Cardiff University and IBM UK as part of the International Technology Alliance (ITA) in Network and Information Sciences, \href{http://www.usukitacs.com/about_ita}{www.usukitacs.com/about\_ita}.}\\ \href{http://cwenode.io}{cenode.io} $|$ \href{mailto:info@cenode.io}{info@cenode.io}}
 \date{}
 
 \begin{document}
 \maketitle
 
-\section*{Preamble}
-This document descibes the concept of `CENode' - a pure JavaScript implementation of the CEStore\footnote{https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=558d55b6-78b6-43e6-9c14-0792481e4532} that is under development by IBM as part of the ITA project. As with the existing CEStore, ITA CE (Controlled English) is used `all the way down' for constructing and modifying a conceptual model, and populating it with instances. 
+\section{Preamble}
+This document describes \textit{CENode}, a JavaScript implementation of the CEStore\footnote{\href{https://www.ibm.com/developerworks/community/groups/service/html/communityview?communityUuid=558d55b6-78b6-43e6-9c14-0792481e4532}{www.ibm.com/developerworks/}} that is under development by IBM as part of the ITA project. As with the CEStore, ITA CE (Controlled English) is used `all the way down' for constructing and modifying a conceptual model, and populating it with instances. 
 
 CENode (and surrounding functionalities) is distributed as a single JavaScript file, known in this document as \texttt{cenode.js}, that is designed to work in a wide variety of settings, such as within a web app, within a JavaScript application (such as Node.js), and also as a RESTful web service. Individual devices running any type of instance of CENode are provided with equal functionality that enables users to interact with a CE-centred knowledge base at the edge of the network. The library also comes equipped with a wide range of networking capabilities that enables it to interact with known peers, subject to customisable policies, over a network connection.
 
@@ -21,26 +22,21 @@ Providing CEStore-style functionality at the network edge gives a number of key 
     \item Instead of relying on a single CEStore server with a centralised knowledge base, CENode supports a network of peers with different ``local'' knowledge base variants.
 \end{itemize}
 
-All communication with instances of CENode should be made through CE. Indeed, modifying the knowledge base requires users (or other agents) to submit information in CE, whilst extracted information can be returned programmatically in JSON format.
+All communication with instances of CENode should be made through CE. Indeed, modifying the knowledge base requires users (or other agents) to submit information in CE, whilst extracted information can be returned programmatically in JS object format.
 
 It should be noted that CENode does not aim to be a fully-fledged CE engine, in that it lacks certain capabilities that more complex systems support, such as rules. CENode is instead designed to be lightweight and easily-deployable and focuses on core CE functionality - supporting a conceptual model and instance management - and the blackboard architecture (see Section \ref{blackboard_architecture}) through the CECard conversational protocol.
 
-For further information on CE and the CECard protocol, please see:
-\begin{itemize}
-    \item \cite{preece14cs}: Conversational Sensing (\textit{Preece, A. et al.}), in Next Generation Analyst II, SPIE DSS, 2014.
-    \item \cite{preece14hmc}: Human-machine Conversations to Support Multi-agency Missions (\textit{Preece, A. et al.}), in SIGMOBILE - Mobile Computing and Communications Review, 2014.
-    \item \cite{ping12}: Information Extraction Using Controlled English to Support Knowledge-Sharing and Decision-Making (\textit{Ping, X. et al.}).
-\end{itemize}
+For further information on CE and the CECard protocol, please see references~\cite{preece14hmc,preece14cs,ping12} in the bibliography.
 
 The rest of this document highlights the key features of CENode and describes ways in which it can be deployed and used for a wide range of applications.
 
-\section{ITA Controlled English \& Dialects}
-The CE language is thoroughly documented\footnote{Collaborative human-machine analysis using a Controlled Natural Language  (\textit{Mott, D.H. et al}) - https://www.usukita.org/sites/default/files/SPIE\_AnalysisWithCNL\_A4\_7A\_0.pdf} and CENode aims to be fully compatible with the subset of this specification defining model and instance creation, enabling multi-agent systems to include both CENode instances and the CEStore. This section describes the key types of sentences understandable by CENode and some additional supported dialects.
+\section{Supported Sentence Types}
+A formal description of the CE language is provided in~\cite{Mott2010}. CENode is designed with an aim to be fully compatible with the subset of CE covering model and instance creation, enabling interoperability between CENode and CEStore implementations. This section describes the types of CE sentences understandable by CENode, and some additional supported sentence forms.
 
 Please note that CENode does not (currently) support CE rules or the `expressed by' clause used to declare synonyms.
 
-\subsection{Key Sentence Types}
-All modifications to the underlying CENode conceptual model are made through \texttt{conceptualise} statements.\\
+\subsection{Supported ITA Controlled English Sentence Types}
+All modifications to the CENode conceptual model are made through \texttt{conceptualise} statements.\\
 
 For example, the sentence below creates a new concept, called `teacher' as a subclass of the concept `person` (assuming that `person' has already been conceptualised):\\
 \texttt{conceptualise a $\sim$ teacher $\sim$ T that is a person.}\\
@@ -62,7 +58,7 @@ In this example, CENode will attempt to do some more work on behalf of the user 
 
 Note that if a property is encountered in the input CE that is not declared in the `teacher' conceptual model (or in any of its ancestors), then this property will be ignored. The remainder of the sentence will still be executed. As with the CEStore, instance and concept deletion is not supported.\\
 
-\subsection{Additional Sentence Types}
+\subsection{Additional Supported Sentence Types}
 CENode is also able to understand some additional sentence structures to make interaction a little easier and to support information extraction. These sentences are not CE, and are instead a form of \textit{gist} \cite{preece14hmc}. However, they can be safely sent to a CENode, which automatically processes them as if they are valid CE. In addition, whilst the CE specification defines valid sentences to be those ended in a full-stop (period), CENode will also accept sentences that do not.\\
 
 
@@ -233,7 +229,7 @@ CENode server instance running on port 5555...
 
 By default this will start a web server on port 5555 with a local agent named `Moira'.\\
 
-The CENode instance run in this way provdes a webpage that you can use to administer the instance. To do so, visit \texttt{localhost:5555} in a web browser (or the hostname of the machine running the instance if not local). You will be presented with a display indicating some information about the node instance and will allow some simple controls (such as model-loading and sentence-inputs).\\
+The CENode instance run in this way provides a webpage that you can use to administer the instance. To do so, visit \texttt{localhost:5555} in a web browser (or the hostname of the machine running the instance if not local). You will be presented with a display indicating some information about the node instance and will allow some simple controls (such as model-loading and sentence-inputs).\\
 
 The CENode instance can be launched with different configurations by supplying command-line arguments. For example the below command will start the service on port 5432 and will set the name of the agent to `agent1' (the output from the server is included below for your information):\\
 
@@ -246,7 +242,7 @@ CENode server instance running on port 5432...
 Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see Section \ref{api_rest}.
 
 \section{Multi-Node Systems}
-As described earlier, CENode instances can either be run independently or as part of a multi-node system. This section outlines methods on how this might be accomplished. In a typical muli-node system, at least one of the nodes will need to be run as a service exposing the required HTTP endpoints.
+As described earlier, CENode instances can either be run independently or as part of a multi-node system. This section outlines methods on how this might be accomplished. In a typical multi-node system, at least one of the nodes will need to be run as a service exposing the required HTTP endpoints.
 
 \subsection{General}
 All CENode instances in a multi-node system are, by default, equal in terms of functionality and behaviour. This is the case even if each node is deployed in a different way (e.g. some nodes may be running as a service, some as a web application, and some as a programmatic JavaScript application). Providing information to (and retrieving information from) a local node is simple, as shown briefly earlier and in more detail later on, and supporting inter-node communication is also relatively easy.
@@ -284,7 +280,7 @@ An \texttt{ask policy} works in almost exactly the same way as a tell policy (wi
 
 In this scenario, every \texttt{ask card} sent to `agent1' will also be sent to `agent2' using a HTTP POST request. As with targets of a \texttt{tell policy}, target agents of an \texttt{ask policy} must be instances running as a service instance.\\
 
-Ask policies are mostly useless unless the agent acting on the policy is able to receive a response from the policy's target. As discussed in Section \ref{blackboard_architecture}, communication between agents and individuals using cards is \textit{asynchronous}, and therefore an answer to a question cannot be included in the response of the POST reequest made as a result of the policy. In reality, when an `ask card' is POSTed to the target, its agent will get round to reading the card in its own time and will write a card back to its \textit{own} store if the card requires a reply.
+Ask policies are mostly useless unless the agent acting on the policy is able to receive a response from the policy's target. As discussed in Section \ref{blackboard_architecture}, communication between agents and individuals using cards is \textit{asynchronous}, and therefore an answer to a question cannot be included in the response of the POST request made as a result of the policy. In reality, when an `ask card' is POSTed to the target, its agent will get round to reading the card in its own time and will write a card back to its \textit{own} store if the card requires a reply.
 
 Therefore, most multi-node setups using an `ask policy' will also involve a `listen policy' targeting the same target as the `ask policy'. See Section \ref{listen_policy} for more information.
 
@@ -313,7 +309,7 @@ As with the previous examples, imagine the local agent which is acting on the \t
 The construction of a \texttt{forwardall policy} might look like this:\\
 \texttt{there is a forwardall policy named 'p1' that has 'true' as enabled and has the timestamp '0' as start time and has 'true' as all agents}\\
 
-In the above example, any tell cards that have previously been sent to `agent1' and any arriving in future whilest the policy is enabled will have every agent known by agent1's node added as a recipient. Then, if any of these agents make a request to this node (as a result of a \texttt{listen policy} or otherwise), they can access these cards.
+In the above example, any tell cards that have previously been sent to `agent1' and any arriving in future whilst the policy is enabled will have every agent known by agent1's node added as a recipient. Then, if any of these agents make a request to this node (as a result of a \texttt{listen policy} or otherwise), they can access these cards.
 
 A node can discover other agents in two primary ways. One is explicit, in that the node has been given CE to describe a new agent:\\
 \texttt{there is an agent named 'agent2'.}\\
@@ -468,7 +464,7 @@ When used as a library as part of a JavaScript application or within a webpage (
     \texttt{var data = node.add\_nl("there is a teacher called Mrs Smith");}
 }
 
-\cenodemethod{[bool, String]}{add\_sentence}{String sentence[, bool nowrite]}{Adds a sentence to be processed by the node. In turn, this will first attempt to parse CE, then a question, and finally NL. The returned \texttt{bool} represents whether or not any of the above was successful and the returned \texttt{String}'s content varies. For more informtaion, see the documentation for \texttt{add\_ce}, \texttt{ask\_question}, and \texttt{add\_nl} respectively. \newline\texttt{add\_sentence} can parse special character sequences to aid users in creating cards. The sequence \texttt{\{now\}} will be replaced by the current timestamp of the node's environment and \texttt{\{uid\}} will be replaced by an an appropriate identifier for the card.}{
+\cenodemethod{[bool, String]}{add\_sentence}{String sentence[, bool nowrite]}{Adds a sentence to be processed by the node. In turn, this will first attempt to parse CE, then a question, and finally NL. The returned \texttt{bool} represents whether or not any of the above was successful and the returned \texttt{String}'s content varies. For more information, see the documentation for \texttt{add\_ce}, \texttt{ask\_question}, and \texttt{add\_nl} respectively. \newline\texttt{add\_sentence} can parse special character sequences to aid users in creating cards. The sequence \texttt{\{now\}} will be replaced by the current timestamp of the node's environment and \texttt{\{uid\}} will be replaced by an an appropriate identifier for the card.}{
     \texttt{node.add\_sentence("there is a teacher named 'Mrs Smith'");}\\
     \texttt{var answer = node.add\_sentence("Who is Mrs Smith?");}\\
     \vskip5pt 
@@ -497,9 +493,9 @@ When used as a library as part of a JavaScript application or within a webpage (
 \label{api_rest}
 When run as a service (see Section \ref{as_a_service}), which runs on port 555 by default, users can visit \texttt{localhost:5555} to administer the node (use a different hostname if not running the node locally). The webpage served at this address allows administers to submit new sentences to the node, inspect instances and concepts, change the name of the local agent, load models, and reset the store.\\
 
-In addition to these features, a node that is running as a service also exposes a RESTful interface for other nodes (or applications) to make HTTP requests to. There is no authentiation mechanism implemented on \texttt{cenode.js} and the service will accept requests from any domain (i.e. CORS is enabled) so that nodes can be accessed from within web applications run within a browser. In fact, these RESTful endpoints are the same ones that are used by the agents themselves when acting on policies applied to them.
+In addition to these features, a node that is running as a service also exposes a RESTful interface for other nodes (or applications) to make HTTP requests to. There is no authentication mechanism implemented on \texttt{cenode.js} and the service will accept requests from any domain (i.e. CORS is enabled) so that nodes can be accessed from within web applications run within a browser. In fact, these RESTful endpoints are the same ones that are used by the agents themselves when acting on policies applied to them.
 
-\cenodemethod{POST}{/sentences}{}{Submit a newline-separated set of CE sentences to the node. The sentences should be in the body of the request and no key is necessary. Nodes will return any content produced as a result of parsing the input sentences within the body of the response separted by new lines. If there is no response for an input sentence, then this will be represented by an empty string. This means that, for example, line 2 of the response body corresponds to the sentence on line 2 in the body of the request. \newline Remember that agents are asynchronous, so responses from `ask cards' will not be included in the response to \texttt{/sentences} - instead, use \texttt{GET /cards} to check for replies to `ask cards'.}{
+\cenodemethod{POST}{/sentences}{}{Submit a newline-separated set of CE sentences to the node. The sentences should be in the body of the request and no key is necessary. Nodes will return any content produced as a result of parsing the input sentences within the body of the response separated by new lines. If there is no response for an input sentence, then this will be represented by an empty string. This means that, for example, line 2 of the response body corresponds to the sentence on line 2 in the body of the request. \newline Remember that agents are asynchronous, so responses from `ask cards' will not be included in the response to \texttt{/sentences} - instead, use \texttt{GET /cards} to check for replies to `ask cards'.}{
 
     REQUEST:
     \begin{framed}
