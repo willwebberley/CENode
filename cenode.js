@@ -49,42 +49,77 @@ var MODELS = {
     ],
     SHERLOCK_CORE : [
         "conceptualise a ~ sherlock thing ~ that is an entity and is an imageable thing",
-        "conceptualise a ~ company ~ that is a sherlock thing",
+        "conceptualise an ~ organisation ~ that is a sherlock thing",
         "conceptualise a ~ fruit ~ that is a sherlock thing and is a locatable thing and has the room R as ~ room ~",
         "conceptualise a ~ room ~ that is a location and is a sherlock thing and has the location L as ~ location ~",
         "conceptualise the room R ~ contains ~ the sherlock thing S and ~ is located in ~ the location L and ~ is located on ~ the location M",
         "conceptualise a ~ floor ~ that is a location",
         "conceptualise a ~ building ~ that is a location",
         "conceptualise a ~ character ~ that is a sherlock thing and is a locatable thing and has the value V as ~ shirt colour ~ and has the value W as ~ hobby ~",
-        "conceptualise the character C ~ works for ~ the company D and ~ eats ~ the fruit F",
+        "conceptualise the character C ~ works for ~ the organisation O and ~ eats ~ the fruit F",
         "conceptualise a ~ question ~ that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
         "conceptualise the question Q ~ concerns ~ the sherlock thing C",
 
+        "there is an organisation named 'police'",
+
         "there is a character named 'Prof Plum' that has 'http://sherlock.cenode.io/media/plum.jpg' as image",
-        "there is a character named 'Dr White'",
-        "there is a character named 'Col Mustard'",
-        "there is a character named 'Sgt Peacock'",
-        "there is a character named 'Rev Green'",
-        "there is a character named 'Capt Scarlett'",
-        "there is a room named 'S211'",
-        "there is a room named 'WX314'",
-        "there is a room named 'S303'",
-        "there is a room named 'S309'",
-        "there is a room named 'N215'",
+        "there is a character named 'Dr White' that has 'http://sherlock.cenode.io/media/white.jpg' as image",
+        "there is a character named 'Col Mustard' that has 'http://sherlock.cenode.io/media/mustard.jpg' as image",
+        "there is a character named 'Sgt Peacock' that has 'http://sherlock.cenode.io/media/peacock.jpg' as image",
+        "there is a character named 'Rev Green' that has 'http://sherlock.cenode.io/media/green.jpg' as image",
+        "there is a character named 'Capt Scarlet' that has 'http://sherlock.cenode.io/media/scarlet.jpg' as image",
+        "there is a room named 'Red Room'",
+        "there is a room named 'Blue Room'",
+        "there is a room named 'Yellow Room'",
+        "there is a room named 'Pink Room'",
+        "there is a room named 'Green Room'",
+        "there is a room named 'Purple Room'",
         "there is a fruit named 'apple'",
         "there is a fruit named 'banana'",
         "there is a fruit named 'orange'",
         "there is a fruit named 'lemon'",
+        "there is a fruit named 'pineapple'",
+        "there is a fruit named 'pear'",
 
-        "there is a question named 'q1' that has 'What colour shirt is Prof Plum wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q2' that has 'What room is Prof Plum in?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q3' that has 'What fruit does Prof Plum eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q4' that has 'What hobby does Dr White have?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q1' that has 'What character eats pineapples?' as text and has 'eats' as relationship and concerns the sherlock thing 'Capt Scarlet'",
+        "there is a question named 'q2' that has 'What is the hobby of Dr White?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q3' that has 'What character eats apples?' as text and has 'eats' as relationship and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q4' that has 'What colour shirt is Prof Plum wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Prof Plum'",
         "there is a question named 'q5' that has 'What colour shirt is Dr White wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Dr White'",
         "there is a question named 'q6' that has 'Where is Col Mustard?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
         "there is a question named 'q7' that has 'What colour shirt is Sgt Peacock wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q9' that has 'Which character is in S211?' as text and has 'contains' as relationship and concerns the sherlock thing 'S211'"
+        "there is a question named 'q9' that has 'Which character is in the green room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Rev Green'",
+        "there is a question named 'q12' that has 'What character eats bananas?' as text and has 'eats' as relationship and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q13' that has 'What character is in the blue room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q15' that has 'Who does Sgt Peacock work for?' as text and has 'works for' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q17' that has 'What is the hobby of Prof Plum?' as text and has 'hobby' as value and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q18' that has 'What character is wearing a red shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Rev Green'",
+        "there is a question named 'q19' that has 'What character likes rugby?' as text and has 'hobby' as value and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q20' that has 'What fruit does Rev Green eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Rev Green'",
+        "there is a question named 'q23' that has 'What fruit does Col Mustard eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q24' that has 'Where is the lemon?' as text and has 'is in' as relationship and concerns the sherlock thing 'lemon'",
+        "there is a question named 'q25' that has 'Where is the apple?' as text and has 'is in' as relationship and concerns the sherlock thing 'apple'",
+        "there is a question named 'q26' that has 'What character is wearing a yellow shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q28' that has 'What fruit is in the purple room?' as text and has 'is in' as relationship and concerns the sherlock thing 'apple'",
+        "there is a question named 'q30' that has 'What character is wearing a black shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Capt Scarlet'",
+        "there is a question named 'q31' that has 'What character eats lemons?' as text and has 'eats' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q33' that has 'What fruit does Dr White eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q34' that has 'What character likes baseball?' as text and has 'hobby' as value and concerns the sherlock thing 'Rev Green'",
+        "there is a question named 'q35' that has 'What character likes cricket?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q36' that has 'What is the hobby of Sgt Peacock?' as text and has 'hobby' as value and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q37' that has 'What character is in the red room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q39' that has 'What character likes swimming?' as text and has 'hobby' as value and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q40' that has 'What character eats oranges?' as text and has 'eats' as relationship and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q41' that has 'What colour shirt is Capt Scarlet wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Capt Scarlet'",
+        "there is a question named 'q43' that has 'What character is wearing a green shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q45' that has 'What character is in the pink room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q47' that has 'Where is prof plum?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
+        "there is a question named 'q48' that has 'Where is the pear?' as text and has 'is in' as relationship and concerns the sherlock thing 'pear'",
+        "there is a question named 'q50' that has 'What fruit does Sgt Peacock eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q52' that has 'What is the hobby of Col Mustard?' as text and has 'hobby' as value and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q53' that has 'Where is Capt Scarlet?' as text and has 'is in' as relationship and concerns the sherlock thing 'Capt Scarlet'",
+        "there is a question named 'q54' that has 'What is the hobby of Capt Scarlet?' as text and has 'hobby' as value and concerns the sherlock thing 'Capt Scarlet'",
     ],
     SHERLOCK_MYCROFT : [
         "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
@@ -906,6 +941,33 @@ function CENode(){
             else{
                 return [true, node.get_instance_gist(instance)];
             }
+        }
+
+        else if(t.match(/^list (\ball\b|\binstances\b)/i)){
+            var ins = [];
+            var s = "";
+            if(t.toLowerCase().indexOf("list instances of type") == 0){
+                var con = t.toLowerCase().replace("list instances of type", "").trim();
+                ins = node.get_instances(con);
+                s = "Instances of type '"+con+"':";
+            }
+            else if(t.toLowerCase().indexOf("list all instances of type") == 0){
+                var con = t.toLowerCase().replace("list all instances of type", "").trim();
+                ins = node.get_instances(con, true);
+                s = "All instances of type '"+con+"':";
+            }
+            else if(t.toLowerCase() == "list instances"){
+                ins = instances;        
+                s = "All instances:";
+            }
+            if(ins.length == 0){
+                return [true, "I could not find any instances matching your query."];
+            }
+            var names = [];
+            for(var i = 0; i < ins.length; i++){
+                names.push(ins[i].name);
+            }       
+            return [true, s+" "+names.join(", ")];
         }
         return [false, null];
     }
