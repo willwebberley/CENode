@@ -38,7 +38,7 @@ var MODELS = {
         "conceptualise a ~ location ~ L that is an entity",
         "conceptualise a ~ locatable thing ~ L that is an entity",
         "conceptualise the locatable thing L ~ is in ~ the location M",
-        "conceptualise a ~ human ~ H that is an entity",
+        "conceptualise a ~ rule ~ R that is an entity and has the value V as ~ instruction ~",
         "conceptualise a ~ policy ~ P that is an entity and has the value V as ~ enabled ~ and has the agent A as ~ target ~",
         "conceptualise a ~ tell policy ~ P that is a policy",
         "conceptualise an ~ ask policy ~ P that is a policy",
@@ -51,16 +51,25 @@ var MODELS = {
         "conceptualise a ~ sherlock thing ~ S that is an entity and is an imageable thing",
         "conceptualise an ~ organisation ~ O that is a sherlock thing",
         "conceptualise a ~ fruit ~ F that is a sherlock thing and is a locatable thing",
+        "conceptualise the fruit F ~ is eaten by ~ the character C",
         "conceptualise a ~ room ~ R that is a location and is a sherlock thing and has the location L as ~ location ~",
         "conceptualise the room R ~ contains ~ the sherlock thing S and ~ is located in ~ the location L and ~ is located on ~ the location M",
         "conceptualise a ~ floor ~ F that is a location",
         "conceptualise a ~ building ~ B that is a location",
-        "conceptualise a ~ colour ~ C",
+        "conceptualise a ~ shirt colour ~ C",
+        "conceptualise the shirt colour C ~ is worn by ~ the character C",
         "conceptualise a ~ hobby ~ H",
-        "conceptualise a ~ character ~ C that is a sherlock thing and is a locatable thing and has the colour C as ~ shirt colour ~ and has the hobby H as ~ hobby ~",
+        "conceptualise the hobby H ~ is liked by ~ the character C",
+        "conceptualise a ~ character ~ C that is a sherlock thing and is a locatable thing and has the shirt colour C as ~ shirt colour ~ and has the hobby H as ~ hobby ~",
         "conceptualise the character C ~ works for ~ the organisation O and ~ eats ~ the fruit F",
         "conceptualise a ~ question ~ Q that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
         "conceptualise the question Q ~ concerns ~ the sherlock thing C",
+
+        "there is a rule named r1 that has 'if the character C ~ eats ~ the fruit F then the fruit F ~ is eaten by ~ the character C' as instruction",
+        "there is a rule named r2 that has 'if the character C has the hobby H as ~ hobby ~ then the hobby H ~ is liked by ~ the character C' as instruction",
+        "there is a rule named r3 that has 'if the character C has the shirt colour S as ~ shirt colour ~ then the shirt colour S ~ is worn by ~ the character C' as instruction",
+        "there is a rule named r4 that has 'if the character C ~ is in ~ the room R then the room R ~ contains ~ the character C' as instruction",
+
 
         "there is an organisation named 'police'",
 
@@ -85,17 +94,17 @@ var MODELS = {
         "there is a fruit named 'grape'",
         "there is a fruit named 'kiwi'",
         "there is a fruit named 'tomato'",
-        "there is a colour named 'green'",
-        "there is a colour named 'red'",
-        "there is a colour named 'yellow'",
-        "there is a colour named 'black'",
-        "there is a colour named 'white'",
-        "there is a colour named 'purple'",
-        "there is a colour named 'pink'",
-        "there is a colour named 'orange'",
-        "there is a colour named 'blue'",
-        "there is a colour named 'brown'",
-        "there is a colour named 'grey'",
+        "there is a shirt colour named 'green'",
+        "there is a shirt colour named 'red'",
+        "there is a shirt colour named 'yellow'",
+        "there is a shirt colour named 'black'",
+        "there is a shirt colour named 'white'",
+        "there is a shirt colour named 'purple'",
+        "there is a shirt colour named 'pink'",
+        "there is a shirt colour named 'orange'",
+        "there is a shirt colour named 'blue'",
+        "there is a shirt colour named 'brown'",
+        "there is a shirt colour named 'grey'",
         "there is a hobby named 'tennis'",
         "there is a hobby named 'badminton'",
         "there is a hobby named 'rugby'",
@@ -109,39 +118,39 @@ var MODELS = {
         "there is a hobby named 'softball'",
         "there is a hobby named 'cricket'",
 
-        "there is a question named 'q1' that has 'What character eats pineapples?' as text and has 'eats' as relationship and concerns the sherlock thing 'Capt Scarlet'",
+        "there is a question named 'q1' that has 'What character eats pineapples?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'pineapple'",
         "there is a question named 'q2' that has 'What is the hobby of Dr White?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
-        "there is a question named 'q3' that has 'What character eats apples?' as text and has 'eats' as relationship and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q3' that has 'What character eats apples?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'apple'",
         "there is a question named 'q4' that has 'What colour shirt is Prof Plum wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Prof Plum'",
         "there is a question named 'q5' that has 'What colour shirt is Dr White wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Dr White'",
         "there is a question named 'q6' that has 'Where is Col Mustard?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
         "there is a question named 'q7' that has 'What colour shirt is Sgt Peacock wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q9' that has 'Which character is in the green room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Rev Green'",
-        "there is a question named 'q12' that has 'What character eats bananas?' as text and has 'eats' as relationship and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q13' that has 'What character is in the blue room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q9' that has 'Which character is in the green room?' as text and has 'contains' as value and concerns the sherlock thing 'Green Room'",
+        "there is a question named 'q12' that has 'What character eats bananas?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'banana'",
+        "there is a question named 'q13' that has 'What character is in the blue room?' as text and has 'contains' as value and concerns the sherlock thing 'Blue Room'",
         "there is a question named 'q15' that has 'Who does Sgt Peacock work for?' as text and has 'works for' as relationship and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q17' that has 'What is the hobby of Prof Plum?' as text and has 'hobby' as value and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q18' that has 'What character is wearing a red shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Rev Green'",
-        "there is a question named 'q19' that has 'What character likes rugby?' as text and has 'hobby' as value and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q18' that has 'What character is wearing a red shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'red'",
+        "there is a question named 'q19' that has 'What character likes rugby?' as text and has 'is liked by' as value and concerns the sherlock thing 'rugby'",
         "there is a question named 'q20' that has 'What fruit does Rev Green eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Rev Green'",
         "there is a question named 'q23' that has 'What fruit does Col Mustard eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Col Mustard'",
         "there is a question named 'q24' that has 'Where is the lemon?' as text and has 'is in' as relationship and concerns the sherlock thing 'lemon'",
         "there is a question named 'q25' that has 'Where is the apple?' as text and has 'is in' as relationship and concerns the sherlock thing 'apple'",
-        "there is a question named 'q26' that has 'What character is wearing a yellow shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Col Mustard'",
-        "there is a question named 'q28' that has 'What fruit is in the purple room?' as text and has 'is in' as relationship and concerns the sherlock thing 'apple'",
-        "there is a question named 'q30' that has 'What character is wearing a black shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Capt Scarlet'",
-        "there is a question named 'q31' that has 'What character eats lemons?' as text and has 'eats' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q26' that has 'What character is wearing a yellow shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'yellow'",
+        "there is a question named 'q28' that has 'What fruit is in the purple room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Purple Room'",
+        "there is a question named 'q30' that has 'What character is wearing a black shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'black'",
+        "there is a question named 'q31' that has 'What character eats lemons?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'lemon'",
         "there is a question named 'q33' that has 'What fruit does Dr White eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Dr White'",
-        "there is a question named 'q34' that has 'What character likes baseball?' as text and has 'hobby' as value and concerns the sherlock thing 'Rev Green'",
-        "there is a question named 'q35' that has 'What character likes cricket?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
+        "there is a question named 'q34' that has 'What character likes baseball?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'baseball'",
+        "there is a question named 'q35' that has 'What character likes cricket?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'cricket'",
         "there is a question named 'q36' that has 'What is the hobby of Sgt Peacock?' as text and has 'hobby' as value and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q37' that has 'What character is in the red room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q39' that has 'What character likes swimming?' as text and has 'hobby' as value and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q40' that has 'What character eats oranges?' as text and has 'eats' as relationship and concerns the sherlock thing 'Col Mustard'",
+        "there is a question named 'q37' that has 'What character is in the red room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Red Room'",
+        "there is a question named 'q39' that has 'What character likes swimming?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'swimming'",
+        "there is a question named 'q40' that has 'What character eats oranges?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'orange'",
         "there is a question named 'q41' that has 'What colour shirt is Capt Scarlet wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Capt Scarlet'",
-        "there is a question named 'q43' that has 'What character is wearing a green shirt?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Dr White'",
-        "there is a question named 'q45' that has 'What character is in the pink room?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
+        "there is a question named 'q43' that has 'What character is wearing a green shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'green'",
+        "there is a question named 'q45' that has 'What character is in the pink room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Pink Room'",
         "there is a question named 'q47' that has 'Where is prof plum?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
         "there is a question named 'q48' that has 'Where is the pear?' as text and has 'is in' as relationship and concerns the sherlock thing 'pear'",
         "there is a question named 'q50' that has 'What fruit does Sgt Peacock eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Sgt Peacock'",
@@ -157,9 +166,9 @@ var MODELS = {
     ],
     SHERLOCK_NODE : [
         "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address",
-        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
-        "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
-        "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
+        //"there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
+        //"there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
+        //"there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
     ]
 }
 
@@ -175,6 +184,7 @@ function CENode(){
     // by the node.
     var concepts = [];
     var instances = [];
+    var rules = [];
     var concept_ids = {};
 
     var agent = new CEAgent(this);
@@ -431,7 +441,86 @@ function CENode(){
         return new_instance;
     }
 
-    
+    this.parse_rule = function(instruction){
+        if(instruction == null){return null;}
+        var rule = {};
+        var then_string = null;
+        var rel_facts = instruction.match(/^if the ([a-zA-Z0-9 ]*) ([A-Z]) ~ (.*) ~ the ([a-zA-Z0-9 ]*) ([A-Z]) then the (.*)/i);
+        var val_facts = instruction.match(/^if the ([a-zA-Z0-9 ]*) ([A-Z]) has the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ (.*) ~ then the (.*)/i);
+        if(rel_facts){
+            rule.if = {};
+            rule.if.concept = rel_facts[1];
+            rule.if.relationship = {};
+            rule.if.relationship.type = rel_facts[4];
+            rule.if.relationship.label = rel_facts[3];
+            then_string = rel_facts[6];
+        }
+        else if(val_facts){
+            rule.if = {};
+            rule.if.concept = val_facts[1];
+            rule.if.value = {};
+            rule.if.value.type = val_facts[3];
+            rule.if.value.descriptor = val_facts[5];
+            then_string = val_facts[6];
+        }
+
+        if(then_string){
+            var then_rel_facts = then_string.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ (.*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/i);
+            var then_val_facts = then_string.match(/^([a-zA-Z0-9 ]*) ([A-Z]) has the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ (.*) ~/i);
+            if(then_rel_facts){
+                rule.then = {};
+                rule.then.concept = then_rel_facts[1];
+                rule.then.relationship = {};
+                rule.then.relationship.type = then_rel_facts[4];
+                rule.then.relationship.label = then_rel_facts[3];
+            }
+            else if(then_val_facts){
+                rule.then = {};
+                rule.then.concept = then_val_facts[1];
+                rule.then.value = {};
+                rule.then.value.type = then_val_facts[3];
+                rule.then.value.descriptor = then_val_facts[5];
+            }
+        }
+        return rule;
+    }
+
+    var enact_rules = function(subject_instance, property_type, property){
+        var concept = get_concept_by_id(subject_instance.concept_id);
+        var rules = node.get_instances("rule");
+        for(var i = 0; i < rules.length; i++){
+            var rule = node.parse_rule(node.get_instance_value(rules[i], "instruction"));
+            if(rule == null){return;}
+            if(rule.if.concept == concept.name){
+
+                var object_instance = null;
+                
+                if(property_type == "relationship" && rule.if.relationship != null){
+                    object_instance = get_instance_by_id(property.target_id);
+                }
+                else if(property_type == "value" && rule.if.value != null){
+                    object_instance = get_instance_by_id(property.type_id);
+                }
+                
+                if(object_instance != null && node.get_instance_type(object_instance).toLowerCase() == rule.if[property_type].type.toLowerCase()){
+                    if(rule.then.relationship && rule.then.relationship.type == concept.name){
+                        var relationship = {};
+                        relationship.label = rule.then.relationship.label;
+                        relationship.target_name = subject_instance.name;
+                        relationship.target_id = subject_instance.id;
+                        object_instance.relationships.push(relationship);
+                    }
+                    else if(rule.then.value && rule.then.value.type == concept.name){
+                        var value = {};
+                        value.descriptor = rule.then.value.descriptor;
+                        value.type_name = subject_instance.name;
+                        value.type_id = subject_instance.id;
+                        object_instance.values.push(value);
+                    }
+                }
+            }
+        }
+    } 
 
 
 
@@ -450,7 +539,7 @@ function CENode(){
      * Returns: [bool, str] (bool = success, str = error or parsed string)
      */
     var parse_ce = function(t, nowrite){
-        t = t.replace(/\s+/g, " ").replace(/\.+$/, ""); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
+        t = t.replace(/\s+/g, " ").replace(/\.+$/, "").trim(); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
         var message = "";
 
         if(t.match(/^conceptualise an?/i)){
@@ -755,6 +844,7 @@ function CENode(){
                                 // Writepoint 
                                 if(nowrite == null || nowrite == false){
                                     instance.values.push(value);
+                                    enact_rules(instance, "value", value);
                                 }
                                 break;
                             }
@@ -838,6 +928,7 @@ function CENode(){
                                     // Writepoint
                                     if(nowrite == null || nowrite == false){
                                         instance.relationships.push(relationship);
+                                        enact_rules(instance, "relationship", relationship);
                                     }
                                     break;
                                 }
@@ -1637,7 +1728,6 @@ function CEAgent(n){
                 c+=" and has '"+urls[j]+"' as linked content";
             }}
             node.add_sentence(c);
-            console.log(c);
         }
         else if(type == "tell card"){
             // Add the CE sentence to the node
