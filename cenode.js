@@ -51,28 +51,32 @@ var MODELS = {
         "conceptualise a ~ sherlock thing ~ S that is an entity and is an imageable thing",
         "conceptualise an ~ organisation ~ O that is a sherlock thing",
         "conceptualise a ~ fruit ~ F that is a sherlock thing and is a locatable thing",
-        "conceptualise the fruit F ~ is eaten by ~ the character C",
-        "conceptualise a ~ room ~ R that is a location and is a sherlock thing and has the location L as ~ location ~",
-        "conceptualise the room R ~ contains ~ the sherlock thing S and ~ is located in ~ the location L and ~ is located on ~ the location M",
-        "conceptualise a ~ floor ~ F that is a location",
-        "conceptualise a ~ building ~ B that is a location",
+        "conceptualise a ~ room ~ R that is a location and is a sherlock thing",
         "conceptualise a ~ shirt colour ~ C",
         "conceptualise the shirt colour C ~ is worn by ~ the character C",
         "conceptualise a ~ hobby ~ H",
-        "conceptualise the hobby H ~ is liked by ~ the character C",
         "conceptualise a ~ character ~ C that is a sherlock thing and is a locatable thing and has the shirt colour C as ~ shirt colour ~ and has the hobby H as ~ hobby ~",
         "conceptualise the character C ~ works for ~ the organisation O and ~ eats ~ the fruit F",
+        "conceptualise the room R ~ contains ~ the fruit F and has the character C as ~ contents ~",
+        "conceptualise the fruit F ~ is eaten by ~ the character C",
+        "conceptualise the hobby H ~ is liked by ~ the character C",
         "conceptualise a ~ question ~ Q that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
         "conceptualise the question Q ~ concerns ~ the sherlock thing C",
 
         "there is a rule named r1 that has 'if the character C ~ eats ~ the fruit F then the fruit F ~ is eaten by ~ the character C' as instruction",
         "there is a rule named r2 that has 'if the character C has the hobby H as ~ hobby ~ then the hobby H ~ is liked by ~ the character C' as instruction",
         "there is a rule named r3 that has 'if the character C has the shirt colour S as ~ shirt colour ~ then the shirt colour S ~ is worn by ~ the character C' as instruction",
-        "there is a rule named r4 that has 'if the character C ~ is in ~ the room R then the room R ~ contains ~ the character C' as instruction",
-
+        "there is a rule named r4 that has 'if the character C ~ is in ~ the room R then the room R has the character C as ~ contents ~' as instruction",
+        "there is a rule named r5 that has 'if the fruit F ~ is in ~ the room R then the room R ~ contains ~ the fruit F' as instruction",
+        
+        // Inverse rules:
+        "there is a rule named r6 that has 'if the fruit F ~ is eaten by ~ the character C then the character C ~ eats ~ the fruit F' as instruction",
+        "there is a rule named r7 that has 'if the hobby H ~ is liked by ~ the character C then the character C has the hobby H as ~ hobby ~' as instruction",
+        "there is a rule named r8 that has 'if the shirt colour S ~ is worn by ~ the character C then the character C has the shirt colour S as ~ shirt colour ~' as instruction",
+        "there is a rule named r9 that has 'if the room R has the character C as ~ contents ~ then the character C ~ is in ~ the room R' as instruction",
+        "there is a rule named r10 that has 'if the room R ~ contains ~ the fruit F then the fruit F ~ is in ~ the room R' as instruction",
 
         "there is an organisation named 'police'",
-
         "there is a character named 'Prof Plum' that has 'http://sherlock.cenode.io/media/plum.jpg' as image",
         "there is a character named 'Dr White' that has 'http://sherlock.cenode.io/media/white.jpg' as image",
         "there is a character named 'Col Mustard' that has 'http://sherlock.cenode.io/media/mustard.jpg' as image",
@@ -101,7 +105,6 @@ var MODELS = {
         "there is a shirt colour named 'white'",
         "there is a shirt colour named 'purple'",
         "there is a shirt colour named 'pink'",
-        "there is a shirt colour named 'orange'",
         "there is a shirt colour named 'blue'",
         "there is a shirt colour named 'brown'",
         "there is a shirt colour named 'grey'",
@@ -126,9 +129,9 @@ var MODELS = {
         "there is a question named 'q6' that has 'Where is Col Mustard?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
         "there is a question named 'q7' that has 'What colour shirt is Sgt Peacock wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q9' that has 'Which character is in the emerald room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Emerald Room'",
+        "there is a question named 'q9' that has 'Which character is in the emerald room?' as text and has 'contents' as value and concerns the sherlock thing 'Emerald Room'",
         "there is a question named 'q12' that has 'What character eats bananas?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'banana'",
-        "there is a question named 'q13' that has 'What character is in the sapphire room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Sapphire Room'",
+        "there is a question named 'q13' that has 'What character is in the sapphire room?' as text and has 'contents' as value and concerns the sherlock thing 'Sapphire Room'",
         "there is a question named 'q15' that has 'Who does Sgt Peacock work for?' as text and has 'works for' as relationship and concerns the sherlock thing 'Sgt Peacock'",
         "there is a question named 'q17' that has 'What is the hobby of Prof Plum?' as text and has 'hobby' as value and concerns the sherlock thing 'Prof Plum'",
         "there is a question named 'q18' that has 'What character is wearing a red shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'red'",
@@ -145,12 +148,12 @@ var MODELS = {
         "there is a question named 'q34' that has 'What character likes baseball?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'baseball'",
         "there is a question named 'q35' that has 'What character likes cricket?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'cricket'",
         "there is a question named 'q36' that has 'What is the hobby of Sgt Peacock?' as text and has 'hobby' as value and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q37' that has 'What character is in the ruby room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Ruby Room'",
+        "there is a question named 'q37' that has 'What character is in the ruby room?' as text and has 'contents' as value and concerns the sherlock thing 'Ruby Room'",
         "there is a question named 'q39' that has 'What character likes swimming?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'swimming'",
         "there is a question named 'q40' that has 'What character eats oranges?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'orange'",
         "there is a question named 'q41' that has 'What colour shirt is Capt Scarlet wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Capt Scarlet'",
         "there is a question named 'q43' that has 'What character is wearing a green shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'green'",
-        "there is a question named 'q45' that has 'What character is in the amber room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Amber Room'",
+        "there is a question named 'q45' that has 'What character is in the amber room?' as text and has 'contents' as value and concerns the sherlock thing 'Amber Room'",
         "there is a question named 'q47' that has 'Where is prof plum?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
         "there is a question named 'q48' that has 'Where is the pear?' as text and has 'is in' as relationship and concerns the sherlock thing 'pear'",
         "there is a question named 'q50' that has 'What fruit does Sgt Peacock eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Sgt Peacock'",
@@ -498,21 +501,27 @@ function CENode(){
                 else if(property_type == "value" && rule.if.value != null){
                     object_instance = get_instance_by_id(property.type_id);
                 }
-                
-                if(object_instance != null && node.get_instance_type(object_instance).toLowerCase() == rule.if[property_type].type.toLowerCase()){
-                    if(rule.then.relationship && rule.then.relationship.type == concept.name){
-                        var relationship = {};
-                        relationship.label = rule.then.relationship.label;
-                        relationship.target_name = subject_instance.name;
-                        relationship.target_id = subject_instance.id;
-                        object_instance.relationships.push(relationship);
-                    }
-                    else if(rule.then.value && rule.then.value.type == concept.name){
-                        var value = {};
-                        value.descriptor = rule.then.value.descriptor;
-                        value.type_name = subject_instance.name;
-                        value.type_id = subject_instance.id;
-                        object_instance.values.push(value);
+
+                                
+                if(object_instance != null){
+                    var rule_if_children = get_recursive_parents(get_concept_by_id(object_instance.concept_id));
+                    for(var j = 0; j < rule_if_children.length; j++){
+                        if(rule_if_children[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
+                            if(rule.then.relationship && rule.then.relationship.type == concept.name){
+                                var relationship = {};
+                                relationship.label = rule.then.relationship.label;
+                                relationship.target_name = subject_instance.name;
+                                relationship.target_id = subject_instance.id;
+                                object_instance.relationships.push(relationship);
+                            }
+                            else if(rule.then.value && rule.then.value.type == concept.name){
+                                var value = {};
+                                value.descriptor = rule.then.value.descriptor;
+                                value.type_name = subject_instance.name;
+                                value.type_id = subject_instance.id;
+                                object_instance.values.push(value);
+                            }
+                        }
                     }
                 }
             }
