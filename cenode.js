@@ -163,9 +163,9 @@ var MODELS = {
     ],
     SHERLOCK_NODE : [
         "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address",
-        //"there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
-        //"there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
-        //"there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
+        "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
+        "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
+        "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
     ]
 }
 
