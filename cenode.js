@@ -162,7 +162,7 @@ var MODELS = {
         "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
     ],
     SHERLOCK_NODE : [
-        "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address",
+        "there is an agent named 'Mycroft' that has 'http://mycroft.cenode.io' as address",
         "there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
         "there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
         "there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
@@ -1359,6 +1359,14 @@ function CENode(){
         return agent.get_name();
     }   
 
+    /*
+     * Get the CEAgent object attached to this node
+     *
+     * Returns: CEAgent obj
+     */
+    this.get_agent = function(){
+        return agent;
+    }
     
     /*
      * Generate CE that describes the instance.
@@ -1670,7 +1678,7 @@ function CENode(){
 
 function CEAgent(n){
     var name = "Moira";
-    var last_polled_timestamp = 0;
+    var last_successful_request = 0;
     var node = n;
     var unsent_tell_cards = {};
     var unsent_ask_cards = {};
@@ -1681,6 +1689,9 @@ function CEAgent(n){
     }
     this.get_name = function(){
         return name;
+    }
+    this.get_last_successful_request = function(){
+        return last_successful_request;
     }
 
     var handle_card = function(card){
@@ -1839,6 +1850,7 @@ function CEAgent(n){
                     }
                     if(data != ""){
                         net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                            last_successful_request = new Date().getTime();
                             unsent_tell_cards[target.name] = [];
                         });
                     }
@@ -1872,6 +1884,7 @@ function CEAgent(n){
                     }
                     if(data != ""){
                         net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                            last_successful_request = new Date().getTime();
                             unsent_ask_cards[target.name] = [];
                         });
                     }
@@ -1882,6 +1895,7 @@ function CEAgent(n){
             for(var i = 0; i < listen_policies.length; i++){
                 var target = node.get_instance_value(listen_policies[i], "target");
                 net.make_request("GET", node.get_instance_value(target, "address"), GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+                    last_successful_request = new Date().getTime();
                     var cards = resp.split("\n");
                     node.add_sentences(cards);
                 });
