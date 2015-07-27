@@ -56,7 +56,28 @@ The only dependency our app has (unless you later require more) is `cenode.js` i
 
 Downlaod the library from [cenode.io/cenode.js](http://cenode.io/cenode.js). You can use CURL to do this for you:
 ```bash
-$ curl -o js/cenode.js http://cenode.io/cenode.js
+$ curl -o js/cenode.jshttp://cenode.io/cenode.js
 ```
 
+## Building out the app
 
+We will write most of our app logic within a file named `main.js`, so create this:
+```bash
+$ touch js/main.js
+```
+
+Create the skeleton of the app by ediing `index.html`:
+#### `index.html`
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My CENode app</title>
+  </head>
+  <body>
+    <h1>My app</h1>
+    <script src="js/cenode.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>
+```
