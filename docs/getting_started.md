@@ -202,11 +202,18 @@ function poll_cards(){
 }
 ```
 
-The above function will call itself every 1000 milliseconds (1 second). We need to add one more line to the bottom of the `main.js` script that makes sure the `poll_cards()` repeating function is called:
+The above function will call itself every 1000 milliseconds (1 second). We need to add one more line to the bottom of the `main.js` script that makes sure the `poll_cards()` repeating function is called when the app starts:
 
 #### `main.js`
 ```javascript
 poll_cards();
 ```
 
-And that's it - we have a very basic app using CENode to support a simple conversation between a human and the machine. 
+And that's it - we have a very basic app using CENode to support a simple conversation between a human and the machine. Refresh the page in your browser and you should be ready to start talking.
+
+
+## Taking it further
+
+Clearly this is a very basic app that supports simple chat functionality. We haven't added any support for confirming CE that the agent has guessed from our NL inputs (although valid CE will be autoconfirmed by the agent).
+
+Also, the CENode has a 'autocomplete' feature that will try to guess the next word/phrase in the sentence based on your current input. Read the docs to check out the `guess_next()` function for this and try to find a way to include it in the code.
