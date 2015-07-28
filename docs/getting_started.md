@@ -1,6 +1,10 @@
 # Getting started with CENode
 
-This document provides a guide for getting started with developing with the CENode library. 
+This document provides a guide for getting started with developing with the CENode library and assumes a general knowledge of
+
+* The CE (Controlled English) dialect
+* The CECard protocol
+* CEStore and CENode goals
 
 The [official documentation](http://cenode.io/documentation.pdf) outlines key use-cases and gives an overview of the APIs exposed by the library. 
 
@@ -33,7 +37,7 @@ If you would like to place this project under Git version control, then initiali
 $ git init
 ```
 
-To make an initial commit, then first ensure your global git settings have been properly set:
+To make an initial commit, then first ensure your global Git settings have been properly set:
 ```bash
 $ git config --global user.name "My Name"
 $ git config --global user.email "myname@mydomain.com"
@@ -56,7 +60,7 @@ The only dependency our app has (unless you later require more) is `cenode.js` i
 
 Downlaod the library from [cenode.io/cenode.js](http://cenode.io/cenode.js). You can use CURL to do this for you:
 ```bash
-$ curl -o js/cenode.jshttp://cenode.io/cenode.js
+$ curl -o js/cenode.js http://cenode.io/cenode.js
 ```
 
 ## Building out the app
@@ -154,7 +158,7 @@ var messages = document.getElementById('messages');
 button.onclick = function(){
     var message = input.value;
     input.value = ''; // blank the input field for new messages
-    var card = "there is a nl card named '{uid'} that is to the agent 'agent1' and is from the individual '"+my_name+"' and has the timestamp '{now}' as timestamp and has '"+message.replace(/'/g, "\\'")+"' as content.";
+    var card = "there is a nl card named '{uid}' that is to the agent 'agent1' and is from the individual '"+my_name+"' and has the timestamp '{now}' as timestamp and has '"+message.replace(/'/g, "\\'")+"' as content.";
     node.add_sentence(card);
 
     // Finally, prepend our message to the list of messages:
@@ -162,6 +166,8 @@ button.onclick = function(){
     messages.innerHTML = item + messages.innerHTML;
 };
 ```
+
+_(Note: we have used special character sequences `{uid}` and `{now}` to help us construct the card. CENode will complete these fields for you by generating a unique name for the card and by calculating the timestamp automatically.)_
 
 In this code, we take the input message the user created, wrap it in a CECard (of type `nl card` since we can't guarantee the user's entry will be pure CE), and then add it to the node.
 
@@ -173,7 +179,7 @@ To do so, add the following sentence to a custom model passed to the node during
 ```javascript
 var my_model = [
     ... 
-    "there is a feedback policy named p1 that has 'true' as enabled and has the individual 'User' as target and has 'full' as acknowledgement"
+    "there is a feedback policy named p1 that has 'true' as enabled and has the individual '"+my_name+"' as target and has 'full' as acknowledgement"
     ...
 ];
 ```
