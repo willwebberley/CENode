@@ -10,6 +10,12 @@ The [official documentation](http://cenode.io/documentation.pdf) outlines key us
 
 In this guide, we will use CENode in the setting of a web application that will allow a user to conduct a simple conversation with a local agent. 
 
+## Companion code
+
+The code created as a result of this guide has been put together into a complete project that can be used to help illustrate the s    teps descreibed below.
+
+The project can be accessed from its [home repository](https://github.com/flyingsparx/CENode-chat).
+
 
 ## Setting up the environment
 
