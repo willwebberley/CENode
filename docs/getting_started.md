@@ -64,16 +64,14 @@ If you have a remote repository you'd like to push to, then you'll need to creat
 
 The only dependency our app has (unless you later require more) is `cenode.js` itself.
 
-`cenode.js` can be obtained directly from its website.
-
-Downlaod the library from [cenode.io/cenode.js](http://cenode.io/cenode.js). You can use CURL to do this for you:
+`cenode.js` can be obtained directly from its website at [cenode.io/cenode.js](http://cenode.io/cenode.js). You can use CURL to do this for you:
 ```bash
 $ curl -o js/cenode.js http://cenode.io/cenode.js
 ```
 
 ## Building out the app
 
-We will write most of our app logic within a file named `main.js`, so create this:
+We will write all of our app logic within a file named `main.js`, so create this:
 ```bash
 $ touch js/main.js
 ```
@@ -96,7 +94,7 @@ Create the skeleton of the app by ediing `index.html`:
 
 If you open this page in a web browser, you'll see a plain page aside from the heading and the title.
 
-You can now start to write some code that uses the `cenode.js` library. Start by initialising the library with some core dataand setting the agent name:
+You can now start to write some code that uses the `cenode.js` library. Start by initialising the library with some core data (see [CENode models](https://github.com/flyingsparx/CENode/blob/master/docs/getting_started.md#cenode-models) below) and setting the node's local agent name:
 
 #### `main.js`
 ```javascript
@@ -112,18 +110,18 @@ Notice that we have passed a variable `MODELS.CORE` to the constructor. This mod
 
 These types of models are actually very simple, and are simply a JavaScript array of CE sentences that are fed in _in order_ to the node. You might decide to create your own model for a particular domain that allows the node to have some basic knowledge of the domain's 'world' before you even start working with it.
 
-If, for example, you are using CENode to maintain knowledge about space, you might create your own model:
+If, for example, you are using CENode to maintain knowledge about space, you might create your own model for this:
 ```javascript
 var my_model = [
     "conceptualise a ~ celestial body ~ C",
-    "conetptualise the ~ celestial body ~ C ~ orbits ~ the celestial body D and ~ is orbited by ~ the celestial body E",
+    "conetptualise the celestial body C ~ orbits ~ the celestial body D and ~ is orbited by ~ the celestial body E",
     "conceptualise a ~ planet ~ P that is a celestial body",
     "conceptualise a ~ moon ~ M that is a celestial body",
     "conceptualise a ~ star ~ S that is a celestial body",
     "there is a rule named 'r1' that has 'if the celestial body C ~ orbits ~ the celestial body D then the celestial body D ~ is orbited by ~ the celestial body C' as instruction",
     "there is a rule named 'r2' that has 'if the celestial body C ~ is orbited by ~ the celestial body D then the celestial body D ~ orbits ~ the celestial body C' as instruction",
-    "there is a star named 'sun'",
-    "there is a planet named Earth that orbits the star 'sun'",
+    "there is a star named sun",
+    "there is a planet named Earth that orbits the star sun",
     "there is a moon named 'the moon' that orbits the planet Earth"
 ];
 ```
@@ -134,6 +132,9 @@ var node = new CENode(MODELS.CORE, my_model);
 ```
 
 _(We pass the core model before the custom one, because the `rule` concept is created by the former. If we didn't do this, then the rules we created in our custom model would be ignored. The core model also adds support for CECards, which we'll need to use later.)_
+
+In this guide, we don't _need_ to prepopulate the node if you don't want to, but it might give you and the agent a bit more to talk about if you do.
+
 
 ### Building the messaging interface
 
@@ -191,6 +192,7 @@ var my_model = [
     ...
 ];
 ```
+Remember to pass this model to CENode when intialising it along with the core one.
 
 CEAgents work entirely asynchronously to the rest of the app and the CENode KB itself, and we don't want to block the app whilst we wait for a response. Therefore, we need to write a method that continuously polls the CENode for any cards that the CEAgent may have written back to us.
 
@@ -207,7 +209,7 @@ function poll_cards(){
             var to = node.get_instance_relationship(card, 'is to'); // Get the addressee of the card
             if(to.name == my_name && processed_cards.indexOf(card.name) == -1){ // If sent to us and is still yet unseen
                 processed_cards.push(card.name); // Add this card to the list of 'seen' cards
-                var item = '<li>'+card.content+'</li>';
+                var item = '<li>'+node.get_instance_value(card, 'content')+'</li>';
                 messages.innerHTML = item + messages.innerHTML; // Prepend this new message to our list in the DOM
             }
         }
@@ -218,6 +220,7 @@ function poll_cards(){
 
 The above function will call itself every 1000 milliseconds (1 second). We need to add one more line to the bottom of the `main.js` script that makes sure the `poll_cards()` repeating function is called when the app starts:
 
+
 #### `main.js`
 ```javascript
 poll_cards();
@@ -226,8 +229,56 @@ poll_cards();
 And that's it - we have a very basic app using CENode to support a simple conversation between a human and the machine. Refresh the page in your browser and you should be ready to start talking.
 
 
+## Notes on instances
+
+You may notice that we can access properties of instance objects in different ways. These are related to the way instances are maintained by the node. At any time, you can inspect a particular instance object by logging it and then inspecting your browser's JavaScript console:
+```javascript
+console.log(card);
+```
+
+### Direct properties
+
+Properties such as `name` can be accessed directly, e.g.:
+```javascript
+var name = card.name;
+```
+ `name` is a name given to the instance. Sometimes this might be a simple identifier (e.g. `msg_23` for instances of type `card`) and sometimes it might be a more human-readable name (e.g. `agent1`).
+
+Information about properties of a particular type can easily be queried in CE:
+```
+what is a celestial body?
+```
+
+### Values
+
+There are two types of instance values:
+
+* A reference (with a label) to another instance in the node's KB
+* A labelled string
+
+Both types of values can be retrieved with code similar to (and used above):
+```javascript
+var value = node.get_instance_value(instance, label);
+```
+
+In the case of the former, `value` will contain another instance object, which in turn has its own name, values and relationships.
+
+With the latter, `value` will simply be a string. An example of this is a `card`'s `content` value (as shown above).
+
+### Relationships
+
+Relationship properties are handled in a very similar way to values, except that all relationship properties refer to another instance object:
+```javascript
+var rel = node.get_instance_relationship(instance, label);
+```
+
+As such, `rel` will be an instance object with its own names, values, and relationships. This is why we need to access the `name` property of the instance returned when checking the `is to` relationship above.
+
+
 ## Taking it further
 
 Clearly this is a very basic app that supports simple chat functionality. We haven't added any support for confirming CE that the agent has guessed from our NL inputs (although valid CE will be autoconfirmed by the agent).
 
 Also, the CENode has a 'autocomplete' feature that will try to guess the next word/phrase in the sentence based on your current input. Read the docs to check out the `guess_next()` function for this and try to find a way to include it in the code.
+
+Remember to checkout the [companion project](https://github.com/flyingsparx/CENode-chat) for a complete implementation of the code covered in this guide.
