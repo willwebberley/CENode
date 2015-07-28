@@ -113,16 +113,16 @@ These types of models are actually very simple, and are simply a JavaScript arra
 If, for example, you are using CENode to maintain knowledge about space, you might create your own model for this:
 ```javascript
 var my_model = [
-    "conceptualise a ~ celestial body ~ C",
-    "conetptualise the celestial body C ~ orbits ~ the celestial body D and ~ is orbited by ~ the celestial body E",
-    "conceptualise a ~ planet ~ P that is a celestial body",
-    "conceptualise a ~ moon ~ M that is a celestial body",
-    "conceptualise a ~ star ~ S that is a celestial body",
-    "there is a rule named 'r1' that has 'if the celestial body C ~ orbits ~ the celestial body D then the celestial body D ~ is orbited by ~ the celestial body C' as instruction",
-    "there is a rule named 'r2' that has 'if the celestial body C ~ is orbited by ~ the celestial body D then the celestial body D ~ orbits ~ the celestial body C' as instruction",
-    "there is a star named sun",
-    "there is a planet named Earth that orbits the star sun",
-    "there is a moon named 'the moon' that orbits the planet Earth"
+  "there is a rule named 'r1' that has 'if the planet C ~ orbits ~ the star D then the star D ~ is orbited by ~ the planet C' as instruction",
+  "there is a rule named 'r2' that has 'if the planet C ~ is orbited by ~ the moon D then the moon D ~ orbits ~ the planet C' as instruction",
+  "conceptualise a ~ celestial body ~ C",
+  "conceptualise the celestial body C ~ orbits ~ the celestial body D and ~ is orbited by ~ the celestial body E",
+  "conceptualise a ~ planet ~ P that is a celestial body",
+  "conceptualise a ~ moon ~ M that is a celestial body",
+  "conceptualise a ~ star ~ S that is a celestial body",
+  "there is a star named sun",
+  "there is a moon named 'the moon'",
+  "there is a planet named Earth that orbits the star 'sun' and is orbited by the moon 'the moon'"
 ];
 ```
 
