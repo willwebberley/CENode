@@ -1290,26 +1290,44 @@ function CENode(){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
         var ce = instance.name+" is a "+concept.name+".";
-        var facts = [];
+        var facts = {};
         if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
             var value = instance.values[i];
+            var fact = "";
             if(value.type_id == 0){
-                facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor)
+                fact = "has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor;
             }
             else{
                 var value_instance = get_instance_by_id(value.type_id);
                 var value_concept = get_concept_by_id(value_instance.concept_id);
-                facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
+                fact = "has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor;
             }
+            if(!(fact in facts)){
+                facts[fact] = 0;
+            }
+            facts[fact]++;
         }}
         if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
             var relationship = instance.relationships[i];
             var relationship_instance = get_instance_by_id(relationship.target_id);
             var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
-            facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
+            var fact = relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'";
+            if(!(fact in facts)){
+                facts[fact] = 0;
+            }
+            facts[fact]++;
         }}
-        if(facts.length > 0){ce += " "+instance.name+" "+facts.join(" and ")+".";}
-        return ce;
+        if(facts != {}){
+            ce += " "+instance.name;
+            for(fact in facts){
+                ce += " "+fact;
+                if(facts[fact] > 1){
+                    ce += " ("+facts[fact]+" times)";
+                }
+                ce += " and";
+            }
+        }
+        return ce.substring(0, ce.length - 4)+".";
     }
 
     /*
