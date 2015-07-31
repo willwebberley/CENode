@@ -903,9 +903,23 @@ function CENode(){
             return [true, message];
         }
 
-        else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )/i)){
-            var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
-            var instance = get_instance_by_name(name);
+        else if(t.match(/^(\bwho\b|\bwhat\b) is/i)){
+            t = t.replace(/\?/g,'').replace(/'/g, '').replace(/\./g, '');
+
+            // If we have an exact match (i.e. 'who is The Doctor?')
+            var name = t.match(/^(\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/i);
+            console.log(name);
+            var instance;
+            if(name){
+              instance = get_instance_by_name(name[2]);
+              if(instance != null){
+                return [true, node.get_instance_gist(instance)];
+              }            
+            }
+
+            // Otherwise, try and infer it
+            name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
+            instance = get_instance_by_name(name);
             if(instance == null){
                 var concept = get_concept_by_name(name);
                 if(concept == null){
