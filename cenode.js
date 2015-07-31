@@ -908,7 +908,6 @@ function CENode(){
 
             // If we have an exact match (i.e. 'who is The Doctor?')
             var name = t.match(/^(\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/i);
-            console.log(name);
             var instance;
             if(name){
               instance = get_instance_by_name(name[2]);
