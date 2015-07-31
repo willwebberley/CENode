@@ -1291,7 +1291,9 @@ function CENode(){
         if(concept == null){return;}
         var ce = instance.name+" is a "+concept.name+".";
         var facts = {};
+        var fact_found = false;
         if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
+            fact_found = true;
             var value = instance.values[i];
             var fact = "";
             if(value.type_id == 0){
@@ -1308,6 +1310,7 @@ function CENode(){
             facts[fact]++;
         }}
         if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
+            fact_found = true;
             var relationship = instance.relationships[i];
             var relationship_instance = get_instance_by_id(relationship.target_id);
             var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
@@ -1317,7 +1320,7 @@ function CENode(){
             }
             facts[fact]++;
         }}
-        if(facts != {}){
+        if(fact_found){
             ce += " "+instance.name;
             for(fact in facts){
                 ce += " "+fact;
@@ -1326,8 +1329,10 @@ function CENode(){
                 }
                 ce += " and";
             }
+            ce = ce.substring(0, ce.length - 4)+"."; // Remove last ' and' and add full stop
+
         }
-        return ce.substring(0, ce.length - 4)+".";
+        return ce;     
     }
 
     /*
