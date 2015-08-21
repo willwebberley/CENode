@@ -46,129 +46,6 @@ var MODELS = {
         "conceptualise a ~ listen onbehalfof policy ~ P that is a policy",
         "conceptualise a ~ forwardall policy ~ P that is a policy and has the timestamp T as ~ start time ~ and has the value V as ~ all agents ~",
         "conceptualise a ~ feedback policy ~ P that is a policy and has the value V as ~ acknowledgement ~"
-    ],
-    SHERLOCK_CORE : [
-        "conceptualise a ~ sherlock thing ~ S that is an entity and is an imageable thing",
-        "conceptualise an ~ organisation ~ O that is a sherlock thing",
-        "conceptualise a ~ fruit ~ F that is a sherlock thing and is a locatable thing",
-        "conceptualise a ~ room ~ R that is a location and is a sherlock thing",
-        "conceptualise a ~ shirt colour ~ C",
-        "conceptualise the shirt colour C ~ is worn by ~ the character C",
-        "conceptualise a ~ hobby ~ H",
-        "conceptualise a ~ character ~ C that is a sherlock thing and is a locatable thing and has the shirt colour C as ~ shirt colour ~ and has the hobby H as ~ hobby ~",
-        "conceptualise the character C ~ works for ~ the organisation O and ~ eats ~ the fruit F",
-        "conceptualise the room R ~ contains ~ the fruit F and has the character C as ~ contents ~",
-        "conceptualise the fruit F ~ is eaten by ~ the character C",
-        "conceptualise the hobby H ~ is liked by ~ the character C",
-        "conceptualise a ~ question ~ Q that has the value V as ~ text ~ and has the value W as ~ value ~ and has the value X as ~ relationship ~",
-        "conceptualise the question Q ~ concerns ~ the sherlock thing C",
-
-        "there is a rule named r1 that has 'if the character C ~ eats ~ the fruit F then the fruit F ~ is eaten by ~ the character C' as instruction",
-        "there is a rule named r2 that has 'if the character C has the hobby H as ~ hobby ~ then the hobby H ~ is liked by ~ the character C' as instruction",
-        "there is a rule named r3 that has 'if the character C has the shirt colour S as ~ shirt colour ~ then the shirt colour S ~ is worn by ~ the character C' as instruction",
-        "there is a rule named r4 that has 'if the character C ~ is in ~ the room R then the room R has the character C as ~ contents ~' as instruction",
-        "there is a rule named r5 that has 'if the fruit F ~ is in ~ the room R then the room R ~ contains ~ the fruit F' as instruction",
-        
-        // Inverse rules:
-        "there is a rule named r6 that has 'if the fruit F ~ is eaten by ~ the character C then the character C ~ eats ~ the fruit F' as instruction",
-        "there is a rule named r7 that has 'if the hobby H ~ is liked by ~ the character C then the character C has the hobby H as ~ hobby ~' as instruction",
-        "there is a rule named r8 that has 'if the shirt colour S ~ is worn by ~ the character C then the character C has the shirt colour S as ~ shirt colour ~' as instruction",
-        "there is a rule named r9 that has 'if the room R has the character C as ~ contents ~ then the character C ~ is in ~ the room R' as instruction",
-        "there is a rule named r10 that has 'if the room R ~ contains ~ the fruit F then the fruit F ~ is in ~ the room R' as instruction",
-
-        "there is an organisation named 'police'",
-        "there is a character named 'Prof Plum' that has 'http://sherlock.cenode.io/media/plum.jpg' as image",
-        "there is a character named 'Dr White' that has 'http://sherlock.cenode.io/media/white.jpg' as image",
-        "there is a character named 'Col Mustard' that has 'http://sherlock.cenode.io/media/mustard.jpg' as image",
-        "there is a character named 'Sgt Peacock' that has 'http://sherlock.cenode.io/media/peacock.jpg' as image",
-        "there is a character named 'Rev Green' that has 'http://sherlock.cenode.io/media/green.jpg' as image",
-        "there is a character named 'Capt Scarlet' that has 'http://sherlock.cenode.io/media/scarlet.jpg' as image",
-        "there is a room named 'Ruby Room'",
-        "there is a room named 'Sapphire Room'",
-        "there is a room named 'Gold Room'",
-        "there is a room named 'Amber Room'",
-        "there is a room named 'Emerald Room'",
-        "there is a room named 'Silver Room'",
-        "there is a fruit named 'apple'",
-        "there is a fruit named 'banana'",
-        "there is a fruit named 'orange'",
-        "there is a fruit named 'lemon'",
-        "there is a fruit named 'pineapple'",
-        "there is a fruit named 'pear'",
-        "there is a fruit named 'grape'",
-        "there is a fruit named 'kiwi'",
-        "there is a fruit named 'tomato'",
-        "there is a shirt colour named 'green'",
-        "there is a shirt colour named 'red'",
-        "there is a shirt colour named 'yellow'",
-        "there is a shirt colour named 'black'",
-        "there is a shirt colour named 'white'",
-        "there is a shirt colour named 'purple'",
-        "there is a shirt colour named 'pink'",
-        "there is a shirt colour named 'blue'",
-        "there is a shirt colour named 'brown'",
-        "there is a shirt colour named 'grey'",
-        "there is a hobby named 'tennis'",
-        "there is a hobby named 'badminton'",
-        "there is a hobby named 'rugby'",
-        "there is a hobby named 'football'",
-        "there is a hobby named 'running'",
-        "there is a hobby named 'swimming'",
-        "there is a hobby named 'sport'",
-        "there is a hobby named 'athletic'",
-        "there is a hobby named 'baseball'",
-        "there is a hobby named 'rounders'",
-        "there is a hobby named 'softball'",
-        "there is a hobby named 'cricket'",
-
-        "there is a question named 'q1' that has 'What character eats pineapples?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'pineapple'",
-        "there is a question named 'q2' that has 'What is the hobby of Dr White?' as text and has 'hobby' as value and concerns the sherlock thing 'Dr White'",
-        "there is a question named 'q3' that has 'What character eats apples?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'apple'",
-        "there is a question named 'q4' that has 'What colour shirt is Prof Plum wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q5' that has 'What colour shirt is Dr White wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Dr White'",
-        "there is a question named 'q6' that has 'Where is Col Mustard?' as text and has 'is in' as relationship and concerns the sherlock thing 'Col Mustard'",
-        "there is a question named 'q7' that has 'What colour shirt is Sgt Peacock wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q8' that has 'Where is Sgt Peacock?' as text and has 'is in' as relationship and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q9' that has 'Which character is in the emerald room?' as text and has 'contents' as value and concerns the sherlock thing 'Emerald Room'",
-        "there is a question named 'q12' that has 'What character eats bananas?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'banana'",
-        "there is a question named 'q13' that has 'What character is in the sapphire room?' as text and has 'contents' as value and concerns the sherlock thing 'Sapphire Room'",
-        "there is a question named 'q15' that has 'Who does Sgt Peacock work for?' as text and has 'works for' as relationship and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q17' that has 'What is the hobby of Prof Plum?' as text and has 'hobby' as value and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q18' that has 'What character is wearing a red shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'red'",
-        "there is a question named 'q19' that has 'What character likes rugby?' as text and has 'is liked by' as value and concerns the sherlock thing 'rugby'",
-        "there is a question named 'q20' that has 'What fruit does Rev Green eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Rev Green'",
-        "there is a question named 'q23' that has 'What fruit does Col Mustard eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Col Mustard'",
-        "there is a question named 'q24' that has 'Where is the lemon?' as text and has 'is in' as relationship and concerns the sherlock thing 'lemon'",
-        "there is a question named 'q25' that has 'Where is the apple?' as text and has 'is in' as relationship and concerns the sherlock thing 'apple'",
-        "there is a question named 'q26' that has 'What character is wearing a yellow shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'yellow'",
-        "there is a question named 'q28' that has 'What fruit is in the silver room?' as text and has 'contains' as relationship and concerns the sherlock thing 'Silver Room'",
-        "there is a question named 'q30' that has 'What character is wearing a black shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'black'",
-        "there is a question named 'q31' that has 'What character eats lemons?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'lemon'",
-        "there is a question named 'q33' that has 'What fruit does Dr White eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Dr White'",
-        "there is a question named 'q34' that has 'What character likes baseball?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'baseball'",
-        "there is a question named 'q35' that has 'What character likes cricket?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'cricket'",
-        "there is a question named 'q36' that has 'What is the hobby of Sgt Peacock?' as text and has 'hobby' as value and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q37' that has 'What character is in the ruby room?' as text and has 'contents' as value and concerns the sherlock thing 'Ruby Room'",
-        "there is a question named 'q39' that has 'What character likes swimming?' as text and has 'is liked by' as relationship and concerns the sherlock thing 'swimming'",
-        "there is a question named 'q40' that has 'What character eats oranges?' as text and has 'is eaten by' as relationship and concerns the sherlock thing 'orange'",
-        "there is a question named 'q41' that has 'What colour shirt is Capt Scarlet wearing?' as text and has 'shirt colour' as value and concerns the sherlock thing 'Capt Scarlet'",
-        "there is a question named 'q43' that has 'What character is wearing a green shirt?' as text and has 'is worn by' as relationship and concerns the sherlock thing 'green'",
-        "there is a question named 'q45' that has 'What character is in the amber room?' as text and has 'contents' as value and concerns the sherlock thing 'Amber Room'",
-        "there is a question named 'q47' that has 'Where is prof plum?' as text and has 'is in' as relationship and concerns the sherlock thing 'Prof Plum'",
-        "there is a question named 'q48' that has 'Where is the pear?' as text and has 'is in' as relationship and concerns the sherlock thing 'pear'",
-        "there is a question named 'q50' that has 'What fruit does Sgt Peacock eat?' as text and has 'eats' as relationship and concerns the sherlock thing 'Sgt Peacock'",
-        "there is a question named 'q52' that has 'What is the hobby of Col Mustard?' as text and has 'hobby' as value and concerns the sherlock thing 'Col Mustard'",
-        "there is a question named 'q53' that has 'Where is Capt Scarlet?' as text and has 'is in' as relationship and concerns the sherlock thing 'Capt Scarlet'",
-        "there is a question named 'q54' that has 'What is the hobby of Capt Scarlet?' as text and has 'hobby' as value and concerns the sherlock thing 'Capt Scarlet'",
-    ],
-    SHERLOCK_MYCROFT : [
-        "there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled",
-    ],
-    SHERLOCK_NODE : [
-        "there is an agent named 'Mycroft' that has 'http://cenode.sentinelstream.net' as address",
-        //"there is a tell policy named 'p2' that has 'true' as enabled and has the agent 'Mycroft' as target",
-        //"there is an ask policy named 'p3' that has 'true' as enabled and has the agent 'Mycroft' as target",
-        //"there is a listen policy named 'p4' that has 'true' as enabled and has the agent 'Mycroft' as target"
     ]
 }
 
@@ -621,7 +498,7 @@ function CENode(){
             var concept_name = concept_info[1];
             
             concept = get_concept_by_name(concept_name);
-            if(concept == {}){
+            if(!concept || concept == {}){
                message = "Concept "+concept_name+" not known."; // if can't find concept, then fail
                return [false, message];
             }
@@ -1026,9 +903,22 @@ function CENode(){
             return [true, message];
         }
 
-        else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )/i)){
-            var name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
-            var instance = get_instance_by_name(name);
+        else if(t.match(/^(\bwho\b|\bwhat\b) is/i)){
+            t = t.replace(/\?/g,'').replace(/'/g, '').replace(/\./g, '');
+
+            // If we have an exact match (i.e. 'who is The Doctor?')
+            var name = t.match(/^(\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/i);
+            var instance;
+            if(name){
+              instance = get_instance_by_name(name[2]);
+              if(instance != null){
+                return [true, node.get_instance_gist(instance)];
+              }            
+            }
+
+            // Otherwise, try and infer it
+            name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
+            instance = get_instance_by_name(name);
             if(instance == null){
                 var concept = get_concept_by_name(name);
                 if(concept == null){
@@ -1362,6 +1252,14 @@ function CENode(){
         return agent.get_name();
     }   
 
+    /*
+     * Get the CEAgent object attached to this node
+     *
+     * Returns: CEAgent obj
+     */
+    this.get_agent = function(){
+        return agent;
+    }
     
     /*
      * Generate CE that describes the instance.
@@ -1405,26 +1303,49 @@ function CENode(){
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
         var ce = instance.name+" is a "+concept.name+".";
-        var facts = [];
+        var facts = {};
+        var fact_found = false;
         if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
+            fact_found = true;
             var value = instance.values[i];
+            var fact = "";
             if(value.type_id == 0){
-                facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor)
+                fact = "has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor;
             }
             else{
                 var value_instance = get_instance_by_id(value.type_id);
                 var value_concept = get_concept_by_id(value_instance.concept_id);
-                facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
+                fact = "has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor;
             }
+            if(!(fact in facts)){
+                facts[fact] = 0;
+            }
+            facts[fact]++;
         }}
         if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
+            fact_found = true;
             var relationship = instance.relationships[i];
             var relationship_instance = get_instance_by_id(relationship.target_id);
             var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
-            facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
+            var fact = relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'";
+            if(!(fact in facts)){
+                facts[fact] = 0;
+            }
+            facts[fact]++;
         }}
-        if(facts.length > 0){ce += " "+instance.name+" "+facts.join(" and ")+".";}
-        return ce;
+        if(fact_found){
+            ce += " "+instance.name;
+            for(fact in facts){
+                ce += " "+fact;
+                if(facts[fact] > 1){
+                    ce += " ("+facts[fact]+" times)";
+                }
+                ce += " and";
+            }
+            ce = ce.substring(0, ce.length - 4)+"."; // Remove last ' and' and add full stop
+
+        }
+        return ce;     
     }
 
     /*
@@ -1673,7 +1594,7 @@ function CENode(){
 
 function CEAgent(n){
     var name = "Moira";
-    var last_polled_timestamp = 0;
+    var last_successful_request = 0;
     var node = n;
     var unsent_tell_cards = {};
     var unsent_ask_cards = {};
@@ -1685,8 +1606,12 @@ function CEAgent(n){
     this.get_name = function(){
         return name;
     }
+    this.get_last_successful_request = function(){
+        return last_successful_request;
+    }
 
     var handle_card = function(card){
+      try{
         var from = node.get_instance_relationship(card, "is from");
         var tos = node.get_instance_relationships(card, "is to");
         var content = node.get_instance_value(card, "content");
@@ -1783,13 +1708,27 @@ function CEAgent(n){
             if(data.success == true){
                 new_card = "there is a tell card named 'msg_{uid}' that is from the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
             }   
-            // If invalid CE, then write back a confirm card with relevant data and add it to the model
+            // If invalid CE, then try responding to a question 
             else{
-                data = node.add_nl(content);       
-                new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                data = node.ask_question(content);
+                
+                // If question was success, return a response
+                if(data.success == true){
+                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                }
+      
+                // If question not understood then place the response to the NL card in a new response
+                else{
+                  data = node.add_nl(content);       
+                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                }
             }
             node.add_sentence(new_card);
         }
+      }
+      catch(err){
+        console.log(err);
+      }
     }
 
     var poll_cards = function(){
@@ -1842,6 +1781,7 @@ function CEAgent(n){
                     }
                     if(data != ""){
                         net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                            last_successful_request = new Date().getTime();
                             unsent_tell_cards[target.name] = [];
                         });
                     }
@@ -1875,6 +1815,7 @@ function CEAgent(n){
                     }
                     if(data != ""){
                         net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                            last_successful_request = new Date().getTime();
                             unsent_ask_cards[target.name] = [];
                         });
                     }
@@ -1885,6 +1826,7 @@ function CEAgent(n){
             for(var i = 0; i < listen_policies.length; i++){
                 var target = node.get_instance_value(listen_policies[i], "target");
                 net.make_request("GET", node.get_instance_value(target, "address"), GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+                    last_successful_request = new Date().getTime();
                     var cards = resp.split("\n");
                     node.add_sentences(cards);
                 });
@@ -2076,7 +2018,8 @@ if(!util.on_client()){
 if(!util.on_client() && require.main === module){
     var http = require('http');
     var PORT = 5555;
-    var node = new CENode(MODELS.CORE, MODELS.SHERLOCK_CORE, MODELS.SHERLOCK_MYCROFT);
+    var node = new CENode(MODELS.CORE);
+    node.add_sentence("there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled");
 
     if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
     if(process.argv.length > 3){PORT = parseInt(process.argv[3]);}
