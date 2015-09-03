@@ -29,7 +29,7 @@ var MODELS = {
         "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
         "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~",
-        "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
+        "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B and ~ is in reply to ~ the card C",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
         "conceptualise a ~ gist card ~ G that is a card",
@@ -1669,6 +1669,7 @@ function CEAgent(n){
             if(urls!=null){for(var j = 0; j < urls.length; j++){
                 c+=" and has '"+urls[j]+"' as linked content";
             }}
+            c += " and is in reply to the card '"+card.name+"'";
             node.add_sentence(c);
         }
         else if(type == "tell card"){
@@ -1706,7 +1707,7 @@ function CEAgent(n){
                             c = data.data;
                         }
                     }
-                    node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
+                    node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
                 }
             }
         }
@@ -1725,13 +1726,13 @@ function CEAgent(n){
                 
                 // If question was success, return a response
                 if(data.success == true){
-                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
                 }
       
                 // If question not understood then place the response to the NL card in a new response
                 else{
                   data = node.add_nl(content);       
-                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
                 }
             }
             node.add_sentence(new_card);
