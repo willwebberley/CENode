@@ -29,7 +29,7 @@ var MODELS = {
         "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
         "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~",
-        "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B",
+        "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B and ~ is in reply to ~ the card C",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
         "conceptualise a ~ gist card ~ G that is a card",
@@ -837,8 +837,8 @@ function CENode(){
      * Returns: [bool, str] (bool = success, str = error or response)
      */
     var parse_question = function(t){
-        if(t.match(/^where is/i)){
-            var thing = t.match(/^where is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
+        if(t.match(/^where (is|are)/i)){
+            var thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
             var instance = get_instance_by_name(thing);
             if(instance == null){
                 message = "I don't know what "+thing+" is.";
@@ -903,11 +903,11 @@ function CENode(){
             return [true, message];
         }
 
-        else if(t.match(/^(\bwho\b|\bwhat\b) is/i)){
+        else if(t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)){
             t = t.replace(/\?/g,'').replace(/'/g, '').replace(/\./g, '');
 
             // If we have an exact match (i.e. 'who is The Doctor?')
-            var name = t.match(/^(\bwho\b|\bwhat\b) is ([a-zA-Z0-9 ]*)/i);
+            var name = t.match(/^(\bwho\b|\bwhat\b) (?:is|are) ([a-zA-Z0-9 ]*)/i);
             var instance;
             if(name){
               instance = get_instance_by_name(name[2]);
@@ -917,7 +917,7 @@ function CENode(){
             }
 
             // Otherwise, try and infer it
-            name = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
+            name = t.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
             instance = get_instance_by_name(name);
             if(instance == null){
                 var concept = get_concept_by_name(name);
@@ -1300,9 +1300,12 @@ function CENode(){
      * Returns: str
      */
     this.get_instance_gist = function(instance){
+        var vowels = ["a", "e", "i", "o", "u"];
         var concept = get_concept_by_id(instance.concept_id);
         if(concept == null){return;}
-        var ce = instance.name+" is a "+concept.name+".";
+        var ce = instance.name+" is";
+        if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){ce+=" an "+concept.name+".";}
+        else{ce+=" a "+concept.name+".";}
         var facts = {};
         var fact_found = false;
         if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
@@ -1647,10 +1650,18 @@ function CEAgent(n){
                 }
             }
 
+
             // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
             var froms = node.get_instance_relationships(card, "is from");
-            var urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
-            var c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
+            var urls, c;
+            if(data.data){
+              urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
+              c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
+            }
+            else{
+              c = "there is a gist card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content";
+            }
+
             for(var j = 0; j < froms.length; j++){
                 var type = node.get_instance_type(froms[j]);
                 c+=" and is to the "+type+" '"+froms[j].name+"'";
@@ -1658,6 +1669,7 @@ function CEAgent(n){
             if(urls!=null){for(var j = 0; j < urls.length; j++){
                 c+=" and has '"+urls[j]+"' as linked content";
             }}
+            c += " and is in reply to the card '"+card.name+"'";
             node.add_sentence(c);
         }
         else if(type == "tell card"){
@@ -1695,7 +1707,7 @@ function CEAgent(n){
                             c = data.data;
                         }
                     }
-                    node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content.");
+                    node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
                 }
             }
         }
@@ -1714,13 +1726,13 @@ function CEAgent(n){
                 
                 // If question was success, return a response
                 if(data.success == true){
-                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
                 }
       
                 // If question not understood then place the response to the NL card in a new response
                 else{
                   data = node.add_nl(content);       
-                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content.";
+                  new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
                 }
             }
             node.add_sentence(new_card);
