@@ -28,7 +28,7 @@ var MODELS = {
         "conceptualise a ~ timestamp ~ T that is an entity",
         "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
         "conceptualise an ~ individual ~ I that is an ~ agent ~",
-        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~",
+        "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~ and has the value L as ~ latitude ~ and has the value M as ~ longitude ~",
         "conceptualise the card C ~ is to ~ the agent A and ~ is from ~ the agent B and ~ is in reply to ~ the card C",
         "conceptualise a ~ tell card ~ T that is a card",
         "conceptualise an ~ ask card ~ A that is a card",
@@ -846,24 +846,42 @@ function CENode(){
             }
             var locatable_instances = node.get_instances("location", true);
             var locatable_ids = [];
-            var places = [];
+            var places = {};
+            var place_found = false;
             for(var i = 0; i < locatable_instances.length; i++){locatable_ids.push(locatable_instances[i].id);}
             if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
                 if(locatable_ids.indexOf(instance.values[i].type_id) > -1){
-                    places.push("has "+instance.values[i].type_name+" as "+instance.values[i].descriptor);
+                    var place = "has "+instance.values[i].type_name+" as "+instance.values[i].descriptor;
+                    if(!(place in places)){
+                      places[place] = 0;
+                    }
+                    places[place]++;
+                    place_found = true;
                 }
             }}
             if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
                 if(locatable_ids.indexOf(instance.relationships[i].target_id) > -1){
-                    places.push(instance.relationships[i].label+" "+instance.relationships[i].target_name);
+                    var place = instance.relationships[i].label+" "+instance.relationships[i].target_name;
+                    if(!(place in places)){
+                      places[place] = 0;
+                    }
+                    places[place]++;
+                    place_found = true;
                 }
             }}
-            if(places.length == 0){
+            if(!place_found){
                 message = "I don't know where "+instance.name+" is.";
                 return [true, message];
             }
-            message = instance.name+" "+places.join(" and ")+".";
-            return [true, message];
+            message = instance.name;
+            for(place in places){
+                message += " "+place;
+                if(places[place] > 1){
+                    message += " ("+places[place]+" times)";
+                }
+                message += " and";
+            }
+            return [true, message.substring(0, message.length - 4)+"."];
         }
 
         else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)){
@@ -907,7 +925,7 @@ function CENode(){
             t = t.replace(/\?/g,'').replace(/'/g, '').replace(/\./g, '');
 
             // If we have an exact match (i.e. 'who is The Doctor?')
-            var name = t.match(/^(\bwho\b|\bwhat\b) (?:is|are) ([a-zA-Z0-9 ]*)/i);
+            var name = t.match(/^(\bwho\b|\bwhat\b) (?:is|are) ([a-zA-Z0-9_ ]*)/i);
             var instance;
             if(name){
               instance = get_instance_by_name(name[2]);
@@ -917,7 +935,7 @@ function CENode(){
             }
 
             // Otherwise, try and infer it
-            name = t.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
+            name = t.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9_ ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
             instance = get_instance_by_name(name);
             if(instance == null){
                 var concept = get_concept_by_name(name);
