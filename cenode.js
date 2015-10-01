@@ -898,27 +898,47 @@ function CENode(){
         message = thing+" is not an instance of type location.";
         return [true, message];
       }
+      var things = {};
+      var thing_found = false;
       var ins_type = node.get_instance_type(instance);
       for(var i = 0; i < instances.length; i++){
         var vals = instances[i].values;
         var rels = instances[i].relationships;
         if(vals!=null){for(var j = 0; j < vals.length; j++){
           if(vals[j].type_id == instance.id){
-            located_instances.push("the "+node.get_instance_type(instances[i])+" "+instances[i].name+" has the "+ins_type+" "+instance.name+" as "+vals[j].descriptor);
+            var thing = "the "+node.get_instance_type(instances[i])+" "+instances[i].name+" has the "+ins_type+" "+instance.name+" as "+vals[j].descriptor;
+            if(!(thing in things)){
+              things[thing] = 0;
+            }
+            things[thing]++;
+            thing_found = true;
           }
         }}   
         if(rels!=null){for(var j = 0; j < rels.length; j++){
           if(rels[j].target_id == instance.id){
-            located_instances.push("the "+node.get_instance_type(instances[i])+" "+instances[i].name+" "+rels[j].label+" the "+ins_type+" "+instance.name);
+            var thing = "the "+node.get_instance_type(instances[i])+" "+instances[i].name+" "+rels[j].label+" the "+ins_type+" "+instance.name;
+            if(!(thing in things)){
+              things[thing] = 0;
+            }
+            things[thing]++;
+            thing_found = true;
           }
         }}
       }
-      if(located_instances.length == 0){
+      if(!thing_found){
         message = "I don't know what is located in/on/at the "+ins_type+" "+instance.name+".";
         return [true, message];
       }
-      message = located_instances.join(" and ")+".";
-      return [true, message];
+
+      message = '';
+      for(thing in things){
+        message += " "+thing;
+        if(things[thing] > 1){
+          message += " ("+things[thing]+" times)";
+        }
+        message += " and";
+      }
+      return [true, message.substring(0, message.length - 4)+"."];
     }
 
     else if(t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)){
