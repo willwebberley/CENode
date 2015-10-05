@@ -1823,12 +1823,20 @@ function CEAgent(n){
                 try{
                   var card = cards[j];
                   var from = node.get_instance_relationship(card, "is from");
+                  var tos = node.get_instance_relationships(card, "is to");
                   if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
-                    var rel = {};
-                    rel.target_name = target.name;
-                    rel.target_id = target.id;
-                    rel.label = "is to";
-                    card.relationships.push(rel);
+                    // Make sure target is not already a recipient
+                    var in_card = false;
+                    for(var k = 0; k < tos.length; k++){
+                      if(tos[k].id == target.id){in_card = true;break;}
+                    }
+                    if(!in_card){
+                      var rel = {};
+                      rel.target_name = target.name;
+                      rel.target_id = target.id;
+                      rel.label = "is to";
+                      card.relationships.push(rel);
+                    }
                     data += node.get_instance_ce(card)+"\n";
                   }
                 }
@@ -2036,7 +2044,7 @@ var net = {
   make_request: function(method, node_url, path, data, callback){
     try{
       if(util.on_client()){net.make_request_client(method, node_url, path, data, callback);}
-      else{make_request_node(net.method, node_url, path, data, callback);}
+      else{net.make_request_node(method, node_url, path, data, callback);}
     }
     catch(err){
       console.log('CENode network error: '+err);
@@ -2070,7 +2078,7 @@ var net = {
     };
     var req = http.request(options, function(response){
       var body = '';
-      response.on('data', function(chunk){body+=data;});
+      response.on('data', function(chunk){body+=chunk;});
       response.on('end', function(){
         body = decodeURIComponent(body.replace(/\+/g, ' '));
         callback(body);
@@ -2105,9 +2113,9 @@ if(!util.on_client() && require.main === module){
     });     
     request.on('end', function(){
       body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
-      var sentences = body.split("\\n");
+      var sentences = body.split(/\\n|\n/);
       var responses = node.add_sentences(sentences);
-      response.write(responses.join("\n"));
+      response.write(responses.map(function(resp){return resp.data;}).join("\n"));
       response.end();
     });
   }
@@ -2218,8 +2226,70 @@ if(!util.on_client() && require.main === module){
           response.writeHead(302, { 'Location': '/'});
           response.end();
         });
-
       }
+      else if(request.url == "/json/instances"){
+        var body = "";
+        request.on('data', function(chunk){
+          body+=chunk;
+        });     
+        request.on('end', function(){
+          try{
+            var data = JSON.parse(body);
+            if(data.length){
+              for(var i = 0; i < data.length; i++){
+                node.add_sentences(data[i].sentences);
+              }
+            }
+            else{
+              node.add_sentences(data.sentences);
+            }
+            response.writeHead(201);
+          }
+          catch(err){
+            console.log(err);
+            response.writeHead(500);
+            response.write(err.toString());
+          }
+          response.end();
+        });
+      }
+      else if(request.url == "/url/json/instances"){
+        var body = "";
+        request.on('data', function(chunk){
+          body+=chunk;
+        });     
+        request.on('end', function(){
+          try{
+            body = body.replace('https://', '').replace('http://', '');
+            host = body.split('/', 2)[0];
+            path = body.replace(host, '');
+            net.make_request('GET', host, path, null, function(data){
+              try{
+                data = JSON.parse(data);
+                if(data.length){
+                  for(var i = 0; i < data.length; i++){
+                    node.add_sentences(data[i].sentences);
+                  }
+                }
+                else{
+                  node.add_sentences(data.sentences);
+                }
+                response.writeHead(201);
+                response.end();   
+              }
+              catch(err){
+                response.writeHead(500);
+                response.end(err.toString());
+              }
+            });
+          }
+          catch(err){
+            response.writeHead(500);
+            response.end(err.toString());
+          }
+        });
+      }
+
       else{
         response.writeHead(404);
         response.end("404: Resource not found for method POST.");
