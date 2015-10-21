@@ -49,6 +49,78 @@ var MODELS = {
   ]
 }
 
+function CEConcept(node, name){
+  this.name = name;
+  this.id = node.new_concept_id();
+  this._parents = [];
+  this.values = [];
+  this.relationships = [];
+  var concept = this;
+
+  Object.defineProperty(concept, 'parents', {get: function(){
+    var p = [];
+    for(var i = 0; i < concept._parents.length; i++){
+      p.push(node.get_concept_by_id(concept._parents[i]));
+    }
+    return p;  
+  }});
+ 
+  this.add_value = function(descriptor, type){
+    var value = {};
+    value.descriptor = descriptor;
+    value.type = type;
+    concept.values.push(value); 
+  }
+  this.add_relationship = function(label, target){
+    var relationship = {};
+    relationship.label = label;
+    relationship.target = target;
+    concept.relationships.push(relationship);
+  } 
+  this.add_parent = function(parent_concept){
+    if(this.parents.indexOf(parent_concept.id) == -1){
+      concept._parents.push(parent_concept.id);
+    }
+  }
+}
+
+function CEInstance(node, type, name){
+  this.name = name;
+  this.id = node.new_instance_id();
+  this.values = [];
+  this.relationships = [];
+  this.sentences = [];
+  var instance = this;
+  var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences'];
+
+  Object.defineProperty(instance, 'type', {get: function(){for(var i = 0; i < node.concepts.length; i++){if(node.concepts[i].id == type.id){return node.concepts[i];}}}});
+
+  this.add_sentence = function(sentence){
+    this.sentences.push(sentence);
+  }
+  
+  this.add_value = function(descriptor, value_instance){
+    var value = {};
+    value.descriptor = descriptor;
+    value.type = value_instance;
+    instance.values.push(value);
+    var value_name_field = descriptor.toLowerCase().replace(/ /g, '_');
+    if(reserved_fields.indexOf(value_name_field) == -1){
+      Object.defineProperty(instance, value_name_field, {get: function(){return value.type;}});
+    }
+  }
+
+  this.add_relationship = function(label, relationship_instance){
+    var relationship = {};
+    relationship.label = label;
+    relationship.target = relationship_instance;
+    instance.relationships.push(relationship);
+    var rel_name_field = label.toLowerCase().replace(/ /g, '_');
+    if(reserved_fields.indexOf(rel_name_field) == -1){
+      Object.defineProperty(instance, rel_name_field, {get: function(){return relationship.target;}});
+    }
+  }
+}
 
 /*
  * A JS 'class' to represent the CENode, its concepts and instances, and to provide interaction methods.
@@ -79,11 +151,11 @@ function CENode(){
   var last_instance_id = instances.length;
   var last_concept_id = concepts.length;
   var last_card_id = 0;
-  var new_instance_id = function(){
+  this.new_instance_id = function(){
     last_instance_id++;
     return last_instance_id;
   }
-  var new_concept_id = function(){
+  this.new_concept_id = function(){
     last_concept_id++;
     return last_concept_id;
   }
@@ -311,7 +383,7 @@ function CENode(){
     var new_instance = {};
     new_instance.name = name;
     new_instance.concept_id = get_concept_by_name(concept_name).id;
-    new_instance.id = new_instance_id();
+    new_instance.id = node.new_instance_id();
     new_instance.sentences = [];
     new_instance.values = [];
     new_instance.relationships = [];
@@ -385,18 +457,20 @@ function CENode(){
           for(var j = 0; j < rule_if_children.length; j++){
             if(rule_if_children[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
               if(rule.then.relationship && rule.then.relationship.type == concept.name){
-                var relationship = {};
-                relationship.label = rule.then.relationship.label;
-                relationship.target_name = subject_instance.name;
-                relationship.target_id = subject_instance.id;
-                object_instance.relationships.push(relationship);
+                //var relationship = {};
+                //relationship.label = rule.then.relationship.label;
+                //relationship.target_name = subject_instance.name;
+                //relationship.target_id = subject_instance.id;
+                object_instance.add_relationship(rule.then.relationship.label, subject_instance); 
+                //object_instance.relationships.push(relationship);
               }
               else if(rule.then.value && rule.then.value.type == concept.name){
-                var value = {};
-                value.descriptor = rule.then.value.descriptor;
-                value.type_name = subject_instance.name;
-                value.type_id = subject_instance.id;
-                object_instance.values.push(value);
+                //var value = {};
+                //value.descriptor = rule.then.value.descriptor;
+                //value.type_name = subject_instance.name;
+                //value.type_id = subject_instance.id;
+                //object_instance.values.push(value);
+                object_instance.add_value(rule.then.value.descriptor, subject_instance);
               }
             }
           }
@@ -432,16 +506,10 @@ function CENode(){
       if(stored_concept != null){ // if exists, simply modify existing concept
         message = "This concept already exists.";
         return [false, message];
-        concept = stored_concept;
       }
       else{ // otherwise create a new one and add it to list
-        concept = {};
-        concept.values = [];
-        concept.relationships = [];
-        concept.parents = []
-        concept.name = concept_name;
-        concept.id = new_concept_id();
-
+        concept = new CEConcept(node, concept_name);
+        
         // Writepoint
         if(nowrite == null || nowrite == false){
           concepts.push(concept);
@@ -455,37 +523,31 @@ function CENode(){
         // "has the type X as ~ descriptor ~"
         if(fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
           var facts_info = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
-          var value = {};
-          value.descriptor = facts_info[3];
-          var type_name = facts_info[1];
-          var value_type = get_concept_by_name(type_name);
+          var value_type = get_concept_by_name(facts_info[1]);
 
-          if(type_name == "value"){value.type = 0;}
-          else if(value_type != null){value.type = value_type.id;}
-          else if(value.type == null){
-            message = "A property type is unknown: "+type_name;
+          if(facts_info[1] == "value"){value_type = 0;}
+          else if(value_type == null){
+            message = "A property type is unknown: "+facts_info[1];
             return [false, message];
           }
 
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.values.push(value);
+            concept.add_value(facts_info[3], value_type);
           }
         } 
 
         // "is a parent_concept"
         if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
           var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
-          var parent = get_concept_by_name(parent_name);
-          if(parent == null){
+          var parent_concept = get_concept_by_name(parent_name);
+          if(parent_concept == null){
             message = "Parent concept is unknown: "+parent_name;
             return [false, message];
           }
-          if(concept.parents.indexOf(parent.id) == -1){
-            // Writepoint
-            if(nowrite == null || nowrite == false){
-              concept.parents.push(parent.id);
-            }
+          // Writepoint
+          if(nowrite == null || nowrite == false){
+            concept.add_parent(parent_concept);
           }
         }
        }
@@ -493,19 +555,13 @@ function CENode(){
     }
 
     else if(t.match(/^conceptualise the/i)){
-      var concept = {};
       var concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
-      var concept_name = concept_info[1];
       
-      concept = get_concept_by_name(concept_name);
-      if(!concept || concept == {}){
-         message = "Concept "+concept_name+" not known."; // if can't find concept, then fail
+      concept = get_concept_by_name(concept_info[1]);
+      if(!concept){
+         message = "Concept "+concept_info[1]+" not known."; // if can't find concept, then fail
          return [false, message];
       }
-
-      if(concept.relationships == null){concept.relationships = [];}
-      if(concept.parents == null){concept.parents = [];}
-      if(concept.values == null){concept.values = [];}
 
       var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b|)/g);
       for(var i = 0; i < facts.length; i++){
@@ -514,74 +570,56 @@ function CENode(){
         // "concept C ~ label ~ the target T"  (e.g. the teacher T ~ teaches ~ the student S)
         if(fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
           var facts_info = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-          var target = {};
-          var target_name = facts_info[4];
-          target = get_concept_by_name(target_name);
+          target = get_concept_by_name(facts_info[4]);
           if(target == null){
-            message = "The target of one of your input relationships is of an unknown type: "+target_name;
+            message = "The target of one of your input relationships is of an unknown type: "+facts_info[4];
             return [false, message];
           }
           
-          var relationship = {};
-          relationship.target = target.id;
-          relationship.label = facts_info[3];
-
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.relationships.push(relationship);
+            concept.add_relationship(facts_info[3], target);
           }
         }
 
         // "~ label ~ the target T" (e.g. and ~ loves ~ the person P)
         if(fact.match(/^~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
           var facts_info = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-          var target = {};
-          var target_name = facts_info[2];
-          target = get_concept_by_name(target_name);
+          target = get_concept_by_name(facts_info[2]);
           if(target == null){
-            message = "The target of one of your input relationships is of an unknown type: "+target_name;
+            message = "The target of one of your input relationships is of an unknown type: "+facts_info[2];
             return [false, message];
           }
           
-          var relationship = {};
-          relationship.target = target.id;
-          relationship.label = facts_info[1];
-
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.relationships.push(relationship);
+            concept.add_relationship(facts_info[1], target);
           }
         }
 
         // "has the type X as ~ descriptor ~" (e.g. and has the room R as ~ location ~)
         if(fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
           var facts_info = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
-          var value = {};
-          var type_name = facts_info[1];
-          var type = get_concept_by_name(type_name);
-          if(type_name == "value"){value.type = 0;}
-          else if(type != null){
-            value.type = type.id;
-          }
-          else{
-            message = "There is an invalid value in your sentence: "+type_name;
+          var type = get_concept_by_name(facts_info[1]);
+          if(facts_info[1] == "value"){type = 0;}
+          else if(type == null){
+            message = "There is an invalid value in your sentence: "+facts_info[1];
             return [false, message];
           }
-          value.descriptor = facts_info[3];
 
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.values.push(value);
+            concept.add_value(facts_info[3], type);
           }
         }
 
         // "is a parent_concept" (e.g. and is a entity)
         else if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
-          var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
+          var parent_info = fact.match(/^an? ([a-zA-Z0-9 ]*)/);
 
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.parents.push(get_concept_by_name(parent_name).id);
+            concept.add_parent(get_concept_by_name(parent_info[1]));
           }
         }
       }
@@ -609,7 +647,9 @@ function CENode(){
           message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
           return [false, message];
         }
-        instance = create_instance_skeleton(instance_name, concept_name);
+        
+        //instance = create_instance_skeleton(instance_name, concept_name);
+        instance = new CEInstance(node, concept, instance_name);
         instance.sentences.push(t);
         
         // Writepoint
@@ -661,7 +701,7 @@ function CENode(){
         concept_facts_singleword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
         value_facts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
         relationship_facts_multiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); 
-         relationship_facts_singleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
+        relationship_facts_singleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
 
       }
 
@@ -708,7 +748,9 @@ function CENode(){
           if(value_descriptor!=""&&value_type!=""&&value_instance_name!=""){
             var value_instance = get_instance_by_name(value_instance_name);
             if(value_instance == null) {
-              value_instance = create_instance_skeleton(value_instance_name, value_type);
+              //value_instance = create_instance_skeleton(value_instance_name, value_type);
+
+              value_instance = new CEInstance(node, get_concept_by_name(value_type), value_instance_name);
               
               // Writepoint 
               if(nowrite == null || nowrite == false){
@@ -716,17 +758,18 @@ function CENode(){
                 instances.push(value_instance);
               }
             }
-            var value = {};
-            value.type_id = value_instance.id;
-            value.type_name = value_instance.name;
-            value.descriptor = value_descriptor;
+            //var value = {};
+            //value.type_id = value_instance.id;
+            //value.type_name = value_instance.name;
+            //value.descriptor = value_descriptor;
 
             for (var j = 0; j < possible_values.length; j++) {
               if(possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
 
                 // Writepoint 
                 if(nowrite == null || nowrite == false){
-                  instance.values.push(value);
+                  //instance.values.push(value);
+                  instance.add_value(value_descriptor, value_instance);
                   enact_rules(instance, "value", value);
                 }
                 break;
@@ -743,17 +786,18 @@ function CENode(){
           var value_value = facts_info[1].replace(/\\/g, '');
           var value_descriptor = facts_info[2];
           
-          var value = {};
-          value.type_name = value_value;
-          value.type_id = 0;
-          value.descriptor = value_descriptor;
+          //var value = {};
+          //value.type_name = value_value;
+          //value.type_id = 0;
+          //value.descriptor = value_descriptor;
 
           for (var j = 0; j < possible_values.length; j++) {
             if (possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
 
               // Writepoint 
               if(nowrite == null || nowrite == false){
-                instance.values.push(value);
+                //instance.values.push(value);
+                instance.add_value(value_descriptor, value_value);
               }
               break;
             }
@@ -791,7 +835,8 @@ function CENode(){
             }
             else{
               if(relationship_instance == null){
-                relationship_instance = create_instance_skeleton(relationship_instance_name, relationship_type_name);
+                //relationship_instance = create_instance_skeleton(relationship_instance_name, relationship_type_name);
+                relationship_instance = new CEInstance(node, get_concept_by_name(relationship_type_name), relationship_instance_name);
 
                 // Writepoint
                 if(nowrite == null || nowrite == false){
@@ -810,7 +855,8 @@ function CENode(){
                 
                   // Writepoint
                   if(nowrite == null || nowrite == false){
-                    instance.relationships.push(relationship);
+                    instance.add_relationship(relationship_label, relationship_instance);
+                    //instance.relationships.push(relationship);
                     enact_rules(instance, "relationship", relationship);
                   }
                   break;
@@ -1831,11 +1877,12 @@ function CEAgent(n){
                       if(tos[k].id == target.id){in_card = true;break;}
                     }
                     if(!in_card){
-                      var rel = {};
-                      rel.target_name = target.name;
-                      rel.target_id = target.id;
-                      rel.label = "is to";
-                      card.relationships.push(rel);
+                      //var rel = {};
+                      //rel.target_name = target.name;
+                      //rel.target_id = target.id;
+                      //rel.label = "is to";
+                      //card.relationships.push(rel);
+                      card.add_relationship("is to", target);
                     }
                     data += node.get_instance_ce(card)+"\n";
                   }
@@ -1866,16 +1913,18 @@ function CEAgent(n){
                   var card = cards[j];
                   var from = node.get_instance_relationship(card, "is from");
                   if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
-                    var rel = {};
-                    rel.target_name = target.name;
-                    rel.target_id = target.id;
-                    rel.label = "is to";
-                    var rel2 = {};
-                    rel2.target_name = name;
-                    rel2.target_id = get_instance().id;
-                    rel2.label = "is from";
-                    card.relationships.push(rel);
-                    card.relationships.push(rel2);
+                    //var rel = {};
+                    //rel.target_name = target.name;
+                    //rel.target_id = target.id;
+                    //rel.label = "is to";
+                    //var rel2 = {};
+                    //rel2.target_name = name;
+                    //rel2.target_id = get_instance().id;
+                    //rel2.label = "is from";
+                    //card.relationships.push(rel);
+                    card.add_relationship("is to", target);
+                    //card.relationships.push(rel2);
+                    card.add_relationship("os from", get_instance());
                     data += node.get_instance_ce(card)+"\n";
                   }
                 }
@@ -1942,11 +1991,12 @@ function CEAgent(n){
                           }
                         }
                         if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
-                          var relationship = {};
-                          relationship.label = "is to";
-                          relationship.target_name = agents[j].name;
-                          relationship.target_id = agents[j].id;
-                          card.relationships.push(relationship);
+                          //var relationship = {};
+                          //relationship.label = "is to";
+                          //relationship.target_name = agents[j].name;
+                          //relationship.target_id = agents[j].id;
+                          //card.relationships.push(relationship);
+                          card.add_relationship("is to", agents[j]);
                         }
                       }
                     }
