@@ -15,7 +15,6 @@
  *
  */
 
-
 /*
  * Library constants
  */
@@ -49,99 +48,28 @@ var MODELS = {
   ]
 }
 
-function CEConcept(node, name){
-  this.name = name;
-  this.id = node.new_concept_id();
-  this._parents = [];
-  this.values = [];
-  this.relationships = [];
-  var concept = this;
-
-  Object.defineProperty(concept, 'parents', {get: function(){
-    var p = [];
-    for(var i = 0; i < concept._parents.length; i++){
-      p.push(node.get_concept_by_id(concept._parents[i]));
-    }
-    return p;  
-  }});
- 
-  this.add_value = function(descriptor, type){
-    var value = {};
-    value.descriptor = descriptor;
-    value.type = typeof type === 'number' ? type : type.id;
-    concept.values.push(value); 
-  }
-  this.add_relationship = function(label, target){
-    var relationship = {};
-    relationship.label = label;
-    relationship.target_id = target.id;
-    relationship.target_name = target.name;
-    concept.relationships.push(relationship);
-  } 
-  this.add_parent = function(parent_concept){
-    if(this.parents.indexOf(parent_concept.id) == -1){
-      concept._parents.push(parent_concept.id);
-    }
-  }
-}
-
-function CEInstance(node, type, name){
-  this.name = name;
-  this.id = node.new_instance_id();
-  this.type_id = type.id;
-  this.values = [];
-  this.relationships = [];
-  this.sentences = [];
-  var instance = this;
-  var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences'];
-
-  Object.defineProperty(instance, 'type', {get: function(){for(var i = 0; i < node.concepts.length; i++){if(node.concepts[i].id == type.id){return node.concepts[i];}}}});
-
-  this.add_sentence = function(sentence){
-    this.sentences.push(sentence);
-  }
-  
-  this.add_value = function(descriptor, value_instance){
-    var value = {};
-    value.descriptor = descriptor;
-    value.type_id = typeof value_instance === 'object' ? value_instance.id : 0;
-    value.type_name = typeof value_instance === 'object' ? value_instance.name : value_instance;
-    instance.values.push(value);
-    var value_name_field = descriptor.toLowerCase().replace(/ /g, '_');
-    if(reserved_fields.indexOf(value_name_field) == -1){
-      Object.defineProperty(instance, value_name_field, {get: function(){return value.type;}});
-    }
-  }
-
-  this.add_relationship = function(label, relationship_instance){
-    var relationship = {};
-    relationship.label = label;
-    relationship.target_id = relationship_instance.id;
-    relationship.target_name = relationship_instance.name;
-    instance.relationships.push(relationship);
-    var rel_name_field = label.toLowerCase().replace(/ /g, '_');
-    if(reserved_fields.indexOf(rel_name_field) == -1){
-      Object.defineProperty(instance, rel_name_field, {get: function(){return relationship.target;}});
-    }
-  }
-}
-
 /*
  * A JS 'class' to represent the CENode, its concepts and instances, and to provide interaction methods.
  */
 function CENode(){
+
   // Grab any arguments. These will be the models to be loaded to the node when initialised.
-  this.models = arguments;
+  var models = arguments;
 
   // Data structures to maintain the instances and concepts maintained
   // by the node.
-  var concepts = [];
-  var instances = [];
+  var _concepts = [];
+  var _instances = [];
+  var _concept_dict = {};
+  var _instance_dict = {};
   var rules = [];
   var concept_ids = {};
 
   var agent = new CEAgent(this);
   var node = this;
+
+  this.concepts = {};
+  this.instances = {};
 
   /*
    * Code for generating instance, concept, and card IDs.
@@ -152,8 +80,8 @@ function CENode(){
    * Card IDs based on number of cards and the local agent's name
    * Returns str
    */
-  var last_instance_id = instances.length;
-  var last_concept_id = concepts.length;
+  var last_instance_id = _instances.length;
+  var last_concept_id = _concepts.length;
   var last_card_id = 0;
   this.new_instance_id = function(){
     last_instance_id++;
@@ -168,92 +96,231 @@ function CENode(){
     return agent.get_name()+last_card_id;
   }
 
-  /*
-   * Get all the values of this instance with descriptor matching value_descriptor
-   * If the value is a VALUE (i.e. not typed), the value names will be in the list
-   * If the value is a typed value, the value's instances will be in the list
-   *
-   * Returns [obj{instance.value}]
-   */
-  this.get_instance_values = function(instance, value_descriptor){
-    var values = []
-    for(var i = 0; i < instance.values.length; i++){
-      if(instance.values[i].descriptor == value_descriptor){
-        if(instance.values[i].type_id != 0){
-          values.push(get_instance_by_id(instance.values[i].type_id));
+  function CEConcept(name){
+    this.name = name;
+    this.id = node.new_concept_id();
+    this._parents = [];
+    this._values = [];
+    this._relationships = [];
+    var concept = this;
+
+    Object.defineProperty(concept, 'instances', {get: function(){
+      var instances = [];
+      for(var i = 0; i < _instances.length; i++){
+        if(_instances[i].type.id == concept.id){
+          instances.push(_instances[i]);
+        } 
+      }
+      return instances;
+    }});
+    Object.defineProperty(node.concepts, name.toLowerCase().replace(/ /g, '_'), {get: function(){
+      return concept;
+    }, configurable: true});
+    Object.defineProperty(concept, 'parents', {get: function(){
+      var p = [];
+      for(var i = 0; i < concept._parents.length; i++){
+        p.push(get_concept_by_id(concept._parents[i]));
+      }
+      return p;  
+    }});
+    Object.defineProperty(concept, 'ancestors', {get: function(){
+      var parents = [];
+      var stack = [];
+      for(var i = 0; i < concept.parents.length; i++){
+        stack.push(concept.parents[i]);
+      }
+      while(stack.length > 0){
+        var current = stack.pop();
+        parents.push(current);
+        for(var i = 0; i < current.parents.length; i++){
+          stack.push(current.parents[i]);
         }
+      }
+      return parents;
+    }});
+    Object.defineProperty(concept, 'children', {get: function(){  
+      var children = [];
+      for(var i = 0; i < _concepts.length; i++){
+        for(var j = 0; j < _concepts[i].parents.length; j++){
+          if(_concepts[i].parents[j].id == concept.id){
+            children.push(_concepts[i]);
+          }
+        }
+      }
+      return children;
+    }});
+    Object.defineProperty(concept, 'descendants', {get: function(){  
+      if(concept == null){return [];}
+      var children = [];
+      var stack = [];
+      for(var i = 0; i < concept.children.length; i++){
+        stack.push(concept.children[i]);
+      }
+      while(stack.length > 0){
+        var current = stack.pop();
+        children.push(current);
+        var current_children = get_children(current);
+        if(current_children != null){
+          for(var i = 0; i < current_children.length; i++){
+            stack.push(current_children[i]);
+          }
+        }
+      }
+      return children;
+    }});
+    Object.defineProperty(concept, 'relationships', {get: function(){
+      var rels = [];
+      for(var i = 0; i < concept._relationships.length; i++){
+        var relationship = {};
+        relationship.label = concept._relationships[i].label;
+        relationship.concept = get_concept_by_id(concept._relationships[i].target);
+        rels.push(relationship);
+      }
+      return rels;
+    }});
+    Object.defineProperty(concept, 'values', {get: function(){
+      var vals = [];
+      for(var i = 0; i < concept._values.length; i++){
+        var value = {};
+        value.descriptor = concept._values[i].descriptor;
+        if(concept._values[i].type_id == 0){
+          value.concept = concept._values[i].type_name;
+        } 
         else{
-          values.push(instance.values[i].type_name);
+          value.concept = get_concept_by_id(concept._values[i].type);
         }
+        vals.push(value);
+      }
+      return vals;
+    }});
+   
+    this.add_value = function(descriptor, type){
+      var value = {};
+      value.descriptor = descriptor;
+      value.type = typeof type === 'number' ? type : type.id;
+      concept._values.push(value); 
+    }
+    this.add_relationship = function(label, target){
+      var relationship = {};
+      relationship.label = label;
+      relationship.target = target.id;
+      concept._relationships.push(relationship);
+    } 
+    this.add_parent = function(parent_concept){
+      if(this.parents.indexOf(parent_concept.id) == -1){
+        concept._parents.push(parent_concept.id);
       }
     }
-    return values;
   }
 
-  /*
-   * Get THE MOST RECENT value for this instance matching value_descriptor
-   * Return types as above.
-   *
-   * Returns obj{instance.value}
-   */
-  this.get_instance_value = function(instance, value_descriptor){
-    var value = null;
-    if(instance.values == null){return null;}
-    for(var i = 0; i < instance.values.length; i++){
-      if(instance.values[i].descriptor == value_descriptor){
-        if(instance.values[i].type_id != 0){
-          value = get_instance_by_id(instance.values[i].type_id);
-        }
+  function CEInstance(type, name){
+    this.name = name;
+    this.id = node.new_instance_id();
+    this.type_id = type.id;
+    this.sentences = [];
+    this._values = [];
+    this._relationships = [];
+    var instance = this;
+    var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences'];
+
+    Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_'), {get: function(){
+      return instance;
+    }, configurable: true});
+    Object.defineProperty(instance, 'type', {get: function(){for(var i = 0; i < _concepts.length; i++){if(_concepts[i].id == type.id){return _concepts[i];}}}});
+    Object.defineProperty(instance, 'relationships', {get: function(){
+      var rels = [];
+      for(var i = 0; i < instance._relationships.length; i++){
+        var relationship = {};
+        relationship.label = instance._relationships[i].label;
+        relationship.instance = get_instance_by_id(instance._relationships[i].target_id);
+        rels.push(relationship);
+      }
+      return rels;
+    }});
+    Object.defineProperty(instance, 'values', {get: function(){
+      var vals = [];
+      for(var i = 0; i < instance._values.length; i++){
+        var value = {};
+        value.descriptor = _.values[i].descriptor;
+        if(_.values[i].type_id == 0){
+          value.instance = _.values[i].type_name;
+        } 
         else{
-          value = instance.values[i].type_name;
+          value.instance = get_instance_by_id(instance._values[i].type_id);
+        }
+        vals.push(value);
+      }
+      return vals;
+    }});
+
+    this.add_sentence = function(sentence){
+      this.sentences.push(sentence);
+    }
+
+    var get_possible_properties = function(){
+      var ancestor_instances = instance.type.ancestors;
+      ancestor_instances.push(instance.type);
+      var properties = {values: [], relationships: []};
+      for(var i = 0; i < ancestor_instances.length; i++){
+        if(ancestor_instances[i].values){
+          for(var j = 0; j < ancestor_instances[i].values.length; j++){
+            properties.values.push(ancestor_instances[i].values[j].descriptor.toLowerCase());
+          }
+        }
+        if(ancestor_instances[i].relationships){
+          for(var j = 0; j < ancestor_instances[i].relationships.length; j++){
+            properties.relationships.push(ancestor_instances[i].relationships[j].label.toLowerCase());
+          }
+        }
+      }
+      return properties;
+    }
+
+    this.add_value = function(descriptor, value_instance){
+      if(get_possible_properties().values.indexOf(descriptor.toLowerCase()) > -1){
+        var value = {};
+        value.descriptor = descriptor;
+        value.type_id = typeof value_instance === 'object' ? value_instance.id : 0;
+        value.type_name = typeof value_instance === 'object' ? value_instance.name : value_instance;
+        instance._values.push(value);
+        var value_name_field = descriptor.toLowerCase().replace(/ /g, '_');
+        if(reserved_fields.indexOf(value_name_field) == -1){
+          Object.defineProperty(instance, value_name_field, {get: function(){return value.type_id == 0 ? value.type_name : get_instance_by_id(value.type_id);}, configurable: true});
+          Object.defineProperty(instance, value_name_field+'s', {get: function(){
+            var instances = [];
+            for(var i = 0; i < instance._values.length; i++){
+              if(instance._values[i].descriptor.toLowerCase().replace(/ /g, '_') == value_name_field){
+                instances.push(instance._values[i].type_id == 0 ? instance._values[i].type_name : get_instance_by_id(instance._values[i].type_id));
+              }
+            }
+            return instances;
+          }});
         }
       }
     }
-    return value;
-  }
 
-  /*
-   * Get all relationships of this instance with label matching relationship_label
-   * Returned is list of instances that are related to 'instance' in this way
-   *
-   * Returns [obj{instance.relationship}]
-   */
-  this.get_instance_relationships = function(instance, relationship_label){
-    var relationships = [];
-    if(instance.relationships == null){return [];}
-    for(var i = 0; i < instance.relationships.length; i++){
-      if(instance.relationships[i].label == relationship_label){
-        relationships.push(get_instance_by_id(instance.relationships[i].target_id));
+    this.add_relationship = function(label, relationship_instance){
+      if(get_possible_properties().relationships.indexOf(label.toLowerCase()) > -1){
+        var relationship = {};
+        relationship.label = label;
+        relationship.target_id = relationship_instance.id;
+        relationship.target_name = relationship_instance.name;
+        instance._relationships.push(relationship);
+        var rel_name_field = label.toLowerCase().replace(/ /g, '_');
+        if(reserved_fields.indexOf(rel_name_field) == -1){
+          Object.defineProperty(instance, rel_name_field, {get: function(){return get_instance_by_id(relationship.target_id);}, configurable: true});
+          Object.defineProperty(instance, rel_name_field+'s', {get: function(){
+            var instances = [];
+            for(var i = 0; i < instance._relationships.length; i++){
+              if(instance._relationships[i].label.toLowerCase().replace(/ /g, '_') == rel_name_field){
+                instances.push(get_instance_by_id(instance._relationships[i].target_id));
+              }
+            }
+            return instances;
+          }});
+        }
       }
     }
-    return relationships;
-  }
-
-  /*
-   * Get THE MOST RECENT relationship of this instance with label matching relationship_label
-   * Return types as above.
-   *
-   * Returns: obj{instance.relationship}
-   */
-  this.get_instance_relationship = function(instance, relationship_label){
-    var relationship = null;
-    if(instance.relationships == null){return null;}
-    for(var i = 0; i < instance.relationships.length; i++){
-      if(instance.relationships[i].label == relationship_label){
-        relationship = get_instance_by_id(instance.relationships[i].target_id);
-      }
-    }
-    return relationship;
-  }
-
-  /*
-   * Get the name of the concept type of this instance.
-   *
-   * Returns: str
-   */
-  this.get_instance_type = function(instance){
-    var concept = node.get_concept_by_id(instance.concept_id);
-    if(concept != null){return concept.name;}
   }
 
   /*
@@ -261,11 +328,8 @@ function CENode(){
    *
    * Returns: obj{concept}
    */
-  this.get_concept_by_id = function(id){
-    for(var i = 0; i < concepts.length; i++){
-      if(concepts[i].id == id){return concepts[i];}
-    }
-    return null;
+  var get_concept_by_id = function(id){
+    return _concept_dict[id];
   }
 
   /*
@@ -275,14 +339,14 @@ function CENode(){
    */
   var get_concept_by_name = function(name){
     if(name == null){return null;}
-    for(var i = 0; i < concepts.length; i++){
-      if(concepts[i].name.toLowerCase() == name.toLowerCase()){
-        return concepts[i];
+    for(var i = 0; i < _concepts.length; i++){
+      if(_concepts[i].name.toLowerCase() == name.toLowerCase()){
+        return _concepts[i];
       }
-      if(concepts[i].synonyms != null){
-        for(var j = 0; j < concepts[i].synonyms.length; j++){
-          if(concepts[i].synonyms[j] == name){
-            return concepts[i];
+      if(_concepts[i].synonyms != null){
+        for(var j = 0; j < _concepts[i].synonyms.length; j++){
+          if(_concepts[i].synonyms[j] == name){
+            return _concepts[i];
           }
         }
       }
@@ -297,9 +361,9 @@ function CENode(){
    */
   var get_instance_by_name = function(name) {
     if(name==null){return null;}
-    for(var i = 0; i<instances.length; i++) {
-      if(instances[i].name.toLowerCase() == name.toLowerCase()){
-        return instances[i];
+    for(var i = 0; i<_instances.length; i++) {
+      if(_instances[i].name.toLowerCase() == name.toLowerCase()){
+        return _instances[i];
       }
     }
     return null;
@@ -312,9 +376,9 @@ function CENode(){
    */
   var get_instance_by_id = function(id) {
     if(id==null){return null;}
-    for(var i = 0; i<instances.length; i++) {
-      if(instances[i].id == id){
-        return instances[i];
+    for(var i = 0; i<_instances.length; i++) {
+      if(_instances[i].id == id){
+        return _instances[i];
       }
     }
     return null;
@@ -346,10 +410,10 @@ function CENode(){
    */
   var get_children = function(concept){
     var children = [];
-    for(var i = 0; i < concepts.length; i++){
-      for(var j = 0; j < concepts[i].parents.length; j++){
-        if(concepts[i].parents[j].id == concept.id){
-          children.push(concepts[i]);
+    for(var i = 0; i < _concepts.length; i++){
+      for(var j = 0; j < _concepts[i].parents.length; j++){
+        if(_concepts[i].parents[j].id == concept.id){
+          children.push(_concepts[i]);
         }
       }
     }
@@ -424,10 +488,10 @@ function CENode(){
   }
 
   var enact_rules = function(subject_instance, property_type, property){
-    var concept = node.get_concept_by_id(subject_instance.concept_id);
+    var concept = get_concept_by_id(subject_instance.concept_id);
     var rules = node.get_instances("rule");
     for(var i = 0; i < rules.length; i++){
-      var rule = node.parse_rule(node.get_instance_value(rules[i], "instruction"));
+      var rule = node.parse_rule(rules[i].instruction);
       if(rule == null){return;}
       if(rule.if.concept == concept.name){
 
@@ -442,7 +506,7 @@ function CENode(){
 
                 
         if(object_instance != null){
-          var rule_if_children = get_recursive_parents(node.get_concept_by_id(object_instance.concept_id));
+          var rule_if_children = get_recursive_parents(get_concept_by_id(object_instance.concept_id));
           for(var j = 0; j < rule_if_children.length; j++){
             if(rule_if_children[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
               if(rule.then.relationship && rule.then.relationship.type == concept.name){
@@ -487,11 +551,12 @@ function CENode(){
         return [false, message];
       }
       else{ // otherwise create a new one and add it to list
-        concept = new CEConcept(node, concept_name);
+        concept = new CEConcept(concept_name);
         
         // Writepoint
         if(nowrite == null || nowrite == false){
-          concepts.push(concept);
+          _concepts.push(concept);
+          _concept_dict[concept.id] = concept;
         }
       }
 
@@ -627,12 +692,13 @@ function CENode(){
           return [false, message];
         }
         
-        instance = new CEInstance(node, concept, instance_name);
+        instance = new CEInstance(concept, instance_name);
         instance.sentences.push(t);
         
         // Writepoint
         if(nowrite == null || nowrite == false){
-          instances.push(instance);
+          _instances.push(instance);
+          _instance_dict[instance.id] = instance;
         }
         
         concept_facts_multiword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
@@ -654,10 +720,10 @@ function CENode(){
         if(names == null || concept == null || instance == null){
           names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
           var name_tokens = names[1].split(" ");
-          for(var i = 0; i < concepts.length; i++){
-            if(names[1].toLowerCase().indexOf(concepts[i].name.toLowerCase()) == 0){
-              concept_name = concepts[i].name;
-              concept = concepts[i];
+          for(var i = 0; i < _concepts.length; i++){
+            if(names[1].toLowerCase().indexOf(_concepts[i].name.toLowerCase()) == 0){
+              concept_name = _concepts[i].name;
+              concept = _concepts[i];
               instance_name = name_tokens[concept.name.split(" ").length];
               instance = get_instance_by_name(instance_name);
               break;
@@ -695,14 +761,6 @@ function CENode(){
       if(relationship_facts_multiword == null){relationship_facts = relationship_facts_singleword;}
       else{relationship_facts = relationship_facts_multiword.concat(relationship_facts_singleword);}
 
-      var parents = get_recursive_parents(concept);
-      var possible_values = [];
-      var possible_relationships = [];
-      for (var i = 0; i<parents.length; i++) {
-        possible_values = possible_values.concat(parents[i].values);
-        possible_relationships = possible_relationships.concat(parents[i].relationships);
-      }
-
       if(concept_facts){for(var i = 0; i < concept_facts.length; i++){
         if(concept_facts[i] != null){
           var fact = concept_facts[i].trim();
@@ -725,24 +783,18 @@ function CENode(){
           if(value_descriptor!=""&&value_type!=""&&value_instance_name!=""){
             var value_instance = get_instance_by_name(value_instance_name);
             if(value_instance == null) {
-
-              value_instance = new CEInstance(node, get_concept_by_name(value_type), value_instance_name);
-              
+              value_instance = new CEInstance(get_concept_by_name(value_type), value_instance_name);
               // Writepoint 
               if(nowrite == null || nowrite == false){
                 value_instance.sentences.push(t);
-                instances.push(value_instance);
+                _instances.push(value_instance);
+                _instance_dict[value_instance.id] = value_instance;
               }
             }
-            for (var j = 0; j < possible_values.length; j++) {
-              if(possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
 
-                // Writepoint 
-                if(nowrite == null || nowrite == false){
-                  instance.add_value(value_descriptor, value_instance);
-                }
-                break;
-              }
+            // Writepoint 
+            if(nowrite == null || nowrite == false){
+              instance.add_value(value_descriptor, value_instance);
             }
           }
         }
@@ -755,15 +807,9 @@ function CENode(){
           var value_value = facts_info[1].replace(/\\/g, '');
           var value_descriptor = facts_info[2];
           
-          for (var j = 0; j < possible_values.length; j++) {
-            if (possible_values[j] != null && value_descriptor == possible_values[j].descriptor) {
-
-              // Writepoint 
-              if(nowrite == null || nowrite == false){
-                instance.add_value(value_descriptor, value_value);
-              }
-              break;
-            }
+          // Writepoint 
+          if(nowrite == null || nowrite == false){
+            instance.add_value(value_descriptor, value_value);
           }
         }
       }}
@@ -796,12 +842,13 @@ function CENode(){
             }
             else{
               if(relationship_instance == null){
-                relationship_instance = new CEInstance(node, get_concept_by_name(relationship_type_name), relationship_instance_name);
+                relationship_instance = new CEInstance(get_concept_by_name(relationship_type_name), relationship_instance_name);
 
                 // Writepoint
                 if(nowrite == null || nowrite == false){
                   relationship_instance.sentences.push(t);
-                  instances.push(relationship_instance);
+                  _instances.push(relationship_instance);
+                  _instance_dict[relationship_instance.id] = relationship_instance
                 }
               }
 
@@ -810,15 +857,9 @@ function CENode(){
               relationship.target_name = relationship_instance.name;
               relationship.target_id = relationship_instance.id;
 
-              for(var j = 0; j < possible_relationships.length; j++){
-                if(possible_relationships[j] != null && relationship_label == possible_relationships[j].label){
-                
-                  // Writepoint
-                  if(nowrite == null || nowrite == false){
-                    instance.add_relationship(relationship_label, relationship_instance);
-                  }
-                  break;
-                }
+              // Writepoint
+              if(nowrite == null || nowrite == false){
+                instance.add_relationship(relationship_label, relationship_instance);
               }
             }
           }
@@ -902,13 +943,12 @@ function CENode(){
       }
       var things = {};
       var thing_found = false;
-      var ins_type = node.get_instance_type(instance);
-      for(var i = 0; i < instances.length; i++){
-        var vals = instances[i].values;
-        var rels = instances[i].relationships;
+      for(var i = 0; i < _instances.length; i++){
+        var vals = _instances[i].values;
+        var rels = _instances[i].relationships;
         if(vals!=null){for(var j = 0; j < vals.length; j++){
           if(vals[j].type_id == instance.id){
-            var thing = "the "+node.get_instance_type(instances[i])+" "+instances[i].name+" has the "+ins_type+" "+instance.name+" as "+vals[j].descriptor;
+            var thing = "the "+_instances[i].type.name+" "+_instances[i].name+" has the "+instance.type.name+" "+instance.name+" as "+vals[j].descriptor;
             if(!(thing in things)){
               things[thing] = 0;
             }
@@ -918,7 +958,7 @@ function CENode(){
         }}   
         if(rels!=null){for(var j = 0; j < rels.length; j++){
           if(rels[j].target_id == instance.id){
-            var thing = "the "+node.get_instance_type(instances[i])+" "+instances[i].name+" "+rels[j].label+" the "+ins_type+" "+instance.name;
+            var thing = "the "+_instances[i].type.name+" "+_instances[i].name+" "+rels[j].label+" the "+instance.type.name+" "+instance.name;
             if(!(thing in things)){
               things[thing] = 0;
             }
@@ -928,7 +968,7 @@ function CENode(){
         }}
       }
       if(!thing_found){
-        message = "I don't know what is located in/on/at the "+ins_type+" "+instance.name+".";
+        message = "I don't know what is located in/on/at the "+instance.type.name+" "+instance.name+".";
         return [true, message];
       }
 
@@ -963,24 +1003,24 @@ function CENode(){
         var concept = get_concept_by_name(name);
         if(concept == null){
           var possibilities = [];
-          for(var i = 0; i < concepts.length; i++){
-            for(var j = 0; j < concepts[i].values.length; j++){
-              var v = concepts[i].values[j];
+          for(var i = 0; i < _concepts.length; i++){
+            for(var j = 0; j < _concepts[i].values.length; j++){
+              var v = _concepts[i].values[j];
               if(v.descriptor.toLowerCase() == name.toLowerCase()){
                 if(v.type == 0){
-                  possibilities.push("is a possible value of a type of "+concepts[i].name+" (e.g. \"the "+concepts[i].name+" '"+concepts[i].name.toUpperCase()+" NAME' has 'VALUE' as "+name+"\")");
+                  possibilities.push("is a possible value of a type of "+_concepts[i].name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' has 'VALUE' as "+name+"\")");
                 }
                 else{
-                  var val_type = node.get_concept_by_id(v.type);
-                  possibilities.push("is a possible "+val_type.name+" type of a type of "+concepts[i].name+" (e.g. \"the "+concepts[i].name+" '"+concepts[i].name.toUpperCase()+" NAME' has the "+val_type.name+" '"+val_type.name.toUpperCase()+" NAME' as "+name+"\")");
+                  var val_type = get_concept_by_id(v.type);
+                  possibilities.push("is a possible "+val_type.name+" type of a type of "+_concepts[i].name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' has the "+val_type.name+" '"+val_type.name.toUpperCase()+" NAME' as "+name+"\")");
                 }
               }     
             }
-            for(var j = 0; j < concepts[i].relationships.length; j++){
-              var r = concepts[i].relationships[j];
+            for(var j = 0; j < _concepts[i].relationships.length; j++){
+              var r = _concepts[i].relationships[j];
               if(r.label.toLowerCase() == name.toLowerCase()){
-                var r_type = node.get_concept_by_id(r.target);
-                possibilities.push("describes the relationship between a type of "+concepts[i].name+" and a type of "+r_type.name+" (e.g. \"the "+concepts[i].name+" '"+concepts[i].name.toUpperCase()+" NAME' "+name+" the "+r_type.name+" '"+r_type.name.toUpperCase()+" NAME'\")");
+                var r_type = get_concept_by_id(r.target);
+                possibilities.push("describes the relationship between a type of "+_concepts[i].name+" and a type of "+r_type.name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' "+name+" the "+r_type.name+" '"+r_type.name.toUpperCase()+" NAME'\")");
               }
             }
           }
@@ -1012,7 +1052,7 @@ function CENode(){
         s = "All instances of type '"+con+"':";
       }
       else if(t.toLowerCase() == "list instances"){
-        ins = instances;    
+        ins = _instances;    
         s = "All instances:";
       }
       if(ins.length == 0){
@@ -1049,16 +1089,16 @@ function CENode(){
     var common_words = ["there", "what", "who", "where", "theres", "is", "as", "and", "has", "that", "the", "a", "an", "named", "called", "name", "with", "conceptualise", "on", "at", "in"];
     var focus_instance=null;
     var smallest_index = 999999;
-    for(var i = 0; i < instances.length; i++){
-      if(t.toLowerCase().indexOf(instances[i].name.toLowerCase()) > -1){
-        if(t.toLowerCase().indexOf(instances[i].name.toLowerCase()) < smallest_index){
-          focus_instance = instances[i];
-          smallest_index = t.toLowerCase().indexOf(instances[i].name.toLowerCase());
+    for(var i = 0; i < _instances.length; i++){
+      if(t.toLowerCase().indexOf(_instances[i].name.toLowerCase()) > -1){
+        if(t.toLowerCase().indexOf(_instances[i].name.toLowerCase()) < smallest_index){
+          focus_instance = _instances[i];
+          smallest_index = t.toLowerCase().indexOf(_instances[i].name.toLowerCase());
         }
       }
     }
     if(focus_instance != null){
-      var focus_concept = node.get_concept_by_id(focus_instance.concept_id);
+      var focus_concept = get_concept_by_id(focus_instance.concept_id);
 
       var focus_instance_words = focus_instance.name.toLowerCase().split(" ");
       var focus_concept_words = focus_concept.name.toLowerCase().split(" ");
@@ -1068,7 +1108,8 @@ function CENode(){
       var ce = "the "+focus_concept.name+" '"+focus_instance.name+"' ";
       var facts = [];
 
-      var parents = get_recursive_parents(focus_concept);
+      var parents = focus_concept.ancestors;
+      parents = parents.push(focus_concept);
       var possible_relationships = [];
       var possible_values = [];
       for (var i = 0; i<parents.length; i++) {
@@ -1085,7 +1126,7 @@ function CENode(){
           for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
 
           if(possible_values[i].type > 0){
-            var value_concept = node.get_concept_by_id(possible_values[i].type);
+            var value_concept = get_concept_by_id(possible_values[i].type);
             var value_instances = node.get_instances(value_concept.name, true);
             for(var j = 0; j < value_instances.length; j++){
               if(f.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
@@ -1110,7 +1151,7 @@ function CENode(){
         }
         for(var i = 0; i < possible_relationships.length; i++){
           if(possible_relationships[i].target > 0){
-            var rel_concept = node.get_concept_by_id(possible_relationships[i].target);
+            var rel_concept = get_concept_by_id(possible_relationships[i].target);
             var rel_instances = node.get_instances(rel_concept.name, true);
             for(var j = 0; j < rel_instances.length; j++){
               if(f.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
@@ -1126,10 +1167,10 @@ function CENode(){
       }
     }
 
-    for(var i = 0; i < concepts.length; i++){
-      if(t.toLowerCase().indexOf(concepts[i].name.toLowerCase()) > -1){
-        var concept_words = concepts[i].name.toLowerCase().split(" ");
-        common_words.push(concepts[i].name.toLowerCase());
+    for(var i = 0; i < _concepts.length; i++){
+      if(t.toLowerCase().indexOf(_concepts[i].name.toLowerCase()) > -1){
+        var concept_words = _concepts[i].name.toLowerCase().split(" ");
+        common_words.push(_concepts[i].name.toLowerCase());
         for(var j = 0; j < concept_words; j++){
           common_words.push(concept_words[j]);
         }
@@ -1140,9 +1181,9 @@ function CENode(){
           }
         }
         if(new_instance_name != ""){
-          return [true, "there is a "+concepts[i].name+" named '"+new_instance_name.trim()+"'"];
+          return [true, "there is a "+_concepts[i].name+" named '"+new_instance_name.trim()+"'"];
         }
-        return [true, "there is a "+concepts[i].name+" named '"+concepts[i].name+" "+instances.length+1+"'"];
+        return [true, "there is a "+_concepts[i].name+" named '"+_concepts[i].name+" "+_instances.length+1+"'"];
       }
     }
     return [false, "Un-parseable input: "+t];
@@ -1160,7 +1201,7 @@ function CENode(){
     var s = t.trim().toLowerCase();
     var tokens = t.split(" ");
     var last_word = tokens[tokens.length-1];
-    var last_concept = concepts[concepts.length-1];
+    var last_concept = _concepts[_concepts.length-1];
     var number_of_tildes = 0;
     var index_of_first_tilde = 0;
     for(var i = 0; i < tokens.length; i++){if(tokens[i] == "~"){number_of_tildes++;if(number_of_tildes==1){index_of_first_tilde=i;}}}
@@ -1192,22 +1233,22 @@ function CENode(){
     var mentioned_instances = [];
 
     if(s.indexOf("there is") == -1 || tokens.length == 1){
-      for(var i = 0; i < instances.length; i++){
-        possible_words.push(instances[i].name);
-        if(s.indexOf(instances[i].name.toLowerCase()) > -1){
-          mentioned_instances.push(instances[i]);
+      for(var i = 0; i < _instances.length; i++){
+        possible_words.push(_instances[i].name);
+        if(s.indexOf(_instances[i].name.toLowerCase()) > -1){
+          mentioned_instances.push(_instances[i]);
         }
       }
     }
-    for(var i = 0; i < concepts.length; i++){
-      possible_words.push(concepts[i].name);
+    for(var i = 0; i < _concepts.length; i++){
+      possible_words.push(_concepts[i].name);
       var concept_mentioned = false;
       for(var j = 0; j < mentioned_instances.length; j++){
-        if(mentioned_instances[j].concept_id == concepts[i].id){concept_mentioned = true;break;}
+        if(mentioned_instances[j].concept_id == _concepts[i].id){concept_mentioned = true;break;}
       }
-      if(s.indexOf(concepts[i].name.toLowerCase()) > -1 || concept_mentioned){
-        for(var j = 0; j < concepts[i].values.length; j++){possible_words.push(concepts[i].values[j].descriptor);}
-        for(var j = 0; j < concepts[i].relationships.length; j++){possible_words.push(concepts[i].relationships[j].label);}
+      if(s.indexOf(_concepts[i].name.toLowerCase()) > -1 || concept_mentioned){
+        for(var j = 0; j < _concepts[i].values.length; j++){possible_words.push(_concepts[i].values[j].descriptor);}
+        for(var j = 0; j < _concepts[i].relationships.length; j++){possible_words.push(_concepts[i].relationships[j].label);}
       }
     }
     for(var i = 0; i < possible_words.length; i++){
@@ -1237,16 +1278,16 @@ function CENode(){
   this.get_instances = function(concept_type, recurse){
     var instance_list = [];
     if(concept_type == null){
-      instance_list = instances;
+      instance_list = _instances;
     }
     else if(concept_type != null && (recurse == null || recurse == false)){
       var concept = get_concept_by_name(concept_type);
       if(concept == null){
         return instance_list;
       }
-      for(var i = 0; i < instances.length; i++){
-        if(instances[i].concept_id == concept.id){
-          instance_list.push(instances[i]);
+      for(var i = 0; i < _instances.length; i++){
+        if(_instances[i].concept_id == concept.id){
+          instance_list.push(_instances[i]);
         }
       }
     }
@@ -1254,9 +1295,9 @@ function CENode(){
       var all_children = get_recursive_children(get_concept_by_name(concept_type));
       var children_ids = [];
       for(var i = 0; i < all_children.length; i++){children_ids.push(all_children[i].id);}
-      for(var i = 0; i < instances.length; i++){
-        if(children_ids.indexOf(instances[i].concept_id) > -1){
-          instance_list.push(instances[i]);
+      for(var i = 0; i < _instances.length; i++){
+        if(children_ids.indexOf(_instances[i].concept_id) > -1){
+          instance_list.push(_instances[i]);
         }
       }
     }
@@ -1269,7 +1310,7 @@ function CENode(){
    * Returns: [obj{concept}]
    */
   this.get_concepts = function(){
-    return concepts;
+    return _concepts;
   }
 
   /*
@@ -1308,7 +1349,7 @@ function CENode(){
    * Returns: str
    */
   this.get_instance_ce = function(instance){
-    var concept = node.get_concept_by_id(instance.concept_id);
+    var concept = get_concept_by_id(instance.concept_id);
     if(concept == null){return;}
     var ce = "there is a "+concept.name+" named '"+instance.name+"'";
     var facts = [];
@@ -1319,14 +1360,14 @@ function CENode(){
       }
       else{
         var value_instance = get_instance_by_id(value.type_id);
-        var value_concept = node.get_concept_by_id(value_instance.concept_id);
+        var value_concept = get_concept_by_id(value_instance.concept_id);
         facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
       }
     }
     for(var i = 0; i < instance.relationships.length; i++){
       var relationship = instance.relationships[i];
       var relationship_instance = get_instance_by_id(relationship.target_id);
-      var relationship_concept = node.get_concept_by_id(relationship_instance.concept_id);
+      var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
       facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
     }
     if(facts.length > 0){ce += " that "+facts.join(" and ");}
@@ -1341,7 +1382,7 @@ function CENode(){
    */
   this.get_instance_gist = function(instance){
     var vowels = ["a", "e", "i", "o", "u"];
-    var concept = node.get_concept_by_id(instance.concept_id);
+    var concept = get_concept_by_id(instance.concept_id);
     if(concept == null){return;}
     var ce = instance.name+" is";
     if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){ce+=" an "+concept.name+".";}
@@ -1357,7 +1398,7 @@ function CENode(){
       }
       else{
         var value_instance = get_instance_by_id(value.type_id);
-        var value_concept = node.get_concept_by_id(value_instance.concept_id);
+        var value_concept = get_concept_by_id(value_instance.concept_id);
         fact = "has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor;
       }
       if(!(fact in facts)){
@@ -1369,7 +1410,7 @@ function CENode(){
       fact_found = true;
       var relationship = instance.relationships[i];
       var relationship_instance = get_instance_by_id(relationship.target_id);
-      var relationship_concept = node.get_concept_by_id(relationship_instance.concept_id);
+      var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
       var fact = relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'";
       if(!(fact in facts)){
         facts[fact] = 0;
@@ -1401,7 +1442,7 @@ function CENode(){
     var ce = "conceptualise a ~ "+concept.name+" ~ "+concept.name.charAt(0).toUpperCase();
     if(concept.parents.length > 0){ce += " that";}
     for(var i = 0; i < concept.parents.length; i++){
-      p = node.get_concept_by_id(concept.parents[i]);
+      p = get_concept_by_id(concept.parents[i]);
       ce+= " is a "+p.name;
       if(i < concept.parents.length-1){ce+=" and";}
     }
@@ -1412,7 +1453,7 @@ function CENode(){
         facts.push("has the value "+alph[i]+" as "+concept.values[i].descriptor);
       }
       else{
-        var val_type = node.get_concept_by_id(concept.values[i].type);
+        var val_type = get_concept_by_id(concept.values[i].type);
         facts.push("has the "+val_type.name+" "+val_type.name.charAt(0).toUpperCase()+" as "+concept.values[i].descriptor);
       }
     }  
@@ -1424,7 +1465,7 @@ function CENode(){
       facts = [];
       ce += "\nconceptualise the "+concept.name+" "+concept.name.charAt(0).toUpperCase();
       for(var i = 0; i < concept.relationships.length; i++){
-        var rel_type = node.get_concept_by_id(concept.relationships[i].target);
+        var rel_type = get_concept_by_id(concept.relationships[i].target);
         facts.push("~ "+concept.relationships[i].label+" ~ the "+rel_type.name+" "+rel_type.name.charAt(0).toUpperCase());
       }
       if(facts.length > 0){
@@ -1445,7 +1486,7 @@ function CENode(){
     var ce = "";
     if(concept.parents.length > 0){ce += "A "+concept.name;}
     for(var i = 0; i < concept.parents.length; i++){
-      p = node.get_concept_by_id(concept.parents[i]);
+      p = get_concept_by_id(concept.parents[i]);
       ce+= " is a type of "+p.name;
       if(i < concept.parents.length-1){ce+=" and";}
     }
@@ -1456,12 +1497,12 @@ function CENode(){
         facts.push("has a value called "+concept.values[i].descriptor);
       }
       else{
-        var val_type = node.get_concept_by_id(concept.values[i].type);
+        var val_type = get_concept_by_id(concept.values[i].type);
         facts.push("has a type of "+val_type.name+" called "+concept.values[i].descriptor);
       }
     }  
     for(var i = 0; i < concept.relationships.length; i++){
-      var rel_type = node.get_concept_by_id(concept.relationships[i].target);
+      var rel_type = get_concept_by_id(concept.relationships[i].target);
       facts.push(concept.relationships[i].label+" a type of "+rel_type.name);
     }
     if(facts.length > 0){
@@ -1618,8 +1659,8 @@ function CENode(){
    * Returns: void
    */
   this.reset_all = function(){
-    instances = [];
-    concepts = [];
+    _instances = [];
+    _concepts = [];
   }
 
   /* 
@@ -1627,8 +1668,8 @@ function CENode(){
    * sentence sets to be processed.
    */
   this.init = function(){
-    for(var i = 0; i < this.models.length; i++){
-      this.load_model(this.models[i]);
+    for(var i = 0; i < models.length; i++){
+      this.load_model(models[i]);
     }
   }
   this.init();
@@ -1655,10 +1696,9 @@ function CEAgent(n){
 
   var handle_card = function(card){
     try{
-      var from = node.get_instance_relationship(card, "is from");
-      var tos = node.get_instance_relationships(card, "is to");
-      var content = node.get_instance_value(card, "content");
-      var type = node.get_instance_type(card);
+      var from = card.is_from;
+      var tos = card.is_tos;
+      var content = card.content;
       var sent_to_this_agent = false;
 
       // Determine whether or not to read or ignore this card:
@@ -1677,14 +1717,14 @@ function CEAgent(n){
        * Now handle the actual card:
        */
 
-      if(type == "ask card"){
+      if(card.type.name == "ask card"){
         // Get the relevant information from the node
         var data = node.ask_question(content);
 
         var ask_policies = node.get_instances("ask policy");
         for(var j = 0; j < ask_policies.length; j++){
-          if(node.get_instance_value(ask_policies[j], "enabled") == 'true'){
-            var target_name = node.get_instance_value(ask_policies[j], "target").name;
+          if(ask_policies[j].enabled == 'true'){
+            var target_name = ask_policies[j].target.name;
             if(!(target_name in unsent_ask_cards)){unsent_ask_cards[target_name] = [];}
             unsent_ask_cards[target_name].push(card); 
           }
@@ -1692,7 +1732,7 @@ function CEAgent(n){
 
 
         // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
-        var froms = node.get_instance_relationships(card, "is from");
+        var froms = card.is_froms;
         var urls, c;
         if(data.data){
           urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
@@ -1703,8 +1743,8 @@ function CEAgent(n){
         }
 
         for(var j = 0; j < froms.length; j++){
-          var type = node.get_instance_type(froms[j]);
-          c+=" and is to the "+type+" '"+froms[j].name+"'";
+          var type = froms[j].type;
+          c+=" and is to the "+type.name+" '"+froms[j].name+"'";
         }
         if(urls!=null){for(var j = 0; j < urls.length; j++){
           c+=" and has '"+urls[j]+"' as linked content";
@@ -1712,7 +1752,7 @@ function CEAgent(n){
         c += " and is in reply to the card '"+card.name+"'";
         node.add_sentence(c);
       }
-      else if(type == "tell card"){
+      else if(card.type.name == "tell card"){
         // Add the CE sentence to the node
         var data = node.add_ce(content); 
 
@@ -1720,8 +1760,8 @@ function CEAgent(n){
           // Add sentence to any active tell policy queues
           var tell_policies = node.get_instances("tell policy");
           for(var j = 0; j < tell_policies.length; j++){
-            if(node.get_instance_value(tell_policies[j], "enabled") == 'true'){
-              var target_name = node.get_instance_value(tell_policies[j], "target").name;
+            if(tell_policies[j].enabled == 'true'){
+              var target_name = tell_policies[j].target.name;
               if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
               unsent_tell_cards[target_name].push(card); 
             }
@@ -1732,11 +1772,10 @@ function CEAgent(n){
         // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
         var feedback_policies = node.get_instances("feedback policy");
         for(var j = 0; j < feedback_policies.length; j++){
-          var target = node.get_instance_value(feedback_policies[j], "target");
-          var enabled = node.get_instance_value(feedback_policies[j], "enabled");
-          var ack = node.get_instance_value(feedback_policies[j], "acknowledgement");
+          var target = feedback_policies[j].target;
+          var enabled = feedback_policies[j].enabled;
+          var ack = feedback_policies[j].acknowledgement;
           if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
-            var target_concept = node.get_instance_type(target);
             var c;
             if(ack == "basic"){c = "OK.";}
             else{
@@ -1747,18 +1786,18 @@ function CEAgent(n){
                 c = data.data;
               }
             }
-            node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target_concept+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
+            node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
           }
         }
       }
-      else if(type == "nl card"){
+      else if(card.type.name == "nl card"){
         var new_card = null;
         // Firstly, check if card content is valid CE, but without writing to model:
         var data = node.add_ce(content, true);
 
         // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
         if(data.success == true){
-          new_card = "there is a tell card named 'msg_{uid}' that is from the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+          new_card = "there is a tell card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
         }   
         // If invalid CE, then try responding to a question 
         else{
@@ -1766,13 +1805,13 @@ function CEAgent(n){
           
           // If question was success, return a response
           if(data.success == true){
-            new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
+            new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
           }
       
           // If question not understood then place the response to the NL card in a new response
           else{
             data = node.add_nl(content);     
-            new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+node.get_instance_type(from)+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
+            new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
           }
         }
         node.add_sentence(new_card);
@@ -1816,7 +1855,7 @@ function CEAgent(n){
         // To save on transit costs, if there are multiple cards to be sent to one target, they are 
         // separated by new line (\n)
         for(var i = 0; i < tell_policies.length; i++){
-          var target = node.get_instance_value(tell_policies[i], "target");
+          var target = tell_policies[i].target;
           if(target && target.name){
             var cards = unsent_tell_cards[target.name];
             if(cards){
@@ -1824,8 +1863,8 @@ function CEAgent(n){
               for(var j = 0; j < cards.length; j++){
                 try{
                   var card = cards[j];
-                  var from = node.get_instance_relationship(card, "is from");
-                  var tos = node.get_instance_relationships(card, "is to");
+                  var from = card.is_from;
+                  var tos = card.is_tos;
                   if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                     // Make sure target is not already a recipient
                     var in_card = false;
@@ -1841,7 +1880,7 @@ function CEAgent(n){
                 catch(err){}
               }
               if(data != ""){
-                net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
                   last_successful_request = new Date().getTime();
                   unsent_tell_cards[target.name] = [];
                 });
@@ -1854,7 +1893,7 @@ function CEAgent(n){
         // To save on transit costs, if there are multiple cards to be sent to one target, they are 
         // separated by new line (\n)
         for(var i = 0; i < ask_policies.length; i++){
-          var target = node.get_instance_value(ask_policies[i], "target");
+          var target = ask_policies[i].target;
           if(target && target.name){
             var cards = unsent_ask_cards[target.name];
             if(cards){
@@ -1862,7 +1901,7 @@ function CEAgent(n){
               for(var j = 0; j < cards.length; j++){
                 try{
                   var card = cards[j];
-                  var from = node.get_instance_relationship(card, "is from");
+                  var from = card.is_from;
                   if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                     card.add_relationship("is to", target);
                     card.add_relationship("is from", get_instance());
@@ -1872,7 +1911,7 @@ function CEAgent(n){
                 catch(err){}
               }
               if(data != ""){
-                net.make_request("POST", node.get_instance_value(target, "address"), POST_SENTENCES_ENDPOINT, data, function(resp){
+                net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
                   last_successful_request = new Date().getTime();
                   unsent_ask_cards[target.name] = [];
                 });
@@ -1883,8 +1922,8 @@ function CEAgent(n){
 
         // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
         for(var i = 0; i < listen_policies.length; i++){
-          var target = node.get_instance_value(listen_policies[i], "target");
-          net.make_request("GET", node.get_instance_value(target, "address"), GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+          var target = listen_policies[i].target;
+          net.make_request("GET", target.address, GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
             last_successful_request = new Date().getTime();
             var cards = resp.split("\n");
             node.add_sentences(cards);
@@ -1895,23 +1934,23 @@ function CEAgent(n){
         // to every other known agent.
         for(var i = 0; i < forwardall_policies.length; i++){
           var policy = forwardall_policies[i];
-          if(node.get_instance_value(policy, "enabled") == "true"){
+          if(policy.enabled == "true"){
             var agents = [];
-            if(node.get_instance_value(policy, "all agents") == "true"){
+            if(policy.all_agents == "true"){
               agents = node.get_instances("agent");
             }
             else{
-              agents = node.get_instance_values(policy, "target");
+              agents = policy.targets;
             }
             var cards = node.get_instances("tell card");
-            if(node.get_instance_value(policy, "start time")){
-              var start_time = node.get_instance_value(policy, "start time").name;
+            if(policy.start_time){
+              var start_time = policy.start_time.name;
               for(var i = 0; i < cards.length; i++){
                 try{
                   var card = cards[i];
                   var to_agent = false;
-                  var tos = node.get_instance_relationships(card, "is to");
-                  var card_timestamp = node.get_instance_value(card, "timestamp").name;
+                  var tos = card.is_to;
+                  var card_timestamp = card.timestamp.name;
                   if(parseInt(card_timestamp) > parseInt(start_time)){
                     for(var j = 0; j < tos.length; j++){
                       if(tos[j].name == name){ // If card sent to THIS agent
@@ -1920,7 +1959,7 @@ function CEAgent(n){
                       }
                     }
                     if(to_agent == true){
-                      var from = node.get_instance_relationships(card, "is from")[0];
+                      var from = card.is_froms[0];
 
                       // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
                       for(var j = 0; j < agents.length; j++){
@@ -2122,7 +2161,7 @@ if(!util.on_client() && require.main === module){
         s += node.get_instance_ce(cards[i])+"\n";
       }
       else{
-        var tos = node.get_instance_relationships(cards[i], "is to");
+        var tos = cards[i].is_tos;
         for(var j = 0; j < tos.length; j++){
           for(var k = 0; k < agents.length; k++){
             if(tos[j].name.toLowerCase() == agents[k]){
