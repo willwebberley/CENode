@@ -65,7 +65,7 @@ function CENode(){
   var rules = [];
   var concept_ids = {};
 
-  var agent = new CEAgent(this);
+  this.agent = new CEAgent(this);
   var node = this;
 
   this.concepts = {};
@@ -93,7 +93,7 @@ function CENode(){
   }
   var new_card_id = function(){
     last_card_id++;
-    return agent.get_name()+last_card_id;
+    return node.agent.get_name()+last_card_id;
   }
 
   function CEConcept(name){
@@ -211,6 +211,79 @@ function CENode(){
         concept._parents.push(parent_concept.id);
       }
     }
+  
+    Object.defineProperty(concept, 'ce', {get: function(){ 
+      var ce = "conceptualise a ~ "+concept.name+" ~ "+concept.name.charAt(0).toUpperCase();
+      if(concept.parents.length > 0 || concept._values.length > 0 || concept._relationships.length > 0){
+        ce += " that";
+      }
+      if(concept.parents.length > 0){
+        for(var i = 0; i < concept.parents.length; i++){
+          ce+= " is a "+concept.parents[i].name;
+          if(i < concept.parents.length-1){ce+=" and";}
+        }
+      }
+      var facts = [];
+      var alph = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
+      for(var i = 0; i < concept._values.length; i++){
+        if(concept._values[i].type == 0){
+          facts.push("has the value "+alph[i]+" as "+concept._values[i].descriptor);
+        }
+        else{
+          var val_type = get_concept_by_id(concept._values[i].type);
+          facts.push("has the "+val_type.name+" "+val_type.name.charAt(0).toUpperCase()+" as "+concept._values[i].descriptor);
+        }
+      }  
+      if(facts.length > 0){
+        if(concept.parents.length > 0){ce += " and";}
+        ce += " "+facts.join(" and ");
+      }
+      ce+=".";
+      if(concept._relationships.length > 0){
+        facts = [];
+        ce += "\nconceptualise the "+concept.name+" "+concept.name.charAt(0).toUpperCase();
+        for(var i = 0; i < concept._relationships.length; i++){
+          var rel_type = get_concept_by_id(concept._relationships[i].target);
+          facts.push("~ "+concept._relationships[i].label+" ~ the "+rel_type.name+" "+alph[i]);
+        }
+        if(facts.length > 0){
+          if(concept.parents.length > 0 || concept._values.length > 0){ce += " and";}
+          ce += " "+facts.join(" and ")+".";
+        }
+      }
+      return ce;
+    }});
+
+    Object.defineProperty(concept, 'gist', {get: function(){
+      var gist = "";
+      if(concept.parents.length > 0){gist += "A "+concept.name;}
+      for(var i = 0; i < concept.parents.length; i++){
+        gist += " is a type of "+concept.parents[i].name;
+        if(i < concept.parents.length-1){ce+=" and";}
+      }
+      if(concept.parents.length > 0){gist += ".";}
+      var facts = [];
+      for(var i = 0; i < concept._values.length; i++){
+        if(concept._values[i].type == 0){
+          facts.push("has a value called "+concept._values[i].descriptor);
+        }
+        else{
+          var val_type = get_concept_by_id(concept._values[i].type);
+          facts.push("has a type of "+val_type.name+" called "+concept._values[i].descriptor);
+        }
+      }  
+      for(var i = 0; i < concept._relationships.length; i++){
+        var rel_type = get_concept_by_id(concept._relationships[i].target);
+        facts.push(concept._relationships[i].label+" a type of "+rel_type.name);
+      }
+      if(facts.length > 0){
+        gist += " An instance of "+concept.name+" "+facts.join(" and ")+".";
+      }
+      else if(facts.length == 0 && concept.parents.length == 0){
+        gist += "A "+concept.name+" has no attributes or relationships.";
+      }
+      return gist;
+    }});
   }
 
   function CEInstance(type, name){
@@ -223,7 +296,7 @@ function CENode(){
     var instance = this;
     var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences'];
 
-    Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_'), {get: function(){
+    Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {get: function(){
       return instance;
     }, configurable: true});
     Object.defineProperty(instance, 'type', {get: function(){for(var i = 0; i < _concepts.length; i++){if(_concepts[i].id == type.id){return _concepts[i];}}}});
@@ -321,6 +394,83 @@ function CENode(){
         }
       }
     }
+
+    Object.defineProperty(instance, 'ce', {get: function() {
+      var concept = instance.type;
+      if(concept == null){return;}
+      var ce = "there is a "+concept.name+" named '"+instance.name+"'";
+      var facts = [];
+      for(var i = 0; i < instance._values.length; i++){
+        var value = instance._values[i];
+        if(value.type_id == 0){
+          facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor)
+        }
+        else{
+          var value_instance = get_instance_by_id(value.type_id);
+          var value_concept = value_instance.type; 
+          facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
+        }
+      }
+      for(var i = 0; i < instance._relationships.length; i++){
+        var relationship = instance._relationships[i];
+        var relationship_instance = get_instance_by_id(relationship.target_id);
+        var relationship_concept = relationship_instance.type;
+        facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
+      }
+      if(facts.length > 0){ce += " that "+facts.join(" and ");}
+      return ce+".";
+    }});
+
+    Object.defineProperty(instance, 'gist', {get: function() {
+      var vowels = ["a", "e", "i", "o", "u"];
+      var concept = instance.type;
+      if(concept == null){return;}
+      var gist = instance.name+" is";
+      if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){ce+=" an "+concept.name+".";}
+      else{gist+=" a "+concept.name+".";}
+      var facts = {};
+      var fact_found = false;
+      for(var i = 0; i < instance._values.length; i++){
+        fact_found = true;
+        var value = instance._values[i];
+        var fact = "";
+        if(value.type_id == 0){
+          fact = "has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor;
+        }
+        else{
+          var value_instance = get_instance_by_id(value.type_id);
+          var value_concept = value_instance.type;
+          fact = "has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor;
+        }
+        if(!(fact in facts)){
+          facts[fact] = 0;
+        }
+        facts[fact]++;
+      }
+      for(var i = 0; i < instance._relationships.length; i++){
+        fact_found = true;
+        var relationship = instance._relationships[i];
+        var relationship_instance = get_instance_by_id(relationship.target_id);
+        var relationship_concept = relationship_instance.type;
+        var fact = relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'";
+        if(!(fact in facts)){
+          facts[fact] = 0;
+        }
+        facts[fact]++;
+      }
+      if(fact_found){
+        gist += " "+instance.name;
+        for(fact in facts){
+          gist += " "+fact;
+          if(facts[fact] > 1){
+            gist += " ("+facts[fact]+" times)";
+          }
+          gist += " and";
+        }
+        gist = gist.substring(0, gist.length - 4)+"."; // Remove last ' and' and add full stop
+      }
+      return gist;   
+    }});
   }
 
   /*
@@ -992,7 +1142,7 @@ function CENode(){
       if(name){
         instance = get_instance_by_name(name[2]);
         if(instance != null){
-        return [true, node.get_instance_gist(instance)];
+        return [true, instance.gist];
         }      
       }
 
@@ -1030,11 +1180,11 @@ function CENode(){
           else{return [true, "I don't know who or what that is."];}
         }
         else{
-          return [true, node.get_concept_gist(concept)];
+          return [true, concept.gist];
         }
       }
       else{
-        return [true, node.get_instance_gist(instance)];
+        return [true, instance.gist];
       }
     }
 
@@ -1313,208 +1463,7 @@ function CENode(){
     return _concepts;
   }
 
-  /*
-   * Set the name of the local agent
-   *
-   * Returns: void
-   */
-  this.set_agent_name = function(new_name){
-    if(new_name != null){
-      agent.set_name(new_name);
-    }
-  }
-
-  /*
-   * Get the current name of the local agent
-   *
-   * Returns: str
-   */
-  this.get_agent_name = function(){
-    return agent.get_name();
-  }   
-
-  /*
-   * Get the CEAgent object attached to this node
-   *
-   * Returns: CEAgent obj
-   */
-  this.get_agent = function(){
-    return agent;
-  }
-  
-  /*
-   * Generate CE that describes the instance.
-   * e.g.: "there is a teacher named 'T1' that..."
-   *
-   * Returns: str
-   */
-  this.get_instance_ce = function(instance){
-    var concept = get_concept_by_id(instance.concept_id);
-    if(concept == null){return;}
-    var ce = "there is a "+concept.name+" named '"+instance.name+"'";
-    var facts = [];
-    for(var i = 0; i < instance.values.length; i++){
-      var value = instance.values[i];
-      if(value.type_id == 0){
-        facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor)
-      }
-      else{
-        var value_instance = get_instance_by_id(value.type_id);
-        var value_concept = get_concept_by_id(value_instance.concept_id);
-        facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor);
-      }
-    }
-    for(var i = 0; i < instance.relationships.length; i++){
-      var relationship = instance.relationships[i];
-      var relationship_instance = get_instance_by_id(relationship.target_id);
-      var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
-      facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
-    }
-    if(facts.length > 0){ce += " that "+facts.join(" and ");}
-    return ce+".";
-  }
-
-  /* 
-   * Generate gist describing the instance.
-   * e.g.: "T1 is a teahcer. T1 teaches the..."
-   *
-   * Returns: str
-   */
-  this.get_instance_gist = function(instance){
-    var vowels = ["a", "e", "i", "o", "u"];
-    var concept = get_concept_by_id(instance.concept_id);
-    if(concept == null){return;}
-    var ce = instance.name+" is";
-    if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){ce+=" an "+concept.name+".";}
-    else{ce+=" a "+concept.name+".";}
-    var facts = {};
-    var fact_found = false;
-    if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
-      fact_found = true;
-      var value = instance.values[i];
-      var fact = "";
-      if(value.type_id == 0){
-        fact = "has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.descriptor;
-      }
-      else{
-        var value_instance = get_instance_by_id(value.type_id);
-        var value_concept = get_concept_by_id(value_instance.concept_id);
-        fact = "has the "+value_concept.name+" '"+value_instance.name+"' as "+value.descriptor;
-      }
-      if(!(fact in facts)){
-        facts[fact] = 0;
-      }
-      facts[fact]++;
-    }}
-    if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
-      fact_found = true;
-      var relationship = instance.relationships[i];
-      var relationship_instance = get_instance_by_id(relationship.target_id);
-      var relationship_concept = get_concept_by_id(relationship_instance.concept_id);
-      var fact = relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'";
-      if(!(fact in facts)){
-        facts[fact] = 0;
-      }
-      facts[fact]++;
-    }}
-    if(fact_found){
-      ce += " "+instance.name;
-      for(fact in facts){
-        ce += " "+fact;
-        if(facts[fact] > 1){
-          ce += " ("+facts[fact]+" times)";
-        }
-        ce += " and";
-      }
-      ce = ce.substring(0, ce.length - 4)+"."; // Remove last ' and' and add full stop
-
-    }
-    return ce;   
-  }
-
-  /*
-   * Generate CE describing conceptualising the given concept.
-   * e.g.: "conceptualise a ~ teacher ~ T that..."
-   *
-   * Returns: str
-   */
-  this.get_concept_ce = function(concept){
-    var ce = "conceptualise a ~ "+concept.name+" ~ "+concept.name.charAt(0).toUpperCase();
-    if(concept.parents.length > 0){ce += " that";}
-    for(var i = 0; i < concept.parents.length; i++){
-      p = get_concept_by_id(concept.parents[i]);
-      ce+= " is a "+p.name;
-      if(i < concept.parents.length-1){ce+=" and";}
-    }
-    var facts = [];
-    var alph = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
-    for(var i = 0; i < concept.values.length; i++){
-      if(concept.values[i].type == 0){
-        facts.push("has the value "+alph[i]+" as "+concept.values[i].descriptor);
-      }
-      else{
-        var val_type = get_concept_by_id(concept.values[i].type);
-        facts.push("has the "+val_type.name+" "+val_type.name.charAt(0).toUpperCase()+" as "+concept.values[i].descriptor);
-      }
-    }  
-    if(facts.length > 0){
-      ce += " "+facts.join(" and ");
-    }
-    ce+=".";
-    if(concept.relationships.length > 0){
-      facts = [];
-      ce += "\nconceptualise the "+concept.name+" "+concept.name.charAt(0).toUpperCase();
-      for(var i = 0; i < concept.relationships.length; i++){
-        var rel_type = get_concept_by_id(concept.relationships[i].target);
-        facts.push("~ "+concept.relationships[i].label+" ~ the "+rel_type.name+" "+rel_type.name.charAt(0).toUpperCase());
-      }
-      if(facts.length > 0){
-        ce += " "+facts.join(" and ")+".";
-      }
-    }
-
-    return ce;
-  }
-
-  /* 
-   * Generate gist describing the given concept.
-   * e.g. "A teacher is a type of person and teaches a type of class and ..."
-   *
-   * Returns: str
-   */
-  this.get_concept_gist = function(concept){
-    var ce = "";
-    if(concept.parents.length > 0){ce += "A "+concept.name;}
-    for(var i = 0; i < concept.parents.length; i++){
-      p = get_concept_by_id(concept.parents[i]);
-      ce+= " is a type of "+p.name;
-      if(i < concept.parents.length-1){ce+=" and";}
-    }
-    if(concept.parents.length > 0){ce+=".";}
-    var facts = [];
-    for(var i = 0; i < concept.values.length; i++){
-      if(concept.values[i].type == 0){
-        facts.push("has a value called "+concept.values[i].descriptor);
-      }
-      else{
-        var val_type = get_concept_by_id(concept.values[i].type);
-        facts.push("has a type of "+val_type.name+" called "+concept.values[i].descriptor);
-      }
-    }  
-    for(var i = 0; i < concept.relationships.length; i++){
-      var rel_type = get_concept_by_id(concept.relationships[i].target);
-      facts.push(concept.relationships[i].label+" a type of "+rel_type.name);
-    }
-    if(facts.length > 0){
-      ce += " An instance of "+concept.name+" "+facts.join(" and ")+".";
-    }
-    else if(facts.length == 0 && concept.parents.length == 0){
-      ce += "A "+concept.name+" has no attributes or relationships.";
-    }
-    return ce;
-  }
-
-  /*
+    /*
    * Adds a sentence to be processed by the node.
    * This method will ALWAYS return a response by dynamically
    * checking whether input is pure CE, a question, or NL.
@@ -1874,7 +1823,7 @@ function CEAgent(n){
                     if(!in_card){
                       card.add_relationship("is to", target);
                     }
-                    data += node.get_instance_ce(card)+"\n";
+                    data += card.ce+"\n";
                   }
                 }
                 catch(err){}
@@ -1905,7 +1854,7 @@ function CEAgent(n){
                   if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                     card.add_relationship("is to", target);
                     card.add_relationship("is from", get_instance());
-                    data += node.get_instance_ce(card)+"\n";
+                    data += card.ce+"\n";
                   }
                 }
                 catch(err){}
@@ -2127,9 +2076,9 @@ if(!util.on_client() && require.main === module){
   var node = new CENode(MODELS.CORE);
   node.add_sentence("there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled");
 
-  if(process.argv.length > 2){node.set_agent_name(process.argv[2]);}
+  if(process.argv.length > 2){node.agent.set_name(process.argv[2]);}
   if(process.argv.length > 3){PORT = parseInt(process.argv[3]);}
-  console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
+  console.log("Set local agent's name to '"+node.agent.get_name()+"'.");
 
   function post_sentences(request, response){
     var body = "";
@@ -2158,14 +2107,14 @@ if(!util.on_client() && require.main === module){
     var s = "";
     for(var i = 0; i < cards.length; i++){
       if(agents == null || agents.length == 0){
-        s += node.get_instance_ce(cards[i])+"\n";
+        s += cards[i].ce+"\n";
       }
       else{
         var tos = cards[i].is_tos;
         for(var j = 0; j < tos.length; j++){
           for(var k = 0; k < agents.length; k++){
             if(tos[j].name.toLowerCase() == agents[k]){
-              s += node.get_instance_ce(cards[i])+"\n";
+              s += cards[i].ce+"\n";
               break;
             }
           }
@@ -2187,7 +2136,7 @@ if(!util.on_client() && require.main === module){
         for(key in MODELS){s+='<option value="'+key+'">'+key+'</option>';}
         s +='</select><input type="submit"></form>';
         s+='<p>Add CE sentences to the node:</p><form action="/ui/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
-        s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent_name"><input type="text" name="name" value="'+node.get_agent_name()+'" /><input type="submit" /></form>';
+        s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent_name"><input type="text" name="name" value="'+node.agent.get_name()+'" /><input type="submit" /></form>';
         s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Empty model</button>';
         s+='<p>Available endpoints on this node server instance:</p><p style="font-family:\'monospace\';font-size:11px;">- POST '+POST_SENTENCES_ENDPOINT+' (body = newline-delimited set of sentences)<br />- GET '+GET_CARDS_ENDPOINT+'?agent=NAME (get all known cards sent to NAME)</p>';
         s+='</div><div style="clear:both;"></div>';
@@ -2246,8 +2195,8 @@ if(!util.on_client() && require.main === module){
         });     
         request.on('end', function(){
           body = decodeURIComponent(body.replace("name=","").replace(/\+/g, ' '));
-          node.set_agent_name(body);
-          console.log("Set local agent's name to '"+node.get_agent_name()+"'.");
+          node.agent.set_name(body);
+          console.log("Set local agent's name to '"+node.agent.get_name()+"'.");
           response.writeHead(302, { 'Location': '/'});
           response.end();
         });
