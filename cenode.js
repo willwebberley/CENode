@@ -1669,7 +1669,6 @@ function CEAgent(n){
       if(card.type.name == "ask card"){
         // Get the relevant information from the node
         var data = node.ask_question(content);
-
         var ask_policies = node.get_instances("ask policy");
         for(var j = 0; j < ask_policies.length; j++){
           if(ask_policies[j].enabled == 'true'){
@@ -1678,8 +1677,6 @@ function CEAgent(n){
             unsent_ask_cards[target_name].push(card); 
           }
         }
-
-
         // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
         var froms = card.is_froms;
         var urls, c;
@@ -1692,8 +1689,7 @@ function CEAgent(n){
         }
 
         for(var j = 0; j < froms.length; j++){
-          var type = froms[j].type;
-          c+=" and is to the "+type.name+" '"+froms[j].name+"'";
+          c+=" and is to the "+froms[j].type.name+" '"+froms[j].name+"'";
         }
         if(urls!=null){for(var j = 0; j < urls.length; j++){
           c+=" and has '"+urls[j]+"' as linked content";
@@ -1701,10 +1697,10 @@ function CEAgent(n){
         c += " and is in reply to the card '"+card.name+"'";
         node.add_sentence(c);
       }
+
       else if(card.type.name == "tell card"){
         // Add the CE sentence to the node
         var data = node.add_ce(content); 
-
         if(data.success == true){
           // Add sentence to any active tell policy queues
           var tell_policies = node.get_instances("tell policy");
@@ -1716,7 +1712,6 @@ function CEAgent(n){
             }
           }
         }
-
         // Check feedback policies to see if input 'tell card' requires a response
         // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
         var feedback_policies = node.get_instances("feedback policy");
@@ -1735,15 +1730,15 @@ function CEAgent(n){
                 c = data.data;
               }
             }
-            node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+target.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
+            node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
           }
         }
       }
+
       else if(card.type.name == "nl card"){
         var new_card = null;
         // Firstly, check if card content is valid CE, but without writing to model:
         var data = node.add_ce(content, true);
-
         // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
         if(data.success == true){
           new_card = "there is a tell card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
@@ -1751,12 +1746,10 @@ function CEAgent(n){
         // If invalid CE, then try responding to a question 
         else{
           data = node.ask_question(content);
-          
           // If question was success, return a response
           if(data.success == true){
             new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
           }
-      
           // If question not understood then place the response to the NL card in a new response
           else{
             data = node.add_nl(content);     
@@ -1765,8 +1758,8 @@ function CEAgent(n){
         }
         node.add_sentence(new_card);
       }
-    }
-    catch(err){
+
+    } catch(err){
       console.log(err);
     }
   }
@@ -1778,8 +1771,7 @@ function CEAgent(n){
         handle_card(card_list[i]); 
       }
       poll_cards();
-    }
-    , 200);
+    }, 200);
   }
 
   var get_instance = function(){
@@ -1825,8 +1817,7 @@ function CEAgent(n){
                     }
                     data += card.ce+"\n";
                   }
-                }
-                catch(err){}
+                } catch(err){}
               }
               if(data != ""){
                 net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
@@ -1851,13 +1842,28 @@ function CEAgent(n){
                 try{
                   var card = cards[j];
                   var from = card.is_from;
+                  var froms = card.is_froms;
+                  var tos = card.is_tos;
                   if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
-                    card.add_relationship("is to", target);
-                    card.add_relationship("is from", get_instance());
+                    // Make sure target is not already a recipient
+                    var in_card = false;
+                    for(var k = 0; k < tos.length; k++){
+                      if(tos[k].id == target.id){in_card = true;break;}
+                    }
+                    if(!in_card){
+                      card.add_relationship("is to", target);
+                    }
+                    // Make sure an agent is not already a sender
+                    in_card = false;
+                    for(var k = 0; k < froms.length; k++){
+                      if(froms[k].id == get_instance().id){in_card = true;break;}
+                    }
+                    if(!in_card){
+                      card.add_relationship("is from", get_instance());
+                    }
                     data += card.ce+"\n";
                   }
-                }
-                catch(err){}
+                } catch(err){}
               }
               if(data != ""){
                 net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
@@ -1884,13 +1890,7 @@ function CEAgent(n){
         for(var i = 0; i < forwardall_policies.length; i++){
           var policy = forwardall_policies[i];
           if(policy.enabled == "true"){
-            var agents = [];
-            if(policy.all_agents == "true"){
-              agents = node.get_instances("agent");
-            }
-            else{
-              agents = policy.targets;
-            }
+            var agents = policy.all_agents == "true" ? node.get_instances("agent") : policy.targets;
             var cards = node.get_instances("tell card");
             if(policy.start_time){
               var start_time = policy.start_time.name;
@@ -1925,15 +1925,13 @@ function CEAgent(n){
                       }
                     }
                   }
-                }
-                catch(err){}
+                } catch(err){}
               }
             }         
             break; 
           }
         }
-      }
-      catch(err){
+      } catch(err){
         console.log(err);
       }
       enact_policies();
@@ -1970,8 +1968,7 @@ var util = {
     try{
       localStorage.setItem(key+"_instances", JSON.stringify(node.get_instances()));
       localStortage.setItem(key+"_concepts", JSON.stringify(node.get_concepts()));
-    }
-    catch(err){console.log(err);}
+    } catch(err){console.log(err);}
   },
   store_node_node: function(key, node){
     var fs = require('fs');
@@ -1990,8 +1987,7 @@ var util = {
       data.instances = JSON.parse(localStorage.getItem(key+"_instances"));
       data.concepts = JSON.parse(localStorage.getItem(key+"_concepts"));
       return node;
-    }
-    catch(err){console.log(err);}
+    } catch(err){console.log(err);}
   },
   load_instances_node: function(key, callback){
     var fs = require('fs');
@@ -2004,8 +2000,7 @@ var util = {
           data.concepts = JSON.parse(split[0]);
           data.instances = JSON.parse(split[1]);
           if(callback){callback(data);}
-        }
-        catch(err){console.log(err);if(callback){callback();}}
+        } catch(err){console.log(err);if(callback){callback();}}
       }
     });
   }
@@ -2019,8 +2014,7 @@ var net = {
     try{
       if(util.on_client()){net.make_request_client(method, node_url, path, data, callback);}
       else{net.make_request_node(method, node_url, path, data, callback);}
-    }
-    catch(err){
+    } catch(err){
       console.log('CENode network error: '+err);
     }
   },  
@@ -2218,8 +2212,7 @@ if(!util.on_client() && require.main === module){
               node.add_sentences(data.sentences);
             }
             response.writeHead(201);
-          }
-          catch(err){
+          } catch(err){
             console.log(err);
             response.writeHead(500);
             response.write(err.toString());
@@ -2250,14 +2243,12 @@ if(!util.on_client() && require.main === module){
                 }
                 response.writeHead(201);
                 response.end();   
-              }
-              catch(err){
+              } catch(err){
                 response.writeHead(500);
                 response.end(err.toString());
               }
             });
-          }
-          catch(err){
+          } catch(err){
             response.writeHead(500);
             response.end(err.toString());
           }
