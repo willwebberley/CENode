@@ -159,7 +159,7 @@ function CENode(){
       while(stack.length > 0){
         var current = stack.pop();
         children.push(current);
-        var current_children = get_children(current);
+        var current_children = current.children;
         if(current_children != null){
           for(var i = 0; i < current_children.length; i++){
             stack.push(current_children[i]);
@@ -294,7 +294,7 @@ function CENode(){
     this._values = [];
     this._relationships = [];
     var instance = this;
-    var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences'];
+    var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
 
     Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {get: function(){
       return instance;
@@ -314,9 +314,9 @@ function CENode(){
       var vals = [];
       for(var i = 0; i < instance._values.length; i++){
         var value = {};
-        value.descriptor = _.values[i].descriptor;
-        if(_.values[i].type_id == 0){
-          value.instance = _.values[i].type_name;
+        value.descriptor = instance._values[i].descriptor;
+        if(instance._values[i].type_id == 0){
+          value.instance = instance._values[i].type_name;
         } 
         else{
           value.instance = get_instance_by_id(instance._values[i].type_id);
@@ -359,15 +359,17 @@ function CENode(){
         var value_name_field = descriptor.toLowerCase().replace(/ /g, '_');
         if(reserved_fields.indexOf(value_name_field) == -1){
           Object.defineProperty(instance, value_name_field, {get: function(){return value.type_id == 0 ? value.type_name : get_instance_by_id(value.type_id);}, configurable: true});
-          Object.defineProperty(instance, value_name_field+'s', {get: function(){
-            var instances = [];
-            for(var i = 0; i < instance._values.length; i++){
-              if(instance._values[i].descriptor.toLowerCase().replace(/ /g, '_') == value_name_field){
-                instances.push(instance._values[i].type_id == 0 ? instance._values[i].type_name : get_instance_by_id(instance._values[i].type_id));
+          if(reserved_fields.indexOf(value_name_field+'s') == -1){
+            Object.defineProperty(instance, value_name_field+'s', {get: function(){
+              var instances = [];
+              for(var i = 0; i < instance._values.length; i++){
+                if(instance._values[i].descriptor.toLowerCase().replace(/ /g, '_') == value_name_field){
+                  instances.push(instance._values[i].type_id == 0 ? instance._values[i].type_name : get_instance_by_id(instance._values[i].type_id));
+                }
               }
-            }
-            return instances;
-          }});
+              return instances;
+            }});
+          }
         }
       }
     }
@@ -382,15 +384,17 @@ function CENode(){
         var rel_name_field = label.toLowerCase().replace(/ /g, '_');
         if(reserved_fields.indexOf(rel_name_field) == -1){
           Object.defineProperty(instance, rel_name_field, {get: function(){return get_instance_by_id(relationship.target_id);}, configurable: true});
-          Object.defineProperty(instance, rel_name_field+'s', {get: function(){
-            var instances = [];
-            for(var i = 0; i < instance._relationships.length; i++){
-              if(instance._relationships[i].label.toLowerCase().replace(/ /g, '_') == rel_name_field){
-                instances.push(get_instance_by_id(instance._relationships[i].target_id));
+          if(reserved_fields.indexOf(rel_name_field+'s') == -1){
+            Object.defineProperty(instance, rel_name_field+'s', {get: function(){
+              var instances = [];
+              for(var i = 0; i < instance._relationships.length; i++){
+                if(instance._relationships[i].label.toLowerCase().replace(/ /g, '_') == rel_name_field){
+                  instances.push(get_instance_by_id(instance._relationships[i].target_id));
+                }
               }
-            }
-            return instances;
-          }});
+              return instances;
+            }});
+          }
         }
       }
     }
@@ -493,15 +497,17 @@ function CENode(){
       if(_concepts[i].name.toLowerCase() == name.toLowerCase()){
         return _concepts[i];
       }
-      if(_concepts[i].synonyms != null){
-        for(var j = 0; j < _concepts[i].synonyms.length; j++){
-          if(_concepts[i].synonyms[j] == name){
-            return _concepts[i];
-          }
-        }
-      }
     }
     return null;
+  }
+
+  /* 
+   * Get the instance with ID 'id'
+   *
+   * Returns: obj{instance}
+   */
+  var get_instance_by_id = function(id) {
+    return _instance_dict[id];
   }
 
   /*
@@ -517,80 +523,6 @@ function CENode(){
       }
     }
     return null;
-  }
-
-  /* 
-   * Get the instance with ID 'id'
-   *
-   * Returns: obj{instance}
-   */
-  var get_instance_by_id = function(id) {
-    if(id==null){return null;}
-    for(var i = 0; i<_instances.length; i++) {
-      if(_instances[i].id == id){
-        return _instances[i];
-      }
-    }
-    return null;
-  }
-
-  /*
-   * Get all ancestors of the given concept, INCLUDING the given concept
-   *
-   * Returns: [obj{concept}]
-   */
-  var get_recursive_parents = function(concept){
-    var parents = [];
-    var stack = [];
-    stack.push(concept);
-    while(stack.length > 0){
-      var current = stack.pop();
-      parents.push(current);
-      for(var i = 0; i < current.parents.length; i++){
-        stack.push(current.parents[i]);
-      }
-    }
-    return parents;
-  }
-
-  /*
-   * Get direct children of given concept
-   *
-   * Returns: [obj{concept}]
-   */
-  var get_children = function(concept){
-    var children = [];
-    for(var i = 0; i < _concepts.length; i++){
-      for(var j = 0; j < _concepts[i].parents.length; j++){
-        if(_concepts[i].parents[j].id == concept.id){
-          children.push(_concepts[i]);
-        }
-      }
-    }
-    return children;
-  }
-
-  /* 
-   * Get all children, grandchildren, etc. of given concept, INCLUDING the given concept
-   *
-   * Returns: [obj{concept}]
-   */
-  var get_recursive_children = function(concept){
-    if(concept == null){return [];}
-    var children = [];
-    var stack = [];
-    stack.push(concept);
-    while(stack.length > 0){
-      var current = stack.pop();
-      children.push(current);
-      var current_children = get_children(current);
-      if(current_children != null){
-        for(var i = 0; i < current_children.length; i++){
-          stack.push(current_children[i]);
-        }
-      }
-    }
-    return children;
   }
 
   this.parse_rule = function(instruction){
@@ -656,7 +588,7 @@ function CENode(){
 
                 
         if(object_instance != null){
-          var rule_if_children = get_recursive_parents(get_concept_by_id(object_instance.concept_id));
+          var rule_if_children = object_instance.type.ancestors;
           for(var j = 0; j < rule_if_children.length; j++){
             if(rule_if_children[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
               if(rule.then.relationship && rule.then.relationship.type == concept.name){
@@ -671,8 +603,6 @@ function CENode(){
       }
     }
   } 
-
-
 
   /*
    * Submit CE to be processed by node. 
@@ -1001,11 +931,6 @@ function CENode(){
                   _instance_dict[relationship_instance.id] = relationship_instance
                 }
               }
-
-              var relationship = {};
-              relationship.label = relationship_label;
-              relationship.target_name = relationship_instance.name;
-              relationship.target_id = relationship_instance.id;
 
               // Writepoint
               if(nowrite == null || nowrite == false){
@@ -1432,22 +1357,24 @@ function CENode(){
     }
     else if(concept_type != null && (recurse == null || recurse == false)){
       var concept = get_concept_by_name(concept_type);
-      if(concept == null){
-        return instance_list;
-      }
-      for(var i = 0; i < _instances.length; i++){
-        if(_instances[i].concept_id == concept.id){
-          instance_list.push(_instances[i]);
+      if(concept){
+        for(var i = 0; i < _instances.length; i++){
+          if(_instances[i].type.id == concept.id){
+            instance_list.push(_instances[i]);
+          }
         }
       }
     }
     else if(concept_type != null && recurse == true){
-      var all_children = get_recursive_children(get_concept_by_name(concept_type));
-      var children_ids = [];
-      for(var i = 0; i < all_children.length; i++){children_ids.push(all_children[i].id);}
-      for(var i = 0; i < _instances.length; i++){
-        if(children_ids.indexOf(_instances[i].concept_id) > -1){
-          instance_list.push(_instances[i]);
+      var concept = get_concept_by_name(concept_type);
+      if(concept){
+        var descendants = concept.descendants.concat(concept);
+        var children_ids = [];
+        for(var i = 0; i < descendants.length; i++){children_ids.push(descendants[i].id);}
+        for(var i = 0; i < _instances.length; i++){
+          if(children_ids.indexOf(_instances[i].type.id) > -1){
+            instance_list.push(_instances[i]);
+          }
         }
       }
     }
