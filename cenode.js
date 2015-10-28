@@ -102,7 +102,9 @@ function CENode(){
     this._parents = [];
     this._values = [];
     this._relationships = [];
+    this._synonyms = [];
     var concept = this;
+    var reserved_fields = ['values', 'relationships', 'synonyms', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'sentences', 'ce', 'gist'];
 
     Object.defineProperty(concept, 'instances', {get: function(){
       var instances = [];
@@ -110,6 +112,18 @@ function CENode(){
         if(_instances[i].type.id == concept.id){
           instances.push(_instances[i]);
         } 
+      }
+      return instances;
+    }});
+    Object.defineProperty(concept, 'all_instances', {get: function(){
+      var all_concepts = concept.descendants.concat(concept);
+      var instances = [];
+      for(var i = 0; i < _instances.length; i++){
+        for(var j = 0; j < all_concepts.length; j++){
+          if(_instances[i].type.id == all_concepts[j].id){
+            instances.push(_instances[i]);
+          } 
+        }
       }
       return instances;
     }});
@@ -193,23 +207,36 @@ function CENode(){
       }
       return vals;
     }});
+    Object.defineProperty(concept, 'synonyms', {get: function(){
+      return concept._synonyms;
+    }});
    
     this.add_value = function(descriptor, type){
       var value = {};
       value.descriptor = descriptor;
       value.type = typeof type === 'number' ? type : type.id;
       concept._values.push(value); 
+      Object.defineProperty(concept, descriptor.toLowerCase().replace(/ /g, '_'), {get: function(){return type == 0 ? 'value' : type;}, configurable: true});
     }
     this.add_relationship = function(label, target){
       var relationship = {};
       relationship.label = label;
       relationship.target = target.id;
       concept._relationships.push(relationship);
+      Object.defineProperty(concept, label.toLowerCase().replace(/ /g, '_'), {get: function(){return target;}, configurable: true});
     } 
     this.add_parent = function(parent_concept){
       if(this.parents.indexOf(parent_concept.id) == -1){
         concept._parents.push(parent_concept.id);
       }
+    }
+    this.add_synonym = function(synonym){
+      for(var i = 0; i < concept._synonyms.length; i++){
+        if(concept._synonyms[i].toLowerCase() == synonym.toLowerCase()){
+          return;
+        }
+      }
+      concept._synonyms.push(synonym);
     }
   
     Object.defineProperty(concept, 'ce', {get: function(){ 
@@ -253,7 +280,6 @@ function CENode(){
       }
       return ce;
     }});
-
     Object.defineProperty(concept, 'gist', {get: function(){
       var gist = "";
       if(concept.parents.length > 0){gist += "A "+concept.name;}
@@ -293,13 +319,15 @@ function CENode(){
     this.sentences = [];
     this._values = [];
     this._relationships = [];
+    this._synonyms = [];
     var instance = this;
-    var reserved_fields = ['values', 'relationships', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
+    var reserved_fields = ['values', 'relationships', 'synonyms', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
 
     Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {get: function(){
       return instance;
     }, configurable: true});
     Object.defineProperty(instance, 'type', {get: function(){for(var i = 0; i < _concepts.length; i++){if(_concepts[i].id == type.id){return _concepts[i];}}}});
+    Object.defineProperty(type, name.toLowerCase(), {get: function(){return instance;}});
     Object.defineProperty(instance, 'relationships', {get: function(){
       var rels = [];
       for(var i = 0; i < instance._relationships.length; i++){
@@ -335,15 +363,11 @@ function CENode(){
       ancestor_instances.push(instance.type);
       var properties = {values: [], relationships: []};
       for(var i = 0; i < ancestor_instances.length; i++){
-        if(ancestor_instances[i].values){
-          for(var j = 0; j < ancestor_instances[i].values.length; j++){
-            properties.values.push(ancestor_instances[i].values[j].descriptor.toLowerCase());
-          }
+        for(var j = 0; j < ancestor_instances[i].values.length; j++){
+          properties.values.push(ancestor_instances[i].values[j].descriptor.toLowerCase());
         }
-        if(ancestor_instances[i].relationships){
-          for(var j = 0; j < ancestor_instances[i].relationships.length; j++){
-            properties.relationships.push(ancestor_instances[i].relationships[j].label.toLowerCase());
-          }
+        for(var j = 0; j < ancestor_instances[i].relationships.length; j++){
+          properties.relationships.push(ancestor_instances[i].relationships[j].label.toLowerCase());
         }
       }
       return properties;
@@ -371,6 +395,7 @@ function CENode(){
             }});
           }
         }
+        enact_rules(instance, 'value', value_instance);
       }
     }
 
@@ -396,9 +421,44 @@ function CENode(){
             }});
           }
         }
+        enact_rules(instance, 'relationship', relationship_instance);
       }
     }
 
+    this.add_synonym = function(synonym){
+      for(var i = 0; i < instance._synonyms.length; i++){
+        if(instance._synonyms[i].toLowerCase() == synonym.toLowerCase()){
+          return;
+        }
+      }
+      instance._synonyms.push(synonym);
+      Object.defineProperty(instance, synonym.toLowerCase().replace(/ /g, '_'), {get: function(){return instance;}});
+    }
+
+    this.property = function(property_name){
+      return instance.properties(property_name, true);
+    }   
+
+    this.properties = function(property_name, find_one){
+      var properties = [];
+      for(var i = 0; i < instance.values.length; i++){
+        if(instance.values[i].descriptor.toLowerCase() == property_name.toLowerCase()){
+          if(find_one){return instance.values[i].instance;}
+          properties.push(instance.values[i].instance);
+        }
+      }
+      for(var i = 0; i < instance.relationships.length; i++){
+        if(instance.relationships[i].label.toLowerCase() == property_name.toLowerCase()){
+          if(find_one){return instance.relationships[i].instance;}
+          properties.push(instance.relationships[i].instance);
+        }
+      }
+      return find_one ? null : properties;
+    }
+  
+    Object.defineProperty(instance, 'synonyms', {get: function(){
+      return instance._synonyms;
+    }});
     Object.defineProperty(instance, 'ce', {get: function() {
       var concept = instance.type;
       if(concept == null){return;}
@@ -497,8 +557,12 @@ function CENode(){
       if(_concepts[i].name.toLowerCase() == name.toLowerCase()){
         return _concepts[i];
       }
+      for(var j = 0; j < _concepts[i].synonyms.length; j++){
+        if(_concepts[i].synonyms[j].toLowerCase() == name.toLowerCase()){
+          return _concepts[i];
+        }
+      }
     }
-    return null;
   }
 
   /* 
@@ -521,8 +585,12 @@ function CENode(){
       if(_instances[i].name.toLowerCase() == name.toLowerCase()){
         return _instances[i];
       }
+      for(var j = 0; j < _instances[i].synonyms.length; j++){
+        if(_instances[i].synonyms[j].toLowerCase() == name.toLowerCase()){
+          return _instances[i];
+        }
+      }
     }
-    return null;
   }
 
   this.parse_rule = function(instruction){
@@ -570,22 +638,19 @@ function CENode(){
   }
 
   var enact_rules = function(subject_instance, property_type, property){
-    var concept = get_concept_by_id(subject_instance.concept_id);
+    var concept = subject_instance.type;
     var rules = node.get_instances("rule");
     for(var i = 0; i < rules.length; i++){
       var rule = node.parse_rule(rules[i].instruction);
       if(rule == null){return;}
       if(rule.if.concept == concept.name){
-
         var object_instance = null;
-        
         if(property_type == "relationship" && rule.if.relationship != null){
           object_instance = get_instance_by_id(property.target_id);
         }
         else if(property_type == "value" && rule.if.value != null){
           object_instance = get_instance_by_id(property.type_id);
         }
-
                 
         if(object_instance != null){
           var rule_if_children = object_instance.type.ancestors;
@@ -680,7 +745,6 @@ function CENode(){
 
     else if(t.match(/^conceptualise the/i)){
       var concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
-      
       concept = get_concept_by_name(concept_info[1]);
       if(!concept){
          message = "Concept "+concept_info[1]+" not known."; // if can't find concept, then fail
@@ -690,6 +754,13 @@ function CENode(){
       var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b|)/g);
       for(var i = 0; i < facts.length; i++){
         var fact = facts[i].trim();
+
+        if(fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/)){
+          var facts_info = fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/);
+          if(nowrite == null || nowrite == false){
+            concept.add_synonym(facts_info[1]);
+          }
+        }
 
         // "concept C ~ label ~ the target T"  (e.g. the teacher T ~ teaches ~ the student S)
         if(fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
@@ -751,7 +822,7 @@ function CENode(){
     }
 
     else if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)){
-      var concept_facts_multiword, concept_facts_singleword, value_facts, relationship_facts_multiword, relationship_facts_singleword;
+      var concept_facts_multiword, concept_facts_singleword, value_facts, relationship_facts_multiword, relationship_facts_singleword, synonym_facts;
       var instance, concept;
       if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)){
         var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
@@ -786,7 +857,7 @@ function CENode(){
         value_facts = t.match(/(?:\bthat\b|\band\b) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
         relationship_facts_multiword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); 
         relationship_facts_singleword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
-
+        synonym_facts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
       }
       else if(t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
         var concept_name, instance_name;
@@ -826,7 +897,7 @@ function CENode(){
         value_facts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
         relationship_facts_multiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g); 
         relationship_facts_singleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
-
+        synonym_facts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
       }
 
       if(concept == null || instance == null){
@@ -937,6 +1008,16 @@ function CENode(){
                 instance.add_relationship(relationship_label, relationship_instance);
               }
             }
+          }
+        }
+      }}
+      
+      if(synonym_facts){for(var i = 0; i < synonym_facts.length; i++){
+        if(synonym_facts[i] != null){
+          var fact = synonym_facts[i].trim();
+          var facts_info = fact.match(/is expressed by ('([^'\\]*(?:\\.[^'\\]*)*)')/);
+          if(nowrite == null || nowrite == false){
+            instance.add_synonym(facts_info[2]);
           }
         }
       }}
@@ -1283,7 +1364,11 @@ function CENode(){
     var possible_words = [];
     if(t == ""){return t;}
     if(number_of_tildes == 1){
-      return t+" ~ "+tokens[index_of_first_tilde+1].charAt(0).toUpperCase()+" ";
+      try{
+        return t+" ~ "+tokens[index_of_first_tilde+1].charAt(0).toUpperCase()+" ";
+      } catch(err){
+        console.log(err);
+      }
     }
     if(s.match(/^conceptualise a ~ (.*) ~ [A-Z] /)){
       return t+" that ";
@@ -1708,7 +1793,6 @@ function CEAgent(n){
         return instances[i];
       }
     }
-    return null;
   }
 
   var enact_policies = function(){
