@@ -1254,7 +1254,7 @@ function CENode(){
       }
     }
     if(focus_instance != null){
-      var focus_concept = get_concept_by_id(focus_instance.concept_id);
+      var focus_concept = focus_instance.type;
 
       var focus_instance_words = focus_instance.name.toLowerCase().split(" ");
       var focus_concept_words = focus_concept.name.toLowerCase().split(" ");
@@ -1265,10 +1265,11 @@ function CENode(){
       var facts = [];
 
       var parents = focus_concept.ancestors;
-      parents = parents.push(focus_concept);
+      parents.push(focus_concept);
+
       var possible_relationships = [];
       var possible_values = [];
-      for (var i = 0; i<parents.length; i++) {
+      for (var i = 0; i < parents.length; i++) {
         possible_relationships = possible_relationships.concat(parents[i].relationships);
         possible_values = possible_values.concat(parents[i].values);
       }
@@ -1281,8 +1282,8 @@ function CENode(){
           var value_words = possible_values[i].descriptor.toLowerCase().split(" ");
           for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
 
-          if(possible_values[i].type > 0){
-            var value_concept = get_concept_by_id(possible_values[i].type);
+          if(possible_values[i].concept){
+            var value_concept = possible_values[i].concept;
             var value_instances = node.get_instances(value_concept.name, true);
             for(var j = 0; j < value_instances.length; j++){
               if(f.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
@@ -1306,8 +1307,8 @@ function CENode(){
           }
         }
         for(var i = 0; i < possible_relationships.length; i++){
-          if(possible_relationships[i].target > 0){
-            var rel_concept = get_concept_by_id(possible_relationships[i].target);
+          if(possible_relationships[i].concept){
+            var rel_concept = possible_relationships[i].concept;
             var rel_instances = node.get_instances(rel_concept.name, true);
             for(var j = 0; j < rel_instances.length; j++){
               if(f.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
