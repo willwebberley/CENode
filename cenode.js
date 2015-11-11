@@ -327,7 +327,7 @@ function CENode(){
       return instance;
     }, configurable: true});
     Object.defineProperty(instance, 'type', {get: function(){for(var i = 0; i < _concepts.length; i++){if(_concepts[i].id == type.id){return _concepts[i];}}}});
-    Object.defineProperty(type, name.toLowerCase(), {get: function(){return instance;}});
+    Object.defineProperty(type, name.toLowerCase(), {get: function(){return instance;}, configurable: true});
     Object.defineProperty(instance, 'relationships', {get: function(){
       var rels = [];
       for(var i = 0; i < instance._relationships.length; i++){
@@ -373,7 +373,7 @@ function CENode(){
       return properties;
     }
 
-    this.add_value = function(label, value_instance){
+    this.add_value = function(label, value_instance, propagate){
       if(get_possible_properties().values.indexOf(label.toLowerCase()) > -1){
         var value = {};
         value.label = label;
@@ -395,11 +395,13 @@ function CENode(){
             }});
           }
         }
-        enact_rules(instance, 'value', value_instance);
+        if(propagate == null || propagate != false){
+          enact_rules(instance, 'value', value_instance);
+        }
       }
     }
 
-    this.add_relationship = function(label, relationship_instance){
+    this.add_relationship = function(label, relationship_instance, propagate){
       if(get_possible_properties().relationships.indexOf(label.toLowerCase()) > -1){
         var relationship = {};
         relationship.label = label;
@@ -421,7 +423,9 @@ function CENode(){
             }});
           }
         }
-        enact_rules(instance, 'relationship', relationship_instance);
+        if(propagate == null || propagate != false){
+          enact_rules(instance, 'relationship', relationship_instance);
+        }
       }
     }
 
@@ -638,6 +642,9 @@ function CENode(){
   }
 
   var enact_rules = function(subject_instance, property_type, object_instance){
+    if(typeof object_instance == "string"){
+      return;
+    }
     var rules = node.get_instances("rule");
     for(var i = 0; i < rules.length; i++){
       var rule = node.parse_rule(rules[i].instruction);
@@ -647,15 +654,12 @@ function CENode(){
           var ancestor_concepts = object_instance.type.ancestors;
           ancestor_concepts.push(object_instance.type);
           for(var j = 0; j < ancestor_concepts.length; j++){
-            //console.log('\nSTUFF\n');
-            //console.log(ancestor_concepts[j]); 
-            //console.log(rule.if[property_type]);
             if(ancestor_concepts[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
               if(rule.then.relationship && rule.then.relationship.type == subject_instance.type.name){
-                object_instance.add_relationship(rule.then.relationship.label, subject_instance); 
+                object_instance.add_relationship(rule.then.relationship.label, subject_instance, false); 
               }
               else if(rule.then.value && rule.then.value.type == subject_instance.type.name){
-                object_instance.add_value(rule.then.value.label, subject_instance);
+                object_instance.add_value(rule.then.value.label, subject_instance, false);
               }
             }
           }
@@ -1043,26 +1047,27 @@ function CENode(){
       var places = {};
       var place_found = false;
       for(var i = 0; i < locatable_instances.length; i++){locatable_ids.push(locatable_instances[i].id);}
-      if(instance.values!=null){for(var i = 0; i < instance.values.length; i++){
-        if(locatable_ids.indexOf(instance.values[i].type_id) > -1){
-          var place = "has "+instance.values[i].type_name+" as "+instance.values[i].label;
+      
+      for(var i = 0; i < instance.values.length; i++){
+        if(locatable_ids.indexOf(instance.values[i].instance.id) > -1){
+          var place = "has "+instance.values[i].instance.name+" as "+instance.values[i].label;
           if(!(place in places)){
             places[place] = 0;
           }
           places[place]++;
           place_found = true;
         }
-      }}
-      if(instance.relationships!=null){for(var i = 0; i < instance.relationships.length; i++){
-        if(locatable_ids.indexOf(instance.relationships[i].target_id) > -1){
-          var place = instance.relationships[i].label+" "+instance.relationships[i].target_name;
+      }
+      for(var i = 0; i < instance.relationships.length; i++){
+        if(locatable_ids.indexOf(instance.relationships[i].instance.id) > -1){
+          var place = instance.relationships[i].label+" "+instance.relationships[i].instance.name;
           if(!(place in places)){
             places[place] = 0;
           }
           places[place]++;
           place_found = true;
         }
-      }}
+      }
       if(!place_found){
         message = "I don't know where "+instance.name+" is.";
         return [true, message];
@@ -1098,7 +1103,7 @@ function CENode(){
         var vals = _instances[i].values;
         var rels = _instances[i].relationships;
         if(vals!=null){for(var j = 0; j < vals.length; j++){
-          if(vals[j].type_id == instance.id){
+          if(vals[j].instance.id == instance.id){
             var thing = "the "+_instances[i].type.name+" "+_instances[i].name+" has the "+instance.type.name+" "+instance.name+" as "+vals[j].label;
             if(!(thing in things)){
               things[thing] = 0;
@@ -1108,7 +1113,7 @@ function CENode(){
           }
         }}   
         if(rels!=null){for(var j = 0; j < rels.length; j++){
-          if(rels[j].target_id == instance.id){
+          if(rels[j].instance.id == instance.id){
             var thing = "the "+_instances[i].type.name+" "+_instances[i].name+" "+rels[j].label+" the "+instance.type.name+" "+instance.name;
             if(!(thing in things)){
               things[thing] = 0;
@@ -1653,7 +1658,6 @@ function CEAgent(n){
     return last_successful_request;
   }
   this.handle_card = function(card){
-    try{
       var from = card.is_from;
       var tos = card.is_tos;
       var content = card.content;
@@ -1710,7 +1714,7 @@ function CEAgent(n){
       else if(card.type.name == "tell card"){
         // Add the CE sentence to the node
         var data = node.add_ce(content); 
-        if(!data.sucess){
+        if(!data.success){
           return node.add_sentence("there is a gist card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has 'Sorry. Your input was not understood.' as content and is in reply to the card '"+card.name+"'.");
         }
         var response_card;
@@ -1773,9 +1777,6 @@ function CEAgent(n){
         node.add_sentence(new_card);
         return new_card;
       }
-    } catch(err){
-      console.log(err);
-    }
   }
 
   var poll_cards = function(){
