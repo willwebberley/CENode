@@ -285,7 +285,7 @@ function CENode(){
       if(concept.parents.length > 0){gist += "A "+concept.name;}
       for(var i = 0; i < concept.parents.length; i++){
         gist += " is a type of "+concept.parents[i].name;
-        if(i < concept.parents.length-1){ce+=" and";}
+        if(i < concept.parents.length-1){gist+=" and";}
       }
       if(concept.parents.length > 0){gist += ".";}
       var facts = [];
@@ -1167,16 +1167,14 @@ function CENode(){
                   possibilities.push("is a possible value of a type of "+_concepts[i].name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' has 'VALUE' as "+name+"\")");
                 }
                 else{
-                  var val_type = get_concept_by_id(v.type);
-                  possibilities.push("is a possible "+val_type.name+" type of a type of "+_concepts[i].name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' has the "+val_type.name+" '"+val_type.name.toUpperCase()+" NAME' as "+name+"\")");
+                  possibilities.push("is a possible "+v.concept.name+" type of a type of "+_concepts[i].name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' has the "+v.concept.name+" '"+v.concept.name.toUpperCase()+" NAME' as "+name+"\")");
                 }
               }     
             }
             for(var j = 0; j < _concepts[i].relationships.length; j++){
               var r = _concepts[i].relationships[j];
               if(r.label.toLowerCase() == name.toLowerCase()){
-                var r_type = get_concept_by_id(r.target);
-                possibilities.push("describes the relationship between a type of "+_concepts[i].name+" and a type of "+r_type.name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' "+name+" the "+r_type.name+" '"+r_type.name.toUpperCase()+" NAME'\")");
+                possibilities.push("describes the relationship between a type of "+_concepts[i].name+" and a type of "+r.concept.name+" (e.g. \"the "+_concepts[i].name+" '"+_concepts[i].name.toUpperCase()+" NAME' "+name+" the "+r.concept.name+" '"+r.concept.name.toUpperCase()+" NAME'\")");
               }
             }
           }
@@ -1246,7 +1244,7 @@ function CENode(){
     var focus_instance=null;
     var smallest_index = 999999;
     for(var i = 0; i < _instances.length; i++){
-      var possible_names = [_instances[i].name].concat(_instances[i].synonyms);
+      var possible_names = _instances[i].synonyms.concat(_instances[i].name);
       for(var j = 0; j < possible_names.length; j++){
         if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) > -1){
           if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) < smallest_index){
@@ -1289,7 +1287,7 @@ function CENode(){
             var value_concept = possible_values[i].concept;
             var value_instances = node.get_instances(value_concept.name, true);
             for(var j = 0; j < value_instances.length; j++){
-              var possible_names = [value_instances[j].name].concat(value_instances[j].synonyms);
+              var possible_names = value_instances[j].synonyms.concat(value_instances[j].name);
               for(var l = 0; l < possible_names.length; l++){
                 if(f.toLowerCase().indexOf(possible_names[l].toLowerCase())>-1){
                   facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].label);
@@ -1317,7 +1315,7 @@ function CENode(){
             var rel_concept = possible_relationships[i].concept;
             var rel_instances = node.get_instances(rel_concept.name, true);
             for(var j = 0; j < rel_instances.length; j++){
-              var possible_names = [rel_instances.name].concat(rel_instances.synonyms);
+              var possible_names = rel_instances[j].synonyms.concat(rel_instances[j].name);
               for(var k = 0; k < possible_names.length; k++){
                 if(f.toLowerCase().indexOf(possible_names[k].toLowerCase())>-1){
                   facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
