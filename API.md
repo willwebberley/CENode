@@ -176,6 +176,11 @@ A string representing the CE sentence(s) that would be needed in order to constr
 #### `gist`
 A string representing a more casual description of the concept. This is returned when asking the question: 'what is <concept name>?'.
 
+#### Helpers
+Helpers are provided to allow you to access associated CEConcepts through values and relationships. For example, with the card CEConcept, `card.is_to` will give the CEConcept that the 'is to' relationship is associated with (probably a 'person' or 'agent' concept, depending on your implementation).
+
+If you are trying to access a value which is not associated with another CEConcept, then instead the helper will just return the string 'value' to indicate that this value should simply be represented by a string and not an instance of a concept.
+
 ### CEInstance class
 
 Functions and properties of instances of the CEInstance class. Objects of this class represent instances in the KB.
@@ -226,6 +231,11 @@ A string representing the CE that would be required to generate the instance in 
 
 #### `gist`
 A string representing a more casual description of the CEInstance. This is the text returned when asking questions like 'what is <instance name>?' or 'who is <instance name>?'.
+
+#### Helpers
+You can also directly access values and relationships as direct properties of the CEInstance object. For example, for a card instance, `card.is_to` gives the same result as calling `card.property('is to')`. This gives you the latest-reported value or relationship with this name.
+
+Similarly, `card.contents` gives the same result as calling `card.properties('content')` - all you do is add an extra 's' at the end to access all of the values or relationships reported with that name.
 
 ### CEAgent class
 

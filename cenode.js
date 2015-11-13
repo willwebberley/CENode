@@ -1246,10 +1246,13 @@ function CENode(){
     var focus_instance=null;
     var smallest_index = 999999;
     for(var i = 0; i < _instances.length; i++){
-      if(t.toLowerCase().indexOf(_instances[i].name.toLowerCase()) > -1){
-        if(t.toLowerCase().indexOf(_instances[i].name.toLowerCase()) < smallest_index){
-          focus_instance = _instances[i];
-          smallest_index = t.toLowerCase().indexOf(_instances[i].name.toLowerCase());
+      var possible_names = [_instances[i].name].concat(_instances[i].synonyms);
+      for(var j = 0; j < possible_names.length; j++){
+        if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) > -1){
+          if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) < smallest_index){
+            focus_instance = _instances[i];
+            smallest_index = t.toLowerCase().indexOf(possible_names[j].toLowerCase());
+          }
         }
       }
     }
@@ -1286,9 +1289,12 @@ function CENode(){
             var value_concept = possible_values[i].concept;
             var value_instances = node.get_instances(value_concept.name, true);
             for(var j = 0; j < value_instances.length; j++){
-              if(f.toLowerCase().indexOf(value_instances[j].name.toLowerCase())>-1){
-                facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].label);
-                break;
+              var possible_names = [value_instances[j].name].concat(value_instances[j].synonyms);
+              for(var l = 0; l < possible_names.length; l++){
+                if(f.toLowerCase().indexOf(possible_names[l].toLowerCase())>-1){
+                  facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].label);
+                  break;
+                }
               }
             }
           }
@@ -1311,9 +1317,12 @@ function CENode(){
             var rel_concept = possible_relationships[i].concept;
             var rel_instances = node.get_instances(rel_concept.name, true);
             for(var j = 0; j < rel_instances.length; j++){
-              if(f.toLowerCase().indexOf(rel_instances[j].name.toLowerCase())>-1){
-                facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
-                break;
+              var possible_names = [rel_instances.name].concat(rel_instances.synonyms);
+              for(var k = 0; k < possible_names.length; k++){
+                if(f.toLowerCase().indexOf(possible_names[k].toLowerCase())>-1){
+                  facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
+                  break;
+                }
               }
             }
           }
@@ -1780,13 +1789,15 @@ function CEAgent(n){
   }
 
   var poll_cards = function(){
-    setTimeout(function(){
-      var card_list = node.get_instances("card", true);
-      for(var i = 0; i < card_list.length; i++){
-        ce_agent.handle_card(card_list[i]); 
-      }
-      poll_cards();
-    }, 200);
+    if(setTimeout){
+      setTimeout(function(){
+        var card_list = node.get_instances("card", true);
+        for(var i = 0; i < card_list.length; i++){
+          ce_agent.handle_card(card_list[i]); 
+        }
+        poll_cards();
+      }, 200);
+    }
   }
 
   var get_instance = function(){
@@ -1799,157 +1810,159 @@ function CEAgent(n){
   }
 
   var enact_policies = function(){
-    setTimeout(function(){
-      try{
-        var tell_policies = node.get_instances("tell policy");
-        var ask_policies = node.get_instances("ask policy");
-        var listen_policies = node.get_instances("listen policy");
-        var forwardall_policies = node.get_instances("forwardall policy");
+    if(setTimeout){
+      setTimeout(function(){
+        try{
+          var tell_policies = node.get_instances("tell policy");
+          var ask_policies = node.get_instances("ask policy");
+          var listen_policies = node.get_instances("listen policy");
+          var forwardall_policies = node.get_instances("forwardall policy");
 
-        // For each tell policy in place, send all currently-untold cards to each target
-        // To save on transit costs, if there are multiple cards to be sent to one target, they are 
-        // separated by new line (\n)
-        for(var i = 0; i < tell_policies.length; i++){
-          var target = tell_policies[i].target;
-          if(target && target.name){
-            var cards = unsent_tell_cards[target.name];
-            if(cards){
-              var data = "";
-              for(var j = 0; j < cards.length; j++){
-                try{
-                  var card = cards[j];
-                  var from = card.is_from;
-                  var tos = card.is_tos;
-                  if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
-                    // Make sure target is not already a recipient
-                    var in_card = false;
-                    for(var k = 0; k < tos.length; k++){
-                      if(tos[k].id == target.id){in_card = true;break;}
-                    }
-                    if(!in_card){
-                      card.add_relationship("is to", target);
-                    }
-                    data += card.ce+"\n";
-                  }
-                } catch(err){}
-              }
-              if(data != ""){
-                net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
-                  last_successful_request = new Date().getTime();
-                  unsent_tell_cards[target.name] = [];
-                });
-              }
-            }
-          }
-        }
-
-        // For each ask policy in place, send all currently-untold cards to each target
-        // To save on transit costs, if there are multiple cards to be sent to one target, they are 
-        // separated by new line (\n)
-        for(var i = 0; i < ask_policies.length; i++){
-          var target = ask_policies[i].target;
-          if(target && target.name){
-            var cards = unsent_ask_cards[target.name];
-            if(cards){
-              var data = "";
-              for(var j = 0; j < cards.length; j++){
-                try{
-                  var card = cards[j];
-                  var from = card.is_from;
-                  var froms = card.is_froms;
-                  var tos = card.is_tos;
-                  if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
-                    // Make sure target is not already a recipient
-                    var in_card = false;
-                    for(var k = 0; k < tos.length; k++){
-                      if(tos[k].id == target.id){in_card = true;break;}
-                    }
-                    if(!in_card){
-                      card.add_relationship("is to", target);
-                    }
-                    // Make sure an agent is not already a sender
-                    in_card = false;
-                    for(var k = 0; k < froms.length; k++){
-                      if(froms[k].id == get_instance().id){in_card = true;break;}
-                    }
-                    if(!in_card){
-                      card.add_relationship("is from", get_instance());
-                    }
-                    data += card.ce+"\n";
-                  }
-                } catch(err){}
-              }
-              if(data != ""){
-                net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
-                  last_successful_request = new Date().getTime();
-                  unsent_ask_cards[target.name] = [];
-                });
-              }
-            }
-          }
-        }
-
-        // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
-        for(var i = 0; i < listen_policies.length; i++){
-          var target = listen_policies[i].target;
-          net.make_request("GET", target.address, GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
-            last_successful_request = new Date().getTime();
-            var cards = resp.split("\n");
-            node.add_sentences(cards);
-          });
-        }
-
-        // If there is one enabled forwardall policy, then forward any cards sent to THIS agent
-        // to every other known agent.
-        for(var i = 0; i < forwardall_policies.length; i++){
-          var policy = forwardall_policies[i];
-          if(policy.enabled == "true"){
-            var agents = policy.all_agents == "true" ? node.get_instances("agent") : policy.targets;
-            var cards = node.get_instances("tell card");
-            if(policy.start_time){
-              var start_time = policy.start_time.name;
-              for(var i = 0; i < cards.length; i++){
-                try{
-                  var card = cards[i];
-                  var to_agent = false;
-                  var tos = card.is_to;
-                  var card_timestamp = card.timestamp.name;
-                  if(parseInt(card_timestamp) > parseInt(start_time)){
-                    for(var j = 0; j < tos.length; j++){
-                      if(tos[j].name == name){ // If card sent to THIS agent
-                        to_agent = true;
-                        break;
+          // For each tell policy in place, send all currently-untold cards to each target
+          // To save on transit costs, if there are multiple cards to be sent to one target, they are 
+          // separated by new line (\n)
+          for(var i = 0; i < tell_policies.length; i++){
+            var target = tell_policies[i].target;
+            if(target && target.name){
+              var cards = unsent_tell_cards[target.name];
+              if(cards){
+                var data = "";
+                for(var j = 0; j < cards.length; j++){
+                  try{
+                    var card = cards[j];
+                    var from = card.is_from;
+                    var tos = card.is_tos;
+                    if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
+                      // Make sure target is not already a recipient
+                      var in_card = false;
+                      for(var k = 0; k < tos.length; k++){
+                        if(tos[k].id == target.id){in_card = true;break;}
                       }
+                      if(!in_card){
+                        card.add_relationship("is to", target);
+                      }
+                      data += card.ce+"\n";
                     }
-                    if(to_agent == true){
-                      var from = card.is_froms[0];
+                  } catch(err){}
+                }
+                if(data != ""){
+                  net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
+                    last_successful_request = new Date().getTime();
+                    unsent_tell_cards[target.name] = [];
+                  });
+                }
+              }
+            }
+          }
 
-                      // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
-                      for(var j = 0; j < agents.length; j++){
-                        var agent_is_recipient = false;
-                        for(var k = 0; k < tos.length; k++){
-                          if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
-                            agent_is_recipient = true;
-                            break;   
+          // For each ask policy in place, send all currently-untold cards to each target
+          // To save on transit costs, if there are multiple cards to be sent to one target, they are 
+          // separated by new line (\n)
+          for(var i = 0; i < ask_policies.length; i++){
+            var target = ask_policies[i].target;
+            if(target && target.name){
+              var cards = unsent_ask_cards[target.name];
+              if(cards){
+                var data = "";
+                for(var j = 0; j < cards.length; j++){
+                  try{
+                    var card = cards[j];
+                    var from = card.is_from;
+                    var froms = card.is_froms;
+                    var tos = card.is_tos;
+                    if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
+                      // Make sure target is not already a recipient
+                      var in_card = false;
+                      for(var k = 0; k < tos.length; k++){
+                        if(tos[k].id == target.id){in_card = true;break;}
+                      }
+                      if(!in_card){
+                        card.add_relationship("is to", target);
+                      }
+                      // Make sure an agent is not already a sender
+                      in_card = false;
+                      for(var k = 0; k < froms.length; k++){
+                        if(froms[k].id == get_instance().id){in_card = true;break;}
+                      }
+                      if(!in_card){
+                        card.add_relationship("is from", get_instance());
+                      }
+                      data += card.ce+"\n";
+                    }
+                  } catch(err){}
+                }
+                if(data != ""){
+                  net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
+                    last_successful_request = new Date().getTime();
+                    unsent_ask_cards[target.name] = [];
+                  });
+                }
+              }
+            }
+          }
+
+          // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
+          for(var i = 0; i < listen_policies.length; i++){
+            var target = listen_policies[i].target;
+            net.make_request("GET", target.address, GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+              last_successful_request = new Date().getTime();
+              var cards = resp.split("\n");
+              node.add_sentences(cards);
+            });
+          }
+
+          // If there is one enabled forwardall policy, then forward any cards sent to THIS agent
+          // to every other known agent.
+          for(var i = 0; i < forwardall_policies.length; i++){
+            var policy = forwardall_policies[i];
+            if(policy.enabled == "true"){
+              var agents = policy.all_agents == "true" ? node.get_instances("agent") : policy.targets;
+              var cards = node.get_instances("tell card");
+              if(policy.start_time){
+                var start_time = policy.start_time.name;
+                for(var i = 0; i < cards.length; i++){
+                  try{
+                    var card = cards[i];
+                    var to_agent = false;
+                    var tos = card.is_to;
+                    var card_timestamp = card.timestamp.name;
+                    if(parseInt(card_timestamp) > parseInt(start_time)){
+                      for(var j = 0; j < tos.length; j++){
+                        if(tos[j].name == name){ // If card sent to THIS agent
+                          to_agent = true;
+                          break;
+                        }
+                      }
+                      if(to_agent == true){
+                        var from = card.is_froms[0];
+
+                        // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
+                        for(var j = 0; j < agents.length; j++){
+                          var agent_is_recipient = false;
+                          for(var k = 0; k < tos.length; k++){
+                            if(tos[k].name.toLowerCase() == agents[j].name.toLowerCase()){
+                              agent_is_recipient = true;
+                              break;   
+                            }
+                          }
+                          if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
+                            card.add_relationship("is to", agents[j]);
                           }
                         }
-                        if(!agent_is_recipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
-                          card.add_relationship("is to", agents[j]);
-                        }
                       }
                     }
-                  }
-                } catch(err){}
-              }
-            }         
-            break; 
+                  } catch(err){}
+                }
+              }         
+              break; 
+            }
           }
+        } catch(err){
+          console.log(err);
         }
-      } catch(err){
-        console.log(err);
-      }
-      enact_policies();
-    }, 5000); 
+        enact_policies();
+      }, 5000); 
+    }
   }
 
   this.init = function(){
