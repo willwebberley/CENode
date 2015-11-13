@@ -10,8 +10,12 @@ An application using the library would never instantiate a non-`CENode` CENode o
 
 ### `CENode` class
 
+Functions and properties of instances of the CENode class.
+
 #### `CENode CENode([model1[, model2[, model3 ...]]])`
 Construct a new `CENode` object. This is the only class of the library one should directly instantiate.
+
+`var node = new CENode(model1, model2, ...)`
 
 Constructing this object starts the lifecycle of a CEAgent, whose name is, by default, set to 'Moira'.
 
@@ -100,11 +104,7 @@ Add an array of CE inputs to be interpreted by the node. Internally, this calls 
 #### `reset_all()`
 Empty the node's KB of all instances and concepts.
 
-#### Helpers
-
-CENode instances come with a set of properties that help make writing applications a little quicker and more consise.
-
-##### `instances` 
+#### `instances` 
 Directly access the CEInstance representing an instance known by the node. When accessing, use the instance's lower-cased name using underscores instead of spaces. Examples:
 
 * `node.instances.mrs_smith` - gives the CEInstance of Mrs Smith
@@ -116,5 +116,109 @@ Directly access the CEConcept representing a concept known by the node. Access i
 * `node.concepts.ce_card` - gives the CEConcept representing the 'ce card' concept
 * `node.concepts.card.name` - gives the string 'card'
 
+#### `agent`
+The CEAgent object responsible for maintaining this node.
 
+### `CEConcept` class
 
+Functions and properties of instances of the CEConcept class. Objects of this class represent concepts maintained by the node.
+
+#### `name`
+A string representing the name of the concept.
+
+#### `id`
+An internally-used ID to help maintain the KB. Generally this can be ignored by applications using the API.
+
+#### `instances`
+An array of CEInstances whose type is of the present CEConcept object.
+
+#### `all_instances`
+An array of CEInstances whose type is of the present CEConcept object, and any of the descendants of the concept.
+
+#### `parents`
+An array of CEConcepts representing the parents of the concept.
+
+#### `ancestors`
+An array of CEConcepts representing all ancestors of the concept (parents, grandparents, etc.).
+
+#### `children`
+An array of CEConcepts representing the concepts to whom this concept is a parent.
+
+#### `descendants`
+An array of CEConcepts representing all descendants of the concepts (children, grandhildren, etc.).
+
+#### `relationships`
+An array of standard objects representing the relationships supported by this concept.
+
+Object is of the form:
+
+* `label` - a string identifier describing the relationship
+* `concept` - the CEConcept object the relationship is linked to.
+
+#### `values`
+An array of standard objects representing the values supported by this concept.
+
+Object is of the form:
+
+* `label` - a string identifier describing the value
+* `concept` - if the value is associated with another concept, this is the CEConcept object representing the relevant concept. Otherwise this is undefined.
+
+#### `synonyms`
+An array of strings representing alternative names for this concept. Any of these names can be used when addressing the concept.
+
+#### `ce`
+A string representing the CE sentence(s) that would be needed in order to construct the state of the current concept.
+
+#### `gist`
+A string representing a more casual description of the concept. This is returned when asking the question: 'what is <concept name>?'.
+
+### `CEInstance`
+
+Functions and properties of instances of the CEInstance class. Objects of this class represent instances in the KB.
+
+#### `name`
+The name string of this instance.
+
+#### `id`
+An identifier used to internally recognise this instance.
+
+#### `sentences`
+An array of CE sentences that have been provided that have affected this instance.
+
+#### `type`
+The CEConcept object that this instance is a type of.
+
+#### `relationships`
+An array of standard objects representing the relationships to other instances.
+
+Objects are of the form:
+
+* `label` - a string describing the relationship
+* `instance` - the CEInstance object this instance relates to.
+
+#### `values`
+An array of standard objects representing the values held by this instance.
+
+Objects are of the form:
+
+* `label` - a string describing the value
+* `instance` - if the value refers to another instance, then this field holds a reference to that CEInstance. Otherwise this field holds a string.
+
+Examples of this difference can be observed in the core CE model shipped with the library. CEInstances of type 'card' have a value called 'timestamp' that refers to another instance whose name is the actual value of the timestamp. Cards also have a value called 'content', whose value is a literal string.
+
+If you're unsure on what type of value you're dealing with, ask about the parent concept (e.g. 'what is a card?'), and the response will describe the various properties supported by the concept.
+
+#### `property(label)`
+Return the *most recent* value or relationship that has the label with the name specified. If the property is a relationship, then a CEInstance is returned. If it's a value, then either a CEInstance or a string is returned (see the `values` API documentation for more information).
+
+#### `properties(label)`
+Return an array of CEInstances or strings representing the values or relationships described by the input label.
+
+#### `synonyms`
+A list of strings representing alternative names for this instance. Any of these, or the instance's actual name, can be used when addressing this CEInstance.
+
+#### `ce`
+A string representing the CE that would be required to generate the instance in its current form.
+
+#### `gist`
+A string representing a more casual description of the CEInstance. This is the text returned when asking questions like 'what is <instance name>?' or 'who is <instance name>?'.
