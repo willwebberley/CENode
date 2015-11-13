@@ -2,13 +2,17 @@
 
 This document outlines the APIs provided by the CENode library when used programmatically and as a web service.
 
+In this document, the term CENode is used to refer to the entire system (comprising of a CENode knowledge base - KB - and a CEAgent). It also may be used to refer to the actual CENode class and objects of this type. However, the distinction should generally be clear.
+
+The node maintains a set of concepts and instances, which are represented respectively by the objects of the CEConcept and CEInstance classes.
+
 ## Programmatic API
 
 The programmatic API is accessed through `CENode`, `CEAgent`, `CEConcept`, and `CEInstance` classes. A standard CENode application would usually use one `CENode` object, which would be maintained by a single `CEAgent` object, and would provide references to any number of `CEConcept` and `CEInstance` objects.
 
 An application using the library would never instantiate a non-`CENode` CENode object, as this class is itself responsible for generating objects on your behalf.
 
-### `CENode` class
+### CENode class
 
 Functions and properties of instances of the CENode class.
 
@@ -61,7 +65,7 @@ This function returns a standard object containing these fields:
 
 The optional dryrun argument is a boolean that will still evaluate the input and return the same values, but will not actually update the KB. This might be useful for detecting if an input is considered to be valid CE before carrying out an insertion.
 
-### `ask_question(input)`
+#### `ask_question(input)`
 Queries the node's KB for information about a concept or instance.
 
 This function returns a standard object containing these fields:
@@ -119,7 +123,7 @@ Directly access the CEConcept representing a concept known by the node. Access i
 #### `agent`
 The CEAgent object responsible for maintaining this node.
 
-### `CEConcept` class
+### CEConcept class
 
 Functions and properties of instances of the CEConcept class. Objects of this class represent concepts maintained by the node.
 
@@ -172,7 +176,7 @@ A string representing the CE sentence(s) that would be needed in order to constr
 #### `gist`
 A string representing a more casual description of the concept. This is returned when asking the question: 'what is <concept name>?'.
 
-### `CEInstance`
+### CEInstance class
 
 Functions and properties of instances of the CEInstance class. Objects of this class represent instances in the KB.
 
@@ -222,3 +226,56 @@ A string representing the CE that would be required to generate the instance in 
 
 #### `gist`
 A string representing a more casual description of the CEInstance. This is the text returned when asking questions like 'what is <instance name>?' or 'who is <instance name>?'.
+
+### CEAgent class
+
+Functions and properties of the CEAgent class. Each CENode instance will usually have at least one agent spawned to help maintain it.
+
+#### `set_name(name)`
+Set the name of the agent to the specified name.
+
+#### `get_name()`
+Get the name string of the agent.
+
+#### `get_last_successful_request()`
+If there are policies in place, this function returns the timestamp representing the time at which the last successful connection to another CENode instance occurred.
+
+Otherwise this returns `0`.
+
+#### `handle_card(card_instance)`
+Normally, applications wouldn't need to access this method directly, but it can be useful for asynchronous card-handling.
+
+This function accepts a fully-constructed CEInstance of a subtype of type card. Currently supported card types include 'ce card', 'nl card', and 'ask card'.
+
+Internally, this function uses the `add_ce()`, `ask_question()`, and `add_nl()`, functions of the agent's CENode (depending on the type of card submitted), and returns the content from these functions directly once parsed.
+
+For example, if you submit an ask card with a question in the content, then expect a response consistent with `node.ask_question(question)`.
+
+Note that the agent will ignore the card if it isn't in the recipient list.
+
+## HTTP API
+
+CENode instances can be run as a web service by invoking them directly as a node app:
+
+```bash
+$ node cenode.js
+```
+
+In these cases, the CEAgent effectively exposes itself to the network and provides HTTP methods to interact with its CENode. Note that the web interface currently only supports minimal interaction with CENode and its components.
+
+### `GET /`
+Download a webpage representing a control panel for carrying out simple maintenance on a CENode.
+
+### `GET /reset`
+Calls the CENode's `reset_all()` function to empty it of instances and concepts.
+
+### `GET /cards`
+Return all cards known by the CENode in line-delimited CE.
+
+### `POST /agent_name`
+Send a string representing a new name to assign the agent.
+
+### `POST /sentences`
+Send a line-delimited set of sentences to be processed by the node. These use the node's `add_sentence()` method, so each sentence can be a question, CE, or NL. 
+
+The method responds by sending back the data field returned by `add_sentence()` in the same order as the input sentences (such that the data in line 3 of the response corresponds to the input sentence in line 3 of the request body).
