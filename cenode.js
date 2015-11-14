@@ -1670,10 +1670,13 @@ function CEAgent(n){
       var content = card.content;
       var sent_to_this_agent = false;
 
+      if(!tos || !content){
+        return;
+      }
+
       // Determine whether or not to read or ignore this card:
       if(handled_cards.indexOf(card.name) > -1){return;}
       handled_cards.push(card.name);
-      if(content == null){return;}
       for(var i = 0; i < tos.length; i++){
         if(tos[i].name.toLowerCase() == name.toLowerCase()){
           sent_to_this_agent = true;
@@ -1686,7 +1689,7 @@ function CEAgent(n){
        * Now handle the actual card:
        */
 
-      if(card.type.name == "ask card"){
+      if(from && card.type.name == "ask card"){
         // Get the relevant information from the node
         var data = node.ask_question(content);
         var ask_policies = node.get_instances("ask policy");
@@ -1718,7 +1721,7 @@ function CEAgent(n){
         return node.add_sentence(c);
       }
 
-      else if(card.type.name == "tell card"){
+      else if(from && card.type.name == "tell card"){
         // Add the CE sentence to the node
         var data = node.add_ce(content); 
         if(!data.success){
@@ -1760,7 +1763,7 @@ function CEAgent(n){
         return response_card;
       }
 
-      else if(card.type.name == "nl card"){
+      else if(from && card.type.name == "nl card"){
         var new_card = null;
         // Firstly, check if card content is valid CE, but without writing to model:
         var data = node.add_ce(content, true);
@@ -1771,9 +1774,9 @@ function CEAgent(n){
         // If invalid CE, then try responding to a question 
         else{
           data = node.ask_question(content);
-          // If question was success, return a response
+          // If question was success, replicate the nl card as an ask card and re-add to model (i.e. 'autoask')
           if(data.success == true){
-            new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
+            new_card = "there is an ask card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
           }
           // If question not understood then place the response to the NL card in a new response
           else{
@@ -2130,11 +2133,13 @@ if(!util.on_client() && require.main === module){
       }
       else{
         var tos = cards[i].is_tos;
-        for(var j = 0; j < tos.length; j++){
-          for(var k = 0; k < agents.length; k++){
-            if(tos[j].name.toLowerCase() == agents[k]){
-              s += cards[i].ce+"\n";
-              break;
+        if(tos){
+          for(var j = 0; j < tos.length; j++){
+            for(var k = 0; k < agents.length; k++){
+              if(tos[j].name.toLowerCase() == agents[k]){
+                s += cards[i].ce+"\n";
+                break;
+              }
             }
           }
         }
