@@ -1798,7 +1798,7 @@ function CEAgent(n){
           ce_agent.handle_card(card_list[i]); 
         }
         poll_cards();
-      }, 200);
+      }, 500);
     }
   }
 
@@ -1834,7 +1834,7 @@ function CEAgent(n){
                     var card = cards[j];
                     var from = card.is_from;
                     var tos = card.is_tos;
-                    if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
+                    if(tos && from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                       // Make sure target is not already a recipient
                       var in_card = false;
                       for(var k = 0; k < tos.length; k++){
@@ -1872,7 +1872,7 @@ function CEAgent(n){
                     var from = card.is_from;
                     var froms = card.is_froms;
                     var tos = card.is_tos;
-                    if(from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
+                    if(tos && from && from.name.toLowerCase() != target.name.toLowerCase()){ // Don't send back a card sent from target agent
                       // Make sure target is not already a recipient
                       var in_card = false;
                       for(var k = 0; k < tos.length; k++){
