@@ -839,7 +839,7 @@ function CENode(){
         }
         if(current_instance != null && current_instance.type.id == concept.id){
           message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
-          return [false, message];
+          return [true, message, current_instance];
         }
         
         instance = new CEInstance(concept, instance_name);
@@ -1148,7 +1148,7 @@ function CENode(){
       if(name){
         instance = get_instance_by_name(name[2]);
         if(instance != null){
-        return [true, instance.gist];
+          return [true, instance.gist];
         }      
       }
 
@@ -1250,6 +1250,7 @@ function CENode(){
           if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) < smallest_index){
             focus_instance = _instances[i];
             smallest_index = t.toLowerCase().indexOf(possible_names[j].toLowerCase());
+            break;
           }
         }
       }
@@ -1503,7 +1504,6 @@ function CENode(){
     sentence = sentence.replace("{now}", new Date().getTime());
     sentence = sentence.replace("{uid}", new_card_id());
     var return_data = {};
-
     var ce_success = parse_ce(sentence);
     if(ce_success[0] == false){
       var question_success = parse_question(sentence);
@@ -1603,7 +1603,9 @@ function CENode(){
   this.add_sentences = function(sentences){
     var responses = [];
     for(var i = 0; i < sentences.length; i++){
-      responses.push(this.add_sentence(sentences[i]));
+      if(sentences[i] && sentences[i].length > 0){
+        responses.push(this.add_sentence(sentences[i]));
+      }
     }
     return responses;
   }
@@ -2226,66 +2228,6 @@ if(!util.on_client() && require.main === module){
           response.end();
         });
       }
-      else if(request.url == "/json/instances"){
-        var body = "";
-        request.on('data', function(chunk){
-          body+=chunk;
-        });     
-        request.on('end', function(){
-          try{
-            var data = JSON.parse(body);
-            if(data.length){
-              for(var i = 0; i < data.length; i++){
-                node.add_sentences(data[i].sentences);
-              }
-            }
-            else{
-              node.add_sentences(data.sentences);
-            }
-            response.writeHead(201);
-          } catch(err){
-            console.log(err);
-            response.writeHead(500);
-            response.write(err.toString());
-          }
-          response.end();
-        });
-      }
-      else if(request.url == "/url/json/instances"){
-        var body = "";
-        request.on('data', function(chunk){
-          body+=chunk;
-        });     
-        request.on('end', function(){
-          try{
-            body = body.replace('https://', '').replace('http://', '');
-            host = body.split('/', 2)[0];
-            path = body.replace(host, '');
-            net.make_request('GET', host, path, null, function(data){
-              try{
-                data = JSON.parse(data);
-                if(data.length){
-                  for(var i = 0; i < data.length; i++){
-                    node.add_sentences(data[i].sentences);
-                  }
-                }
-                else{
-                  node.add_sentences(data.sentences);
-                }
-                response.writeHead(201);
-                response.end();   
-              } catch(err){
-                response.writeHead(500);
-                response.end(err.toString());
-              }
-            });
-          } catch(err){
-            response.writeHead(500);
-            response.end(err.toString());
-          }
-        });
-      }
-
       else{
         response.writeHead(404);
         response.end("404: Resource not found for method POST.");
