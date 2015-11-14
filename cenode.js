@@ -494,7 +494,7 @@ function CENode(){
       var concept = instance.type;
       if(concept == null){return;}
       var gist = instance.name+" is";
-      if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){ce+=" an "+concept.name+".";}
+      if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){gist+=" an "+concept.name+".";}
       else{gist+=" a "+concept.name+".";}
       var facts = {};
       var fact_found = false;
@@ -739,7 +739,7 @@ function CENode(){
           }
         }
        }
-      return [true, t];
+      return [true, t, concept];
     }
 
     else if(t.match(/^conceptualise the/i)){
@@ -817,7 +817,7 @@ function CENode(){
           }
         }
       }
-      return [true, t];
+      return [true, t, concept];
     }
 
     else if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)){
@@ -837,7 +837,7 @@ function CENode(){
           message = "Instance type unknown: "+concept_name;
           return [false, message];
         }
-        if(current_instance != null && current_instance.concept_id == concept.id){
+        if(current_instance != null && current_instance.type.id == concept.id){
           message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
           return [false, message];
         }
@@ -1549,6 +1549,7 @@ function CENode(){
     return_data.success = success[0];
     return_data.type = "gist";
     return_data.data = success[1];
+    if(success[2]){return_data.result = success[2];}
     return return_data;
   }
 
@@ -1925,9 +1926,9 @@ function CEAgent(n){
                   try{
                     var card = cards[i];
                     var to_agent = false;
-                    var tos = card.is_to;
+                    var tos = card.is_tos;
                     var card_timestamp = card.timestamp.name;
-                    if(parseInt(card_timestamp) > parseInt(start_time)){
+                    if(tos && parseInt(card_timestamp) > parseInt(start_time)){
                       for(var j = 0; j < tos.length; j++){
                         if(tos[j].name == name){ // If card sent to THIS agent
                           to_agent = true;
@@ -1952,7 +1953,7 @@ function CEAgent(n){
                         }
                       }
                     }
-                  } catch(err){}
+                  } catch(err){console.log(err);}
                 }
               }         
               break; 

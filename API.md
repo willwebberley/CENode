@@ -62,8 +62,9 @@ This function returns a standard object containing these fields:
 
 * `success` - a boolean representing whether or not the node's CE-parser thinks the input is valid CE.
 * `data` - a string representing the response, if any, from the node. If `success` indicates a failure, this value might provide more insight.
+* `result` - where appropriate (e.g. successful), this field will contain the CEConcept or CEInstance that was created or modified as the result of the input CE.
 
-The optional dryrun argument is a boolean that will still evaluate the input and return the same values, but will not actually update the KB. This might be useful for detecting if an input is considered to be valid CE before carrying out an insertion.
+The optional dryrun argument is a boolean that will still evaluate the input and return the same values, but will not actually update the KB. This might be useful for detecting if an input is considered to be valid CE before carrying out an insertion. If the dryrun was successful and a CEConcept or CEInstance would have been created or modified, then a projected object of the relevant type will be returned in `result`.
 
 #### `ask_question(input)`
 Queries the node's KB for information about a concept or instance.
