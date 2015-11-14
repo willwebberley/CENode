@@ -76,6 +76,7 @@ In addition, CENode will process one-word instance names that are not quoted, bu
 \\\ce{Mrs Smith teaches the class B2 and has the subject computing as subject and has '45' as age.}
 
 \subsubsection{Question-asking}
+\label{questions}
 
 Another addition to CENode is the ability to answer questions. This addresses the `who/what/where' information useful to researchers and also allows information to easily be extracted from the node in an easy-to-understand gist format. Note that although, technically speaking, questions in this format are themselves gist, CENode treats them as if they are valid CE, so that they can safely be embedded in \ce{ask card}s.
 
@@ -108,10 +109,20 @@ We can now ask a `where' question:\\
 \\and receive a response:\\
 \\\ce{Mrs Smith lives in the house 'Number 23'.}\\
 
+Similarly, since the house `Number 23' is a location, we can ask questions like:\\
+\\\ce{what is in Number 23?} (\ce{who is in Number 23?} would also work)\\
+\\and receive a response:\\
+\\\ce{The teacher Mrs Smith lives in the house Number 23.}\\
+
 In general, CENode ignores stop words and punctuation, so the following are all valid questions:\\
 \\\ce{what is an apple?}\\
 \ce{where is the banana?}\\
 \ce{Who is Mrs Smith}
+
+\subsubsection{NL-parsing}
+CENode comes with a rudimentary natural language parser, which will attempt to evaluate a natural language input and return a CE string representing a guess at what the input meant.
+
+This NL-parsing heavily relies on the state of the node's own KB. Therefore, the more the node knows about a particular domain in terms of instances and concepts (and the properties they have), the more accurately it will be able to understand the input.
 
 
 \section{Node Models}
@@ -156,6 +167,28 @@ It is rare that the \ce{card} concept is used directly. Instead, one of its subc
 
 A \ce{tell card} should be used to tell a particular agent some information, and an \ce{ask card} should be used to query for some information. Using what we've covered so far, all of the \ce{conceptualise} and instance-manipulation sentences would go into a \ce{tell card} and the questions discussed in Section 1.2.2 would be wrapped in an \ce{ask card}. Using the correct kind of card. The 'from' field of a card can be used by an agent to send back a response, if needed, and some agents may decide to ignore cards that have an old timestamp. 
 
+\subsubsection{Tell cards}
+
+This type of card should be used to envelope valid CE. If the CE is correctly parsed by the node, then a suitable response might be returned by the agent. 
+
+Since tell cards are the only type of card that can act as a vehicle for CE, only the content of these cards can be used to modify the node's KB (other than to add the card instance, which would occur even if the CE content is invalid).
+
+\subsubsection{Ask cards}
+
+Ask cards are used to query the node's KB, and whose content must conform to one of the supported question structures (see Section \ref{questions}).
+
+The agent responsible for handling this card may reply with a suitable response, or an error message if the question is invalid.
+
+\subsubsection{NL cards}
+
+If unsure on the type of information that is to be contained in the card, then an nl card can be used. Agents work with NL cards in the following order (a failure causes the next step to be evaluated):
+
+\begin{enumerate}
+  \item Test for CE-compliance: if the card's content is valid CE, the agent will automtically write a new \emph{tell card}, with the same content, from the original sender and to itself. The effect is therefore the same as directly adding a tell card containing valid CE. This process is known as \emph{autoconfirming}.
+  \item Test if question: if the card contains a valid question, then the agent will write a new \emph{ask card} with the same content, from the original sender and to itself. The effect is therefore the same as directly adding an ask card containing a valid question. This process is known as \emph{autoasking}.
+  \item Lastly, the content is given to the node in an attempt to understand what was meant by the card. This step tries to parse the input NL and, if successful, will result in a \emph{confirm card} in reply to the input card containing a guess at the CE best representing the input content. This card can then be confirmed by sending a tell card in reply to the confirm card with the content of the confirm card. This may then cause the node's KB to be updated.
+\end{enumerate}
+  
 
 \subsection{Blackboard Architecture}
 \label{blackboard_architecture}
@@ -246,7 +279,7 @@ Set local agent's name to `agent1'.
 CENode server instance running on port 5432...
 \end{verbatim}
 
-Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see Section \ref{api_rest}.
+Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see Section \ref{api}.
 
 \section{Multi-Node Systems}
 As described earlier, CENode instances can either be run independently or as part of a multi-node system. This section outlines methods on how this might be accomplished. In a typical multi-node system, at least one of the nodes will need to be run as a service exposing the required HTTP endpoints.
