@@ -1905,10 +1905,15 @@ function CEAgent(n){
             }
           }
 
-          // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
+          // For each listen policy in place, make a request to get cards addressed to THIS agent, and add to node, ignoring already-seen cards
           for(var i = 0; i < listen_policies.length; i++){
             var target = listen_policies[i].target;
-            net.make_request("GET", target.address, GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+            var data = '';
+            var all_cards = node.get_instances('card', true);
+            for(var j = 0; j < all_cards.length; j++){
+              data = data + all_cards[j].name+'\n';
+            }
+            net.make_request("POST", target.address, GET_CARDS_ENDPOINT+"?agent="+name, data, function(resp){
               last_successful_request = new Date().getTime();
               var cards = resp.split("\n");
               node.add_sentences(cards);
@@ -2119,11 +2124,12 @@ if(!util.on_client() && require.main === module){
     });
   }
 
-  function get_cards(request, response){
+  function get_cards(request, response, ignores){
     var url = decodeURIComponent(request.url);
     var agent_regex = url.match(/agent=(.*)/);
     var agent_str = null;
     var agents = [];
+    var ignores = ignores ? ignores : [];
     if(agent_regex != null){agent_str = agent_regex[1];}
     if(agent_str != null){
       agents = agent_str.toLowerCase().split(",");
@@ -2131,17 +2137,19 @@ if(!util.on_client() && require.main === module){
     var cards = node.get_instances("card", true);
     var s = "";
     for(var i = 0; i < cards.length; i++){
-      if(agents == null || agents.length == 0){
-        s += cards[i].ce+"\n";
-      }
-      else{
-        var tos = cards[i].is_tos;
-        if(tos){
-          for(var j = 0; j < tos.length; j++){
-            for(var k = 0; k < agents.length; k++){
-              if(tos[j].name.toLowerCase() == agents[k]){
-                s += cards[i].ce+"\n";
-                break;
+      if(ignores.indexOf(cards[i].name) == -1){
+        if(agents == null || agents.length == 0){
+          s += cards[i].ce+"\n";
+        }
+        else{
+          var tos = cards[i].is_tos;
+          if(tos){
+            for(var j = 0; j < tos.length; j++){
+              for(var k = 0; k < agents.length; k++){
+                if(tos[j].name.toLowerCase() == agents[k]){
+                  s += cards[i].ce+"\n";
+                  break;
+                }
               }
             }
           }
@@ -2188,7 +2196,18 @@ if(!util.on_client() && require.main === module){
       }
     }
     else if(request.method == "POST"){
-      if(request.url == POST_SENTENCES_ENDPOINT){
+      if(request.url.indexOf(GET_CARDS_ENDPOINT) == 0){
+        var body = "";
+        request.on('data', function(chunk){
+          body+=chunk;
+        });
+        request.on('end', function(){
+          var ignores = body.split(/\\n|\n/);
+          response.writeHead(200, {"Content-Type": "text/ce"});
+          get_cards(request, response, ignores);
+        }
+      }
+      else if(request.url == POST_SENTENCES_ENDPOINT){
         response.writeHead(200, {"Content-Type": "text/ce"});
         post_sentences(request, response);      
       }
