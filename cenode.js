@@ -2205,7 +2205,7 @@ if(!util.on_client() && require.main === module){
           var ignores = body.split(/\\n|\n/);
           response.writeHead(200, {"Content-Type": "text/ce"});
           get_cards(request, response, ignores);
-        }
+        });
       }
       else if(request.url == POST_SENTENCES_ENDPOINT){
         response.writeHead(200, {"Content-Type": "text/ce"});
