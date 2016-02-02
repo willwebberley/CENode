@@ -1311,6 +1311,8 @@ function CENode(){
             }
           }
         }
+
+        var used_indices = [];
         for(var i = 0; i < possible_relationships.length; i++){
           if(possible_relationships[i].concept){
             var rel_concept = possible_relationships[i].concept;
@@ -1318,8 +1320,10 @@ function CENode(){
             for(var j = 0; j < rel_instances.length; j++){
               var possible_names = rel_instances[j].synonyms.concat(rel_instances[j].name);
               for(var k = 0; k < possible_names.length; k++){
-                if(f.toLowerCase().indexOf(possible_names[k].toLowerCase())>-1){
+                var index = f.toLowerCase().indexOf(' '+possible_names[k].toLowerCase()); // ensure object at least starts with the phrase (but not ends with, as might be plural)
+                if(index >- 1 && used_indices.indexOf(index) == -1){
                   facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
+                  used_indices.push(index);
                   break;
                 }
               }
