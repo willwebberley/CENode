@@ -99,7 +99,7 @@ You can now start to write some code that uses the `cenode.js` library. Start by
 #### `main.js`
 ```javascript
 var node = new CENode(MODELS.CORE);
-node.set_agent_name('agent1');
+node.agent.set_name('agent1');
 ```
 
 This code creates an instance of CENode, which in turn spins up a CEAgent, which continuously runs in the background and is able to respond to certain events, as we'll cover later.
@@ -206,10 +206,9 @@ function poll_cards(){
         var cards = node.get_instances('card', true); // Recursively get any cards the agent knows about
         for(var i = 0; i < cards.length; i++){
             var card = cards[i];
-            var to = node.get_instance_relationship(card, 'is to'); // Get the addressee of the card
-            if(to.name == my_name && processed_cards.indexOf(card.name) == -1){ // If sent to us and is still yet unseen
+            if(card.is_to.name == my_name && processed_cards.indexOf(card.name) == -1){ // If sent to us and is still yet unseen
                 processed_cards.push(card.name); // Add this card to the list of 'seen' cards
-                var item = '<li>'+node.get_instance_value(card, 'content')+'</li>';
+                var item = '<li>'+card.content+'</li>';
                 messages.innerHTML = item + messages.innerHTML; // Prepend this new message to our list in the DOM
             }
         }
@@ -256,9 +255,15 @@ There are two types of instance values:
 * A reference (with a label) to another instance in the node's KB
 * A labelled string
 
-Both types of values can be retrieved with code similar to (and used above):
+Both types of values (e.g. with label 'label') can be retrieved with code similar to (and used above):
 ```javascript
-var value = node.get_instance_value(instance, label);
+var value = instance.label;
+```
+
+or
+
+```javascript
+var value = instance.property('label');
 ```
 
 In the case of the former, `value` will contain another instance object, which in turn has its own name, values and relationships.
@@ -267,9 +272,15 @@ With the latter, `value` will simply be a string. An example of this is a `card`
 
 ### Relationships
 
-Relationship properties are handled in a very similar way to values, except that all relationship properties refer to another instance object:
+Relationship properties are handled in a very similar way to values, except that all relationship properties refer to another instance object (again with a label called 'label'):
 ```javascript
-var rel = node.get_instance_relationship(instance, label);
+var rel = instance.label;
+```
+
+or
+
+```javascript
+var rel = instance.property('label');
 ```
 
 As such, `rel` will be an instance object with its own names, values, and relationships. This is why we need to access the `name` property of the instance returned when checking the `is to` relationship above.
