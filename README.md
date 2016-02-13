@@ -4,6 +4,8 @@ A pure JavaScript implementation of the ITA project's CEStore - called CENode. C
 
 Please visit the project's [home page](http://cenode.io) for more information and for documentation.
 
+See also the [Getting Started Tutorial](https://github.com/flyingsparx/CENode/blob/master/docs/getting_started.md).
+
 ## Installation and use
 
 `cenode.js` can be used in multiple ways.
