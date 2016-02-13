@@ -29,7 +29,7 @@ For further information, please see the Documentation section below.
 
 ## Documentation
 
-Please see the file `docs/documentation.pdf` for an overview and for technical information on the programmatic and RESTful APIs.
+Please see the file `docs/documentation.pdf` for an overview of the CE language, CECard protocol, and CENode motivation and behaviour.
 
 ## License
 

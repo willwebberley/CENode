@@ -6,7 +6,7 @@
 \newcommand{\js}[1]{\texttt{#1}}
 
 \title{\ce{cenode.js}}
-\subtitle{Revision 1.1.2}
+\subtitle{Revision 2.0}
 \author{W.M. Webberley \& A. Preece\footnote{CENode is a joint project between School of Computer Science \& Informatics, Cardiff University and IBM UK as part of the International Technology Alliance (ITA) in Network and Information Sciences, \href{http://www.usukitacs.com/about_ita}{www.usukitacs.com/about\_ita}.}\\ \href{http://cwenode.io}{cenode.io} $|$ \href{mailto:info@cenode.io}{info@cenode.io}}
 \date{}
 
@@ -76,6 +76,7 @@ In addition, CENode will process one-word instance names that are not quoted, bu
 \\\ce{Mrs Smith teaches the class B2 and has the subject computing as subject and has '45' as age.}
 
 \subsubsection{Question-asking}
+\label{questions}
 
 Another addition to CENode is the ability to answer questions. This addresses the `who/what/where' information useful to researchers and also allows information to easily be extracted from the node in an easy-to-understand gist format. Note that although, technically speaking, questions in this format are themselves gist, CENode treats them as if they are valid CE, so that they can safely be embedded in \ce{ask card}s.
 
@@ -108,10 +109,20 @@ We can now ask a `where' question:\\
 \\and receive a response:\\
 \\\ce{Mrs Smith lives in the house 'Number 23'.}\\
 
+Similarly, since the house `Number 23' is a location, we can ask questions like:\\
+\\\ce{what is in Number 23?} (\ce{who is in Number 23?} would also work)\\
+\\and receive a response:\\
+\\\ce{The teacher Mrs Smith lives in the house Number 23.}\\
+
 In general, CENode ignores stop words and punctuation, so the following are all valid questions:\\
 \\\ce{what is an apple?}\\
 \ce{where is the banana?}\\
 \ce{Who is Mrs Smith}
+
+\subsubsection{NL-parsing}
+CENode comes with a rudimentary natural language parser, which will attempt to evaluate a natural language input and return a CE string representing a guess at what the input meant.
+
+This NL-parsing heavily relies on the state of the node's own KB. Therefore, the more the node knows about a particular domain in terms of instances and concepts (and the properties they have), the more accurately it will be able to understand the input.
 
 
 \section{Node Models}
@@ -156,6 +167,28 @@ It is rare that the \ce{card} concept is used directly. Instead, one of its subc
 
 A \ce{tell card} should be used to tell a particular agent some information, and an \ce{ask card} should be used to query for some information. Using what we've covered so far, all of the \ce{conceptualise} and instance-manipulation sentences would go into a \ce{tell card} and the questions discussed in Section 1.2.2 would be wrapped in an \ce{ask card}. Using the correct kind of card. The 'from' field of a card can be used by an agent to send back a response, if needed, and some agents may decide to ignore cards that have an old timestamp. 
 
+\subsubsection{Tell cards}
+
+This type of card should be used to envelope valid CE. If the CE is correctly parsed by the node, then a suitable response might be returned by the agent. 
+
+Since tell cards are the only type of card that can act as a vehicle for CE, only the content of these cards can be used to modify the node's KB (other than to add the card instance, which would occur even if the CE content is invalid).
+
+\subsubsection{Ask cards}
+
+Ask cards are used to query the node's KB, and whose content must conform to one of the supported question structures (see Section \ref{questions}).
+
+The agent responsible for handling this card may reply with a suitable response, or an error message if the question is invalid.
+
+\subsubsection{NL cards}
+
+If unsure on the type of information that is to be contained in the card, then an nl card can be used. Agents work with NL cards in the following order (a failure causes the next step to be evaluated):
+
+\begin{enumerate}
+  \item Test for CE-compliance: if the card's content is valid CE, the agent will automtically write a new \emph{tell card}, with the same content, from the original sender and to itself. The effect is therefore the same as directly adding a tell card containing valid CE. This process is known as \emph{autoconfirming}.
+  \item Test if question: if the card contains a valid question, then the agent will write a new \emph{ask card} with the same content, from the original sender and to itself. The effect is therefore the same as directly adding an ask card containing a valid question. This process is known as \emph{autoasking}.
+  \item Lastly, the content is given to the node in an attempt to understand what was meant by the card. This step tries to parse the input NL and, if successful, will result in a \emph{confirm card} in reply to the input card containing a guess at the CE best representing the input content. This card can then be confirmed by sending a tell card in reply to the confirm card with the content of the confirm card. This may then cause the node's KB to be updated.
+\end{enumerate}
+  
 
 \subsection{Blackboard Architecture}
 \label{blackboard_architecture}
@@ -246,7 +279,7 @@ Set local agent's name to `agent1'.
 CENode server instance running on port 5432...
 \end{verbatim}
 
-Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see Section \ref{api_rest}.
+Once running, a RESTful interface is exposed to interact with the Node. For more information on this, please see Section \ref{api}.
 
 \section{Multi-Node Systems}
 As described earlier, CENode instances can either be run independently or as part of a multi-node system. This section outlines methods on how this might be accomplished. In a typical multi-node system, at least one of the nodes will need to be run as a service exposing the required HTTP endpoints.
@@ -376,157 +409,9 @@ Secondly, the router node needs to simply forward every message it receives on t
 
 \section{CENode API}
 \label{api}
-As discussed throughout this document, \js{cenode.js} can be used programmatically in a JavaScript or web application as well as a web service for receiving RESTful requests. This section describes the methods available on both types of interface.
-
-\subsection{Programmatic Interface}
-When used as a library as part of a JavaScript application or within a webpage (see Sections \ref{as_a_webapp} and \ref{as_an_app}), \js{CENode} instances expose a number of useful public methods. All the methods in this section are callable on instances of \js{CENode}.
-
-\newcommand{\cenodemethod}[5]{
-    \begin{flushleft}
-    \begin{minipage}{1.2\textwidth}
-    \vskip10pt
-    \begin{large}
-        \noindent\js{#1 \underline{#2} (#3)}
-    \end{large}
-    \vskip5pt
-    \begin{tabular}{|p{0.9\textwidth}}
-        \textit{#4}
-        \vskip8pt
-        \textbf{Example Usage}\\
-        #5
-    \end{tabular}
-    \end{minipage}
-    \end{flushleft}
-}
-
-\cenodemethod{CENode}{CENode}{[model1[, model2[, model3 ...]]]}{Instantiates and returns a new \js{CENode} object with any number of models to initially develop the node's KB. Generally, it is recommended that the default CORE model at least be loaded. Instantiating a CENode starts the lifecycle of an agent within it, whose name is set to `Moira' by default.}{
-    \js{var node = new CENode(MODELS.CORE);}\\
-    The Node can instead be instantiated with custom models. These can be created as described in Section \ref{models} and then loaded in the same way:\\
-    \js{var node = new CENode(custom\_model\_1, custom\_model\_2);}
-}
-
-\cenodemethod{String}{guess\_next}{String input}{Returns a guess of the rest of the CE sentence in \js{input} for supporting auto-complete. Note that this feature is still under development}{
-    \js{var guess = node.guess\_next("there is a p");}\\
-    In this case, the node will look through its knowledge base to find concepts with name starting with `p' (for example, `person'). \js{guess} would then contain `there is a person named'.
-}
-
-\cenodemethod{Instance[]}{get\_instances}{[String concept\_name[, Bool recurse]]}{Return a list of instance objects. If \js{concept\_name} is included, then only instances of this type will be included. If \js{recurse} is set to \js{true} then instances of the concept's children, grandchildren, etc., will also be included.}{
-    \js{var tell\_cards = node.get\_instances("tell card");}\\
-    \js{var all\_cards = node.get\_instances("card", true);}
-}
-
-\cenodemethod{Concept[]}{get\_concepts}{}{Return a list of concept objects known by the node.}{
-    \js{var concepts = node.get\_concepts();}\\
-}
-
-\cenodemethod{String}{get\_instance\_type}{Instance instance}{Return a string representing the type (i.e. the name of the concept) of the given instance.}{
-    \js{var concept\_name = node.get\_instance\_type(instance);}\\
-}
-
-\cenodemethod{String}{get\_instance\_ce}{Instance instance}{Return a string representing the CE required to construct the instance.}{
-    \js{var ce = node.get\_instance\_ce(instance);}\\
-    \js{ce} will be of the form \ce{"there is a teacher named 'Mrs Smith' that..."}.
-}
-
-\cenodemethod{String}{get\_instance\_gist}{Instance instance}{Return a string representing a gist description of the instance.}{
-    \js{var gist = node.get\_instance\_gist(instance);}\\
-    \js{gist} will be of the form \ce{"'Mrs Smith' is a teacher. Mrs Smith teaches the class B2 and..."}.
-}
-
-\cenodemethod{String}{get\_concept\_ce}{Concept concept}{Return a string representing the CE required to construct the concept.}{
-    \js{var ce = node.get\_concept\_ce(concept);}\\
-    \js{ce} will be of the form \ce{"conceptualise a $\sim$ teacher $\sim$ T that..."}.
-}
-
-\cenodemethod{String}{get\_concept\_gist}{Concept concept}{Return a string representing a gist description of the concept.}{
-    \js{var gist = node.get\_concept\_gist(concept);}\\
-    \js{gist} will be of the form \ce{"A teacher is a type of person and teaches a type of class and..."}.
-}
-
-\cenodemethod{[bool, String]}{add\_ce}{String ce[, bool nowrite]}{Immediately updates the node's KB, as long as \js{ce} is valid CE. The returned \js{bool} indicates whether the CE-parsing was successful (\js{true} indicates valid CE) and the returned \js{String} will contain the input CE when it is valid, or an error message if it is not. `nowrite' is an optional boolean argument, which, if set to \js{true}, will not update the KB during parsing.\newline\js{add\_ce} can parse special character sequences to aid users in creating cards. The sequence \js{\{now\}} will be replaced by the current timestamp of the node's environment and \js{\{uid\}} will be replaced by an an appropriate identifier for the card.}{
-    \js{var data = node.add\_ce("there is a teacher named 'Mrs Smith'");}
-}
-
-\cenodemethod{[bool, String]}{ask\_question}{String question}{Immediately return a response to a KB query, as long as `question' is a valid question type. The returned \js{bool} indicates whether the question-parsing was successful (\js{true} indicates valid question) and the returned \js{String} will contain the response gist when it is valid, or an error message if it is not.}{
-    \js{var data = node.ask\_question("who is Mrs Smith?");}
-}
-
-\cenodemethod{[bool, String]}{add\_nl}{String nl}{Attempts to build a valid CE sentence based on the NL `nl' input. The returned \js{bool} indicates whether an attempt was made (\js{true} indicates returned CE) and the returned \js{String} will contain the attempt if it is valid, or an error message if it is not.}{
-    \js{var data = node.add\_nl("there is a teacher called Mrs Smith");}
-}
-
-\cenodemethod{[bool, String]}{add\_sentence}{String sentence[, bool nowrite]}{Adds a sentence to be processed by the node. In turn, this will first attempt to parse CE, then a question, and finally NL. The returned \js{bool} represents whether or not any of the above was successful and the returned \js{String}'s content varies. For more information, see the documentation for \js{add\_ce}, \js{ask\_question}, and \js{add\_nl} respectively. \newline\js{add\_sentence} can parse special character sequences to aid users in creating cards. The sequence \js{\{now\}} will be replaced by the current timestamp of the node's environment and \js{\{uid\}} will be replaced by an an appropriate identifier for the card.}{
-    \js{node.add\_sentence("there is a teacher named 'Mrs Smith'");}\\
-    \js{var answer = node.add\_sentence("Who is Mrs Smith?");}\\
-    \vskip5pt 
-    The example below illustrates the use of special character sequences.
-    \js{node.add\_sentence("there is a tell card named '\{uid\}' that has the timestamp '\{now\}' as timestamp ...");}
-}
-
-\cenodemethod{String}{add\_sentences}{String[] sentences}{Adds an array of sentences to the model. Internally, this uses \js{add\_sentence}, so the above information applies. Responses made by the node are also returned in an array, where the ordered elements in the responses array are associated with the appropriate elements in the sentences array.}{
-    \js{var sentences = [}\\
-            \js{"conceptualise a $\sim$ teacher $\sim$ T that is a person",}\\
-            \js{"there is a teacher named 'Mrs Smith'"}\\
-    \js{]}\\
-            
-    \js{var responses = node.add\_sentences(sentences);}\\
-}
-
-\cenodemethod{void}{set\_agent\_name}{String name}{Sets a new name for the node's local agent. Updating this value will mean the agent will open different cards and will ignore any further cards sent to its previous name. Note that agent names are case-insensitive when qualifying card recipients.}{
-    \js{node.set\_agent\_name("Agent 1");}
-}
-
-\cenodemethod{String}{get\_agent\_name}{}{Retrieves the name of the local agent.}{
-    \js{var agent\_name = node.get\_agent\_name();}
-}
-
-
-\subsection{RESTful HTTP Interface}
-\label{api_rest}
-When run as a service (see Section \ref{as_a_service}), which runs on port 555 by default, users can visit \js{localhost:5555} to administer the node (use a different hostname if not running the node locally). The webpage served at this address allows administers to submit new sentences to the node, inspect instances and concepts, change the name of the local agent, load models, and reset the store.\\
-
-In addition to these features, a node that is running as a service also exposes a RESTful interface for other nodes (or applications) to make HTTP requests to. There is no authentication mechanism implemented on \js{cenode.js} and the service will accept requests from any domain (i.e. CORS is enabled) so that nodes can be accessed from within web applications run within a browser. In fact, these RESTful endpoints are the same ones that are used by the agents themselves when acting on policies applied to them.
-
-\cenodemethod{POST}{/sentences}{}{Submit a newline-separated set of CE sentences to the node. The sentences should be in the body of the request and no key is necessary. Nodes will return any content produced as a result of parsing the input sentences within the body of the response separated by new lines. If there is no response for an input sentence, then this will be represented by an empty string. This means that, for example, line 2 of the response body corresponds to the sentence on line 2 in the body of the request. \newline Remember that agents are asynchronous, so responses from `ask cards' will not be included in the response to \js{/sentences} - instead, use \js{GET /cards} to check for replies to `ask cards'.}{
-
-    REQUEST:
-    \begin{framed}
-    \js{POST /sentences\newline
-Content-Type: text/ce\newline\newline
-what is Mrs Smith?\newline
-there is a teacher named 'Mrs Smith'\newline
-what is Mrs Smith?\newline
-Mrs Smith teaches the class 'B2'
-    }\end{framed}
-
-    RESPONSE:
-    \begin{framed}
-    \js{200 OK\newline
-Content-Type: text/ce\newline\newline
-I don't know what Mrs Smith is.\newline
- \newline
-Mrs Smith is a teacher.\newline
-}
-    \end{framed}
-
-}
-
-\cenodemethod{GET}{/cards}{[?agent=NAME]}{Retrieve cards from the node. If `agent' is specified, then only cards addressed to `NAME' are returned. Cards are returned in pure CE in the body of the response, separated by newlines.}{
-    
-    REQUEST:
-    \begin{framed}
-    \js{GET /cards?agent=agent1\newline}
-    \end{framed}
-    
-    RESPONSE:
-    \begin{framed}
-    \js{200 OK\newline
-Content-Type: text/ce\newline\newline
-there is a tell card named 'msg41' that is to the agent 'agent1'\newline
-there is an ask card named 'msg56' that is to the agent 'agent1'}
-    \end{framed}
-    (Note that the cards have been truncated for clarity).
-}
+\begin{emph}
+This section is now deprecated and has been removed. Instead, please see the separate API document outlining the APIs supported by CENode. This can be found in the root of CENode's home repository at github.com/flyingsparx/CENode.
+\end{emph}
 
 \bibliographystyle{plain}
 \bibliography{citations}
