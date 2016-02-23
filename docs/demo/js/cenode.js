@@ -445,13 +445,13 @@ function CENode(){
 
     this.properties = function(property_name, find_one){
       var properties = [];
-      for(var i = 0; i < instance.values.length; i++){
+      for(var i = instance.values.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
         if(instance.values[i].label.toLowerCase() == property_name.toLowerCase()){
           if(find_one){return instance.values[i].instance;}
           properties.push(instance.values[i].instance);
         }
       }
-      for(var i = 0; i < instance.relationships.length; i++){
+      for(var i = instance.relationships.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
         if(instance.relationships[i].label.toLowerCase() == property_name.toLowerCase()){
           if(find_one){return instance.relationships[i].instance;}
           properties.push(instance.relationships[i].instance);
@@ -1192,6 +1192,97 @@ function CENode(){
       }
     }
 
+    else if(t.match(/^(\bwho\b|\bwhat\b) does/i)){
+      try{
+        var data = t.match(/^(\bwho\b|\bwhat\b) does ([a-zA-Z0-9_ ]*)/i);      
+        var body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
+        var tokens = body.split(' ');
+        var instance;
+        for(var i = 0; i < tokens.length; i++){
+          var test_string = tokens.slice(0, i).join(' ').trim();
+          if(!instance){
+            instance = get_instance_by_name(test_string);
+          }
+          else{
+            break;
+          }
+        }
+        if(instance){
+          var property_name = tokens.splice(instance.name.split(' ').length, tokens.length - 1).join(' ').trim();
+          var fixed_property_name = property_name;
+          var property = instance.property(property_name);
+          if (!property){
+            fixed_property_name = property_name.replace(/s/ig, '');
+            property = instance.property(fixed_property_name); 
+          }
+          if (!property){
+            var prop_tokens = property_name.split(' ');
+            prop_tokens[0] = prop_tokens[0] + 's';
+            fixed_property_name = prop_tokens.join(' ').trim();
+            property = instance.property(fixed_property_name);
+          }
+          if(property){
+            return [true, instance.name+' '+fixed_property_name+' the '+property.type.name+' '+property.name+'.'];
+          }
+          return [true, "Sorry - I don't know that property about the "+instance.type.name+" "+instance.name+"."];
+        }
+      }
+      catch(err){
+        return [false, "Sorry - I can't work out what you're asking."];
+      }
+    }
+
+    else if(t.match(/^(\bwho\b|\bwhat\b)/i)){
+      try{
+        var data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
+        var body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
+        var tokens = body.split(' ');
+        var instance;
+        for(var i = 0; i < tokens.length; i++){
+          var test_string = tokens.slice(tokens.length - (i+1), tokens.length).join(' ').trim();
+          if(!instance){
+            instance = get_instance_by_name(test_string);
+          }
+          if(!instance && test_string[test_string.length-1].toLowerCase() == 's'){
+            instance = get_instance_by_name(test_string.substring(0, test_string.length - 1));
+          }
+          if(instance){
+            break;
+          }
+        } 
+        if(instance){
+          var property_name = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
+          for(var i = 0; i < _instances.length; i++){
+            var subject = _instances[i];
+            var fixed_property_name = property_name;
+            var property = subject.property(property_name);
+            if (!property){
+              var prop_tokens = property_name.split(' ');
+              if(prop_tokens[0][prop_tokens[0].length-1].toLowerCase() == 's'){
+                prop_tokens[0] = prop_tokens[0].substring(0, prop_tokens[0].length - 1);
+              }
+              fixed_property_name = prop_tokens.join(' ').trim();
+              property = subject.property(fixed_property_name);
+            }
+            if (!property){
+              var prop_tokens = property_name.split(' ');
+              prop_tokens[0] = prop_tokens[0] + 's';
+              fixed_property_name = prop_tokens.join(' ').trim();
+              property = subject.property(fixed_property_name);
+            }
+            if(property && property.name == instance.name){
+               return [true, subject.name+' '+fixed_property_name+' the '+property.type.name+' '+property.name+'.'];
+            }            
+          }
+          return [true, "Sorry - I don't know that property about the "+instance.type.name+" "+instance.name+"."];
+        }
+      }
+      catch(err){
+        console.log(err);
+        return [false, "Sorry - I can't work out what you're asking."];
+      }
+    }
+
     else if(t.match(/^list (\ball\b|\binstances\b)/i)){
       var ins = [];
       var s = "";
@@ -1311,6 +1402,8 @@ function CENode(){
             }
           }
         }
+
+        var used_indices = [];
         for(var i = 0; i < possible_relationships.length; i++){
           if(possible_relationships[i].concept){
             var rel_concept = possible_relationships[i].concept;
@@ -1318,8 +1411,10 @@ function CENode(){
             for(var j = 0; j < rel_instances.length; j++){
               var possible_names = rel_instances[j].synonyms.concat(rel_instances[j].name);
               for(var k = 0; k < possible_names.length; k++){
-                if(f.toLowerCase().indexOf(possible_names[k].toLowerCase())>-1){
+                var index = f.toLowerCase().indexOf(' '+possible_names[k].toLowerCase()); // ensure object at least starts with the phrase (but not ends with, as might be plural)
+                if(index >- 1 && used_indices.indexOf(index) == -1){
                   facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
+                  used_indices.push(index);
                   break;
                 }
               }
@@ -1905,10 +2000,15 @@ function CEAgent(n){
             }
           }
 
-          // For each listen policy in place, make a GET request to get cards addressed to THIS agent, and add to node
+          // For each listen policy in place, make a request to get cards addressed to THIS agent, and add to node, ignoring already-seen cards
           for(var i = 0; i < listen_policies.length; i++){
             var target = listen_policies[i].target;
-            net.make_request("GET", target.address, GET_CARDS_ENDPOINT+"?agent="+name, null, function(resp){
+            var data = '';
+            var all_cards = node.get_instances('card', true);
+            for(var j = 0; j < all_cards.length; j++){
+              data = data + all_cards[j].name+'\n';
+            }
+            net.make_request("POST", target.address, GET_CARDS_ENDPOINT+"?agent="+name, data, function(resp){
               last_successful_request = new Date().getTime();
               var cards = resp.split("\n");
               node.add_sentences(cards);
@@ -2119,11 +2219,12 @@ if(!util.on_client() && require.main === module){
     });
   }
 
-  function get_cards(request, response){
+  function get_cards(request, response, ignores){
     var url = decodeURIComponent(request.url);
     var agent_regex = url.match(/agent=(.*)/);
     var agent_str = null;
     var agents = [];
+    var ignores = ignores ? ignores : [];
     if(agent_regex != null){agent_str = agent_regex[1];}
     if(agent_str != null){
       agents = agent_str.toLowerCase().split(",");
@@ -2131,17 +2232,19 @@ if(!util.on_client() && require.main === module){
     var cards = node.get_instances("card", true);
     var s = "";
     for(var i = 0; i < cards.length; i++){
-      if(agents == null || agents.length == 0){
-        s += cards[i].ce+"\n";
-      }
-      else{
-        var tos = cards[i].is_tos;
-        if(tos){
-          for(var j = 0; j < tos.length; j++){
-            for(var k = 0; k < agents.length; k++){
-              if(tos[j].name.toLowerCase() == agents[k]){
-                s += cards[i].ce+"\n";
-                break;
+      if(ignores.indexOf(cards[i].name) == -1){
+        if(agents == null || agents.length == 0){
+          s += cards[i].ce+"\n";
+        }
+        else{
+          var tos = cards[i].is_tos;
+          if(tos){
+            for(var j = 0; j < tos.length; j++){
+              for(var k = 0; k < agents.length; k++){
+                if(tos[j].name.toLowerCase() == agents[k]){
+                  s += cards[i].ce+"\n";
+                  break;
+                }
               }
             }
           }
@@ -2188,7 +2291,18 @@ if(!util.on_client() && require.main === module){
       }
     }
     else if(request.method == "POST"){
-      if(request.url == POST_SENTENCES_ENDPOINT){
+      if(request.url.indexOf(GET_CARDS_ENDPOINT) == 0){
+        var body = "";
+        request.on('data', function(chunk){
+          body+=chunk;
+        });
+        request.on('end', function(){
+          var ignores = body.split(/\\n|\n/);
+          response.writeHead(200, {"Content-Type": "text/ce"});
+          get_cards(request, response, ignores);
+        });
+      }
+      else if(request.url == POST_SENTENCES_ENDPOINT){
         response.writeHead(200, {"Content-Type": "text/ce"});
         post_sentences(request, response);      
       }
