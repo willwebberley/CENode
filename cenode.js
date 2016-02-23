@@ -445,13 +445,13 @@ function CENode(){
 
     this.properties = function(property_name, find_one){
       var properties = [];
-      for(var i = 0; i < instance.values.length; i++){
+      for(var i = instance.values.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
         if(instance.values[i].label.toLowerCase() == property_name.toLowerCase()){
           if(find_one){return instance.values[i].instance;}
           properties.push(instance.values[i].instance);
         }
       }
-      for(var i = 0; i < instance.relationships.length; i++){
+      for(var i = instance.relationships.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
         if(instance.relationships[i].label.toLowerCase() == property_name.toLowerCase()){
           if(find_one){return instance.relationships[i].instance;}
           properties.push(instance.relationships[i].instance);
@@ -1195,7 +1195,7 @@ function CENode(){
     else if(t.match(/^(\bwho\b|\bwhat\b) does/i)){
       try{
         var data = t.match(/^(\bwho\b|\bwhat\b) does ([a-zA-Z0-9_ ]*)/i);      
-        var body = data[2];
+        var body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
         var tokens = body.split(' ');
         var instance;
         for(var i = 0; i < tokens.length; i++){
@@ -1224,12 +1224,61 @@ function CENode(){
           if(property){
             return [true, instance.name+' '+fixed_property_name+' the '+property.type.name+' '+property.name+'.'];
           }
-        }
-        else{
-          return [false, "Sorry - I can't find the subject instance of your question"];
+          return [true, "Sorry - I don't know that property about the "+instance.type.name+" "+instance.name+"."];
         }
       }
       catch(err){
+        return [false, "Sorry - I can't work out what you're asking."];
+      }
+    }
+
+    else if(t.match(/^(\bwho\b|\bwhat\b)/i)){
+      try{
+        var data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
+        var body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
+        var tokens = body.split(' ');
+        var instance;
+        for(var i = 0; i < tokens.length; i++){
+          var test_string = tokens.slice(tokens.length - (i+1), tokens.length).join(' ').trim();
+          if(!instance){
+            instance = get_instance_by_name(test_string);
+          }
+          if(!instance && test_string[test_string.length-1].toLowerCase() == 's'){
+            instance = get_instance_by_name(test_string.substring(0, test_string.length - 1));
+          }
+          if(instance){
+            break;
+          }
+        } 
+        if(instance){
+          var property_name = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
+          for(var i = 0; i < _instances.length; i++){
+            var subject = _instances[i];
+            var fixed_property_name = property_name;
+            var property = subject.property(property_name);
+            if (!property){
+              var prop_tokens = property_name.split(' ');
+              if(prop_tokens[0][prop_tokens[0].length-1].toLowerCase() == 's'){
+                prop_tokens[0] = prop_tokens[0].substring(0, prop_tokens[0].length - 1);
+              }
+              fixed_property_name = prop_tokens.join(' ').trim();
+              property = subject.property(fixed_property_name);
+            }
+            if (!property){
+              var prop_tokens = property_name.split(' ');
+              prop_tokens[0] = prop_tokens[0] + 's';
+              fixed_property_name = prop_tokens.join(' ').trim();
+              property = subject.property(fixed_property_name);
+            }
+            if(property && property.name == instance.name){
+               return [true, subject.name+' '+fixed_property_name+' the '+property.type.name+' '+property.name+'.'];
+            }            
+          }
+          return [true, "Sorry - I don't know that property about the "+instance.type.name+" "+instance.name+"."];
+        }
+      }
+      catch(err){
+        console.log(err);
         return [false, "Sorry - I can't work out what you're asking."];
       }
     }
