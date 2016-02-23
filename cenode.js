@@ -1192,6 +1192,48 @@ function CENode(){
       }
     }
 
+    else if(t.match(/^(\bwho\b|\bwhat\b) does/i)){
+      try{
+        var data = t.match(/^(\bwho\b|\bwhat\b) does ([a-zA-Z0-9_ ]*)/i);      
+        var body = data[2];
+        var tokens = body.split(' ');
+        var instance;
+        for(var i = 0; i < tokens.length; i++){
+          var test_string = tokens.slice(0, i).join(' ').trim();
+          if(!instance){
+            instance = get_instance_by_name(test_string);
+          }
+          else{
+            break;
+          }
+        }
+        if(instance){
+          var property_name = tokens.splice(instance.name.split(' ').length, tokens.length - 1).join(' ').trim();
+          var fixed_property_name = property_name;
+          var property = instance.property(property_name);
+          if (!property){
+            fixed_property_name = property_name.replace(/s/ig, '');
+            property = instance.property(fixed_property_name); 
+          }
+          if (!property){
+            var prop_tokens = property_name.split(' ');
+            prop_tokens[0] = prop_tokens[0] + 's';
+            fixed_property_name = prop_tokens.join(' ').trim();
+            property = instance.property(fixed_property_name);
+          }
+          if(property){
+            return [true, instance.name+' '+fixed_property_name+' the '+property.type.name+' '+property.name+'.'];
+          }
+        }
+        else{
+          return [false, "Sorry - I can't find the subject instance of your question"];
+        }
+      }
+      catch(err){
+        return [false, "Sorry - I can't work out what you're asking."];
+      }
+    }
+
     else if(t.match(/^list (\ball\b|\binstances\b)/i)){
       var ins = [];
       var s = "";
