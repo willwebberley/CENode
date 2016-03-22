@@ -96,9 +96,9 @@ function CENode(){
     return node.agent.get_name()+last_card_id;
   }
 
-  function CEConcept(name, blame){
+  function CEConcept(name, source){
     this.name = name;
-    this.blame = blame;
+    this.source = source;
     this.id = node.new_concept_id();
     this._parents = [];
     this._values = [];
@@ -212,17 +212,17 @@ function CENode(){
       return concept._synonyms;
     }});
    
-    this.add_value = function(label, type, blame){
+    this.add_value = function(label, type, source){
       var value = {};
-      value.blame = blame;
+      value.source = source;
       value.label = label;
       value.type = typeof type === 'number' ? type : type.id;
       concept._values.push(value); 
       Object.defineProperty(concept, label.toLowerCase().replace(/ /g, '_'), {get: function(){return type == 0 ? 'value' : type;}, configurable: true});
     }
-    this.add_relationship = function(label, target, blame){
+    this.add_relationship = function(label, target, source){
       var relationship = {};
-      relationship.blame = blame;
+      relationship.source = source;
       relationship.label = label;
       relationship.target = target.id;
       concept._relationships.push(relationship);
@@ -315,9 +315,9 @@ function CENode(){
     }});
   }
 
-  function CEInstance(type, name, blame){
+  function CEInstance(type, name, source){
     this.name = name;
-    this.blame = blame;
+    this.source = source;
     this.id = node.new_instance_id();
     this.type_id = type.id;
     this.sentences = [];
@@ -337,7 +337,7 @@ function CENode(){
       for(var i = 0; i < instance._relationships.length; i++){
         var relationship = {};
         relationship.label = instance._relationships[i].label;
-        relationship.blame = instance._relationships[i].blame;
+        relationship.source = instance._relationships[i].source;
         relationship.instance = get_instance_by_id(instance._relationships[i].target_id);
         rels.push(relationship);
       }
@@ -348,7 +348,7 @@ function CENode(){
       for(var i = 0; i < instance._values.length; i++){
         var value = {};
         value.label = instance._values[i].label;
-        value.blame = instance._values[i].blame;
+        value.source = instance._values[i].source;
         if(instance._values[i].type_id == 0){
           value.instance = instance._values[i].type_name;
         } 
@@ -379,10 +379,10 @@ function CENode(){
       return properties;
     }
 
-    this.add_value = function(label, value_instance, propagate, blame){
+    this.add_value = function(label, value_instance, propagate, source){
       if(get_possible_properties().values.indexOf(label.toLowerCase()) > -1){
         var value = {};
-        value.blame = blame;
+        value.source = source;
         value.label = label;
         value.type_id = typeof value_instance === 'object' ? value_instance.id : 0;
         value.type_name = typeof value_instance === 'object' ? value_instance.name : value_instance;
@@ -403,16 +403,16 @@ function CENode(){
           }
         }
         if(propagate == null || propagate != false){
-          enact_rules(instance, 'value', value_instance, blame);
+          enact_rules(instance, 'value', value_instance, source);
         }
       }
     }
 
-    this.add_relationship = function(label, relationship_instance, propagate, blame){
+    this.add_relationship = function(label, relationship_instance, propagate, source){
       if(get_possible_properties().relationships.indexOf(label.toLowerCase()) > -1){
         var relationship = {};
         relationship.label = label;
-        relationship.blame = blame;
+        relationship.source = source;
         relationship.target_id = relationship_instance.id;
         relationship.target_name = relationship_instance.name;
         instance._relationships.push(relationship);
@@ -432,7 +432,7 @@ function CENode(){
           }
         }
         if(propagate == null || propagate != false){
-          enact_rules(instance, 'relationship', relationship_instance, blame);
+          enact_rules(instance, 'relationship', relationship_instance, source);
         }
       }
     }
@@ -447,29 +447,29 @@ function CENode(){
       Object.defineProperty(instance, synonym.toLowerCase().replace(/ /g, '_'), {get: function(){return instance;}});
     }
 
-    this.property = function(property_name, blame){
-      return instance.properties(property_name, true, blame);
+    this.property = function(property_name, source){
+      return instance.properties(property_name, source, true);
     }   
 
-    this.properties = function(property_name, find_one, blame){
+    this.properties = function(property_name, source, only_one){
       var properties = [];
       for(var i = instance.values.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
         if(instance.values[i].label.toLowerCase() == property_name.toLowerCase()){
           var inst = instance.values[i].instance;
-          var dat = blame ? {instance: inst, blame: instance.values[i].blame} : inst;
-          if(find_one){return dat;}
+          var dat = source ? {instance: inst, source: instance.values[i].source} : inst;
+          if(only_one){return dat;}
           properties.push(dat);
         }
       }
       for(var i = instance.relationships.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
         if(instance.relationships[i].label.toLowerCase() == property_name.toLowerCase()){
           var inst = instance.relationships[i].instance;
-          var dat = blame ? {instance: inst, blame: instance.relationships[i].blame} : inst;
-          if(find_one){return dat;}
+          var dat = source ? {instance: inst, source: instance.relationships[i].source} : inst;
+          if(only_one){return dat;}
           properties.push(dat);
         }
       }
-      return find_one ? null : properties;
+      return only_one ? null : properties;
     }
   
     Object.defineProperty(instance, 'synonyms', {get: function(){
@@ -653,7 +653,7 @@ function CENode(){
     return rule;
   }
 
-  var enact_rules = function(subject_instance, property_type, object_instance, blame){
+  var enact_rules = function(subject_instance, property_type, object_instance, source){
     if(typeof object_instance == "string"){
       return;
     }
@@ -668,10 +668,10 @@ function CENode(){
           for(var j = 0; j < ancestor_concepts.length; j++){
             if(ancestor_concepts[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
               if(rule.then.relationship && rule.then.relationship.type == subject_instance.type.name){
-                object_instance.add_relationship(rule.then.relationship.label, subject_instance, false, blame); 
+                object_instance.add_relationship(rule.then.relationship.label, subject_instance, false, source); 
               }
               else if(rule.then.value && rule.then.value.type == subject_instance.type.name){
-                object_instance.add_value(rule.then.value.label, subject_instance, false, blame);
+                object_instance.add_value(rule.then.value.label, subject_instance, false, source);
               }
             }
           }
@@ -694,7 +694,7 @@ function CENode(){
    * 
    * Returns: [bool, str] (bool = success, str = error or parsed string)
    */
-  var parse_ce = function(t, nowrite, blame){
+  var parse_ce = function(t, nowrite, source){
     t = t.replace(/\s+/g, " ").replace(/\.+$/, "").trim(); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
     var message = "";
 
@@ -707,7 +707,7 @@ function CENode(){
         return [false, message];
       }
       else{ // otherwise create a new one and add it to list
-        concept = new CEConcept(concept_name, blame);
+        concept = new CEConcept(concept_name, source);
         
         // Writepoint
         if(nowrite == null || nowrite == false){
@@ -733,7 +733,7 @@ function CENode(){
 
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.add_value(facts_info[3], value_type, blame);
+            concept.add_value(facts_info[3], value_type, source);
           }
         } 
 
@@ -784,7 +784,7 @@ function CENode(){
           
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.add_relationship(facts_info[3], target, blame);
+            concept.add_relationship(facts_info[3], target, source);
           }
         }
 
@@ -799,7 +799,7 @@ function CENode(){
           
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.add_relationship(facts_info[1], target, blame);
+            concept.add_relationship(facts_info[1], target, source);
           }
         }
 
@@ -815,7 +815,7 @@ function CENode(){
 
           // Writepoint
           if(nowrite == null || nowrite == false){
-            concept.add_value(facts_info[3], type, blame);
+            concept.add_value(facts_info[3], type, source);
           }
         }
 
@@ -854,7 +854,7 @@ function CENode(){
           return [true, message, current_instance];
         }
         
-        instance = new CEInstance(concept, instance_name, blame);
+        instance = new CEInstance(concept, instance_name, source);
         instance.sentences.push(t);
         
         // Writepoint
@@ -945,7 +945,7 @@ function CENode(){
           if(value_label!=""&&value_type!=""&&value_instance_name!=""){
             var value_instance = get_instance_by_name(value_instance_name);
             if(value_instance == null) {
-              value_instance = new CEInstance(get_concept_by_name(value_type), value_instance_name, blame);
+              value_instance = new CEInstance(get_concept_by_name(value_type), value_instance_name, source);
               // Writepoint 
               if(nowrite == null || nowrite == false){
                 value_instance.sentences.push(t);
@@ -956,7 +956,7 @@ function CENode(){
 
             // Writepoint 
             if(nowrite == null || nowrite == false){
-              instance.add_value(value_label, value_instance, true, blame);
+              instance.add_value(value_label, value_instance, true, source);
             }
           }
         }
@@ -971,7 +971,7 @@ function CENode(){
           
           // Writepoint 
           if(nowrite == null || nowrite == false){
-            instance.add_value(value_label, value_value, true, blame);
+            instance.add_value(value_label, value_value, true, source);
           }
         }
       }}
@@ -1004,7 +1004,7 @@ function CENode(){
             }
             else{
               if(relationship_instance == null){
-                relationship_instance = new CEInstance(get_concept_by_name(relationship_type_name), relationship_instance_name, blame);
+                relationship_instance = new CEInstance(get_concept_by_name(relationship_type_name), relationship_instance_name, source);
 
                 // Writepoint
                 if(nowrite == null || nowrite == false){
@@ -1016,7 +1016,7 @@ function CENode(){
 
               // Writepoint
               if(nowrite == null || nowrite == false){
-                instance.add_relationship(relationship_label, relationship_instance, true, blame);
+                instance.add_relationship(relationship_label, relationship_instance, true, source);
               }
             }
           }
@@ -1606,12 +1606,12 @@ function CENode(){
    *
    * Returns: {type: str, data: str}
    */
-  this.add_sentence = function(sentence, blame){
+  this.add_sentence = function(sentence, source){
     sentence = sentence.trim();
     sentence = sentence.replace("{now}", new Date().getTime());
     sentence = sentence.replace("{uid}", new_card_id());
     var return_data = {};
-    var ce_success = parse_ce(sentence, false, blame);
+    var ce_success = parse_ce(sentence, false, source);
     if(ce_success[0] == false){
       var question_success = parse_question(sentence);
       if(question_success[0] == false){
@@ -1647,12 +1647,12 @@ function CENode(){
    *
    * Returns: {success: bool, type: str, data: str}
    */
-  this.add_ce = function(sentence, nowrite, blame){
+  this.add_ce = function(sentence, nowrite, source){
     sentence = sentence.trim();
     sentence = sentence.replace("{now}", new Date().getTime());
     sentence = sentence.replace("{uid}", new_card_id());
     var return_data = {};
-    var success = parse_ce(sentence, nowrite, blame);
+    var success = parse_ce(sentence, nowrite, source);
     return_data.success = success[0];
     return_data.type = "gist";
     return_data.data = success[1];
@@ -1707,11 +1707,11 @@ function CENode(){
    *
    * Returns: [[bool, str]...]
    */
-  this.add_sentences = function(sentences, blame){
+  this.add_sentences = function(sentences, source){
     var responses = [];
     for(var i = 0; i < sentences.length; i++){
       if(sentences[i] && sentences[i].length > 0){
-        responses.push(this.add_sentence(sentences[i], blame));
+        responses.push(this.add_sentence(sentences[i], source));
       }
     }
     return responses;
