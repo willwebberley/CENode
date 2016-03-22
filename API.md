@@ -218,11 +218,15 @@ Examples of this difference can be observed in the core CE model shipped with th
 
 If you're unsure on what type of value you're dealing with, ask about the parent concept (e.g. 'what is a card?'), and the response will describe the various properties supported by the concept.
 
-#### `property(label)`
+#### `property(label[, with_source])`
 Return the *most recent* value or relationship that has the label with the name specified. If the property is a relationship, then a CEInstance is returned. If it's a value, then either a CEInstance or a string is returned (see the `values` API documentation for more information).
 
-#### `properties(label)`
+If `with_source` is defined and `true`, then data will be returned in the format: `{source: <SOURCE>, instance: <DATA>}`, where <SOURCE> represents the source input of the information (e.g. username), if any, and <DATA> is the returned information when used without the `with_source` flag.
+
+#### `properties(label[, with_source])`
 Return an array of CEInstances or strings representing the values or relationships described by the input label.
+
+As with `property()`, passing a `true` value for `with_source` includes the source input of each piece of information returned, with the output format for each list element as described in the notes for the `property()` function.
 
 #### `synonyms`
 A list of strings representing alternative names for this instance. Any of these, or the instance's actual name, can be used when addressing this CEInstance.
@@ -237,6 +241,8 @@ A string representing a more casual description of the CEInstance. This is the t
 You can also directly access values and relationships as direct properties of the CEInstance object. For example, for a card instance, `card.is_to` gives the same result as calling `card.property('is to')`. This gives you the latest-reported value or relationship with this name.
 
 Similarly, `card.contents` gives the same result as calling `card.properties('content')` - all you do is add an extra 's' at the end to access all of the values or relationships reported with that name.
+
+Note that calling `properties()` and passing a property name that doesn't yet exist for the instance will return an empty array (as expected). However, accessing the information directly (as with `card.is_to`, for example) would return `undefined`, because that property has not yet been defined on the instance.
 
 ### CEAgent class
 
