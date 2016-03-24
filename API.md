@@ -221,7 +221,7 @@ If you're unsure on what type of value you're dealing with, ask about the parent
 #### `property(label[, with_source])`
 Return the *most recent* value or relationship that has the label with the name specified. If the property is a relationship, then a CEInstance is returned. If it's a value, then either a CEInstance or a string is returned (see the `values` API documentation for more information).
 
-If `with_source` is defined and `true`, then data will be returned in the format: `{source: <SOURCE>, instance: <DATA>}`, where <SOURCE> represents the source input of the information (e.g. username), if any, and <DATA> is the returned information when used without the `with_source` flag.
+If `with_source` is defined and `true`, then data will be returned in the format: `{source: SOURCE, instance: DATA}`, where `SOURCE` is the source input of the information (e.g. username), if any, and `DATA` is the returned information when used without the `with_source` flag.
 
 #### `properties(label[, with_source])`
 Return an array of CEInstances or strings representing the values or relationships described by the input label.
