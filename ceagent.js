@@ -1,160 +1,168 @@
-exports.CEAgent = function CEAgent(n){
-  var name = "Moira";
-  var last_successful_request = 0;
-  var node = n;
-  var unsent_tell_cards = {};
-  var unsent_ask_cards = {};
-  var handled_cards = [];
-  var ce_agent = this;
+exports.CEAgent = class CEAgent{
 
-  this.set_name = function(n){
-    name = n;
+  constructor (node){
+    this.name = "Moira";
+    this.last_successful_request = 0;
+    this.node = node;
+    this.unsent_tell_cards = {};
+    this.unsent_ask_cards = {};
+    this.handled_cards = [];
+
+    this.poll_cards();
+    this.enact_policies();
   }
-  this.get_name = function(){
-    return name;
+
+  set_name (name){
+    this.name = name;
   }
-  this.get_last_successful_request = function(){
-    return last_successful_request;
+
+  get_name (){
+    return this.name;
   }
-  this.handle_card = function(card){
-      var from = card.is_from;
-      var tos = card.is_tos;
-      var content = card.content;
-      var sent_to_this_agent = false;
 
-      if(!tos || !content){
-        return;
+  get_last_successful_request (){
+    return this.last_successful_request;
+  }
+
+  handle_card (card){
+    var from = card.is_from;
+    var tos = card.is_tos;
+    var content = card.content;
+    var sent_to_this_agent = false;
+
+    if(!tos || !content){
+      return;
+    }
+
+    // Determine whether or not to read or ignore this card:
+    if(this.handled_cards.indexOf(card.name) > -1){return;}
+    this.handled_cards.push(card.name);
+    for(var i = 0; i < tos.length; i++){
+      if(tos[i].name.toLowerCase() == this.name.toLowerCase()){
+        sent_to_this_agent = true;
+        break;
+      }
+    }
+    if(!sent_to_this_agent){return;}
+
+    /*
+     * Now handle the actual card:
+     */
+
+    if(from && card.type.name == "ask card"){
+      // Get the relevant information from the node
+      var data = this.node.ask_question(content);
+      var ask_policies = this.node.get_instances("ask policy");
+      for(var j = 0; j < ask_policies.length; j++){
+        if(ask_policies[j].enabled == 'true'){
+          var target_name = ask_policies[j].target.name;
+          if(!(target_name in this.unsent_ask_cards)){this.unsent_ask_cards[target_name] = [];}
+          this.unsent_ask_cards[target_name].push(card); 
+        }
+      }
+      // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
+      var froms = card.is_froms;
+      var urls, c;
+      if(data.data){
+        urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
+        c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+this.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
+      }
+      else{
+        c = "there is a gist card named 'msg_{uid}' that is from the agent '"+this.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content";
       }
 
-      // Determine whether or not to read or ignore this card:
-      if(handled_cards.indexOf(card.name) > -1){return;}
-      handled_cards.push(card.name);
-      for(var i = 0; i < tos.length; i++){
-        if(tos[i].name.toLowerCase() == name.toLowerCase()){
-          sent_to_this_agent = true;
-          break;
+      for(var j = 0; j < froms.length; j++){
+        c+=" and is to the "+froms[j].type.name+" '"+froms[j].name+"'";
+      }
+      if(urls!=null){for(var j = 0; j < urls.length; j++){
+        c+=" and has '"+urls[j]+"' as linked content";
+      }}
+      c += " and is in reply to the card '"+card.name+"'";
+      return this.node.add_sentence(c);
+    }
+
+    else if(from && card.type.name == "tell card"){
+      // Add the CE sentence to the node
+      var data = this.node.add_ce(content, false, from.name); 
+      if(!data.success){
+        return node.add_sentence("there is a gist card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has 'Sorry. Your input was not understood.' as content and is in reply to the card '"+card.name+"'.");
+      }
+      var response_card;
+      if(data.success == true){
+        // Add sentence to any active tell policy queues
+        var tell_policies = this.node.get_instances("tell policy");
+        for(var j = 0; j < tell_policies.length; j++){
+          if(tell_policies[j].enabled == 'true'){
+            var target_name = tell_policies[j].target.name;
+            if(!(target_name in this.unsent_tell_cards)){this.unsent_tell_cards[target_name] = [];}
+            this.unsent_tell_cards[target_name].push(card); 
+          }
         }
       }
-      if(sent_to_this_agent == false){return;}
-
-      /*
-       * Now handle the actual card:
-       */
-
-      if(from && card.type.name == "ask card"){
-        // Get the relevant information from the node
-        var data = node.ask_question(content);
-        var ask_policies = node.get_instances("ask policy");
-        for(var j = 0; j < ask_policies.length; j++){
-          if(ask_policies[j].enabled == 'true'){
-            var target_name = ask_policies[j].target.name;
-            if(!(target_name in unsent_ask_cards)){unsent_ask_cards[target_name] = [];}
-            unsent_ask_cards[target_name].push(card); 
-          }
-        }
-        // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
-        var froms = card.is_froms;
-        var urls, c;
-        if(data.data){
-          urls = data.data.match(/(https?:\/\/[a-zA-Z0-9\.\/\-\+_&=\?\!%]*)/gi);
-          c = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content";
-        }
-        else{
-          c = "there is a gist card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content";
-        }
-
-        for(var j = 0; j < froms.length; j++){
-          c+=" and is to the "+froms[j].type.name+" '"+froms[j].name+"'";
-        }
-        if(urls!=null){for(var j = 0; j < urls.length; j++){
-          c+=" and has '"+urls[j]+"' as linked content";
-        }}
-        c += " and is in reply to the card '"+card.name+"'";
-        return node.add_sentence(c);
-      }
-
-      else if(from && card.type.name == "tell card"){
-        // Add the CE sentence to the node
-        var data = node.add_ce(content, false, from.name); 
-        if(!data.success){
-          return node.add_sentence("there is a gist card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has 'Sorry. Your input was not understood.' as content and is in reply to the card '"+card.name+"'.");
-        }
-        var response_card;
-        if(data.success == true){
-          // Add sentence to any active tell policy queues
-          var tell_policies = node.get_instances("tell policy");
-          for(var j = 0; j < tell_policies.length; j++){
-            if(tell_policies[j].enabled == 'true'){
-              var target_name = tell_policies[j].target.name;
-              if(!(target_name in unsent_tell_cards)){unsent_tell_cards[target_name] = [];}
-              unsent_tell_cards[target_name].push(card); 
-            }
-          }
-        }
-        // Check feedback policies to see if input 'tell card' requires a response
-        // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
-        var feedback_policies = node.get_instances("feedback policy");
-        for(var j = 0; j < feedback_policies.length; j++){
-          var target = feedback_policies[j].target;
-          var enabled = feedback_policies[j].enabled;
-          var ack = feedback_policies[j].acknowledgement;
-          if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
-            var c;
-            if(ack == "basic"){c = "OK.";}
-            else{
-              if(data.type == "tell"){
-                c = "OK. I added this to my knowledge base: "+data.data;
-              }
-              else if(data.type == "ask" || data.type == "confirm" || data.type == "gist"){
-                c = data.data;
-              }
-            }
-            response_card = node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
-          }
-        }
-        return response_card;
-      }
-
-      else if(from && card.type.name == "nl card"){
-        var new_card = null;
-        // Firstly, check if card content is valid CE, but without writing to model:
-        var data = node.add_ce(content, true, from.name);
-        // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
-        if(data.success == true){
-          new_card = "there is a tell card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
-        }   
-        // If invalid CE, then try responding to a question 
-        else{
-          data = node.ask_question(content);
-          // If question was success, replicate the nl card as an ask card and re-add to model (i.e. 'autoask')
-          if(data.success == true){
-            new_card = "there is an ask card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
-          }
-          // If question not understood then place the response to the NL card in a new response
+      // Check feedback policies to see if input 'tell card' requires a response
+      // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
+      var feedback_policies = this.node.get_instances("feedback policy");
+      for(var j = 0; j < feedback_policies.length; j++){
+        var target = feedback_policies[j].target;
+        var enabled = feedback_policies[j].enabled;
+        var ack = feedback_policies[j].acknowledgement;
+        if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
+          var c;
+          if(ack == "basic"){c = "OK.";}
           else{
-            data = node.add_nl(content);     
-            new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
+            if(data.type == "tell"){
+              c = "OK. I added this to my knowledge base: "+data.data;
+            }
+            else if(data.type == "ask" || data.type == "confirm" || data.type == "gist"){
+              c = data.data;
+            }
           }
+          response_card = this.node.add_sentence("there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+this.name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+c.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.");
         }
-        node.add_sentence(new_card);
-        return new_card;
       }
+      return response_card;
+    }
+
+    else if(from && card.type.name == "nl card"){
+      var new_card = null;
+      // Firstly, check if card content is valid CE, but without writing to model:
+      var data = this.node.add_ce(content, true, from.name);
+      // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
+      if(data.success == true){
+        new_card = "there is a tell card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+this.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+      }   
+      // If invalid CE, then try responding to a question 
+      else{
+        data = this.node.ask_question(content);
+        // If question was success, replicate the nl card as an ask card and re-add to model (i.e. 'autoask')
+        if(data.success == true){
+          new_card = "there is an ask card named 'msg_{uid}' that is from the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and is to the agent '"+this.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+content.replace(/'/g, "\\'")+"' as content.";
+        }
+        // If question not understood then place the response to the NL card in a new response
+        else{
+          data = this.node.add_nl(content);     
+          new_card = "there is a "+data.type+" card named 'msg_{uid}' that is from the agent '"+this.name.replace(/'/g, "\\'")+"' and is to the "+from.type.name+" '"+from.name.replace(/'/g, "\\'")+"' and has the timestamp '{now}' as timestamp and has '"+data.data.replace(/'/g, "\\'")+"' as content and is in reply to the card '"+card.name+"'.";
+        }
+      }
+      this.node.add_sentence(new_card);
+      return new_card;
+    }
   }
 
-  var poll_cards = function(){
+  poll_cards (){
     if(setTimeout){
-      setTimeout(function(){
-        var card_list = node.get_instances("card", true);
+      setTimeout(() => {
+        var card_list = this.node.get_instances("card", true);
         for(var i = 0; i < card_list.length; i++){
-          ce_agent.handle_card(card_list[i]); 
+          this.handle_card(card_list[i]); 
         }
-        poll_cards();
+        this.poll_cards();
       }, 500);
     }
   }
 
-  var get_instance = function(){
-    var instances = node.get_instances("agent");
+  get_instance (){
+    var instances = this.node.get_instances("agent");
     for(var i = 0; i < instances.length; i++){
       if(instances[i].name.toLowerCase() == name.toLowerCase()){
         return instances[i];
@@ -162,14 +170,14 @@ exports.CEAgent = function CEAgent(n){
     }
   }
 
-  var enact_policies = function(){
+  enact_policies (){
     if(setTimeout){
-      setTimeout(function(){
+      setTimeout(() => {
         try{
-          var tell_policies = node.get_instances("tell policy");
-          var ask_policies = node.get_instances("ask policy");
-          var listen_policies = node.get_instances("listen policy");
-          var forwardall_policies = node.get_instances("forwardall policy");
+          var tell_policies = this.node.get_instances("tell policy");
+          var ask_policies = this.node.get_instances("ask policy");
+          var listen_policies = this.node.get_instances("listen policy");
+          var forwardall_policies = this.node.get_instances("forwardall policy");
 
           // For each tell policy in place, send all currently-untold cards to each target
           // To save on transit costs, if there are multiple cards to be sent to one target, they are 
@@ -177,7 +185,7 @@ exports.CEAgent = function CEAgent(n){
           for(var i = 0; i < tell_policies.length; i++){
             var target = tell_policies[i].target;
             if(target && target.name){
-              var cards = unsent_tell_cards[target.name];
+              var cards = this.unsent_tell_cards[target.name];
               if(cards){
                 var data = "";
                 for(var j = 0; j < cards.length; j++){
@@ -200,8 +208,8 @@ exports.CEAgent = function CEAgent(n){
                 }
                 if(data != ""){
                   net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
-                    last_successful_request = new Date().getTime();
-                    unsent_tell_cards[target.name] = [];
+                    this.last_successful_request = new Date().getTime();
+                    this.unsent_tell_cards[target.name] = [];
                   });
                 }
               }
@@ -214,7 +222,7 @@ exports.CEAgent = function CEAgent(n){
           for(var i = 0; i < ask_policies.length; i++){
             var target = ask_policies[i].target;
             if(target && target.name){
-              var cards = unsent_ask_cards[target.name];
+              var cards = this.unsent_ask_cards[target.name];
               if(cards){
                 var data = "";
                 for(var j = 0; j < cards.length; j++){
@@ -246,8 +254,8 @@ exports.CEAgent = function CEAgent(n){
                 }
                 if(data != ""){
                   net.make_request("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
-                    last_successful_request = new Date().getTime();
-                    unsent_ask_cards[target.name] = [];
+                    this.last_successful_request = new Date().getTime();
+                    this.unsent_ask_cards[target.name] = [];
                   });
                 }
               }
@@ -258,14 +266,14 @@ exports.CEAgent = function CEAgent(n){
           for(var i = 0; i < listen_policies.length; i++){
             var target = listen_policies[i].target;
             var data = '';
-            var all_cards = node.get_instances('card', true);
+            var all_cards = this.node.get_instances('card', true);
             for(var j = 0; j < all_cards.length; j++){
               data = data + all_cards[j].name+'\n';
             }
             net.make_request("POST", target.address, GET_CARDS_ENDPOINT+"?agent="+name, data, function(resp){
-              last_successful_request = new Date().getTime();
+              this.last_successful_request = new Date().getTime();
               var cards = resp.split("\n");
-              node.add_sentences(cards);
+              this.node.add_sentences(cards);
             });
           }
 
@@ -274,8 +282,8 @@ exports.CEAgent = function CEAgent(n){
           for(var i = 0; i < forwardall_policies.length; i++){
             var policy = forwardall_policies[i];
             if(policy.enabled == "true"){
-              var agents = policy.all_agents == "true" ? node.get_instances("agent") : policy.targets;
-              var cards = node.get_instances("tell card");
+              var agents = policy.all_agents == "true" ? this.node.get_instances("agent") : policy.targets;
+              var cards = this.node.get_instances("tell card");
               if(policy.start_time){
                 var start_time = policy.start_time.name;
                 for(var i = 0; i < cards.length; i++){
@@ -318,14 +326,8 @@ exports.CEAgent = function CEAgent(n){
         } catch(err){
           console.log(err);
         }
-        enact_policies();
+        this.enact_policies();
       }, 5000); 
     }
   }
-
-  this.init = function(){
-    poll_cards();
-    enact_policies();
-  }
-  this.init();
 }

@@ -86,7 +86,7 @@ exports.CEInstance = function CEInstance(node, type, name, source){
         }
       }
       if(propagate == null || propagate != false){
-        enact_rules(instance, 'value', value_instance, source);
+        node.enact_rules(instance, 'value', value_instance, source);
       }
     }
   }
@@ -115,7 +115,7 @@ exports.CEInstance = function CEInstance(node, type, name, source){
         }
       }
       if(propagate == null || propagate != false){
-        enact_rules(instance, 'relationship', relationship_instance, source);
+        node.enact_rules(instance, 'relationship', relationship_instance, source);
       }
     }
   }

@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 
 const CEAgent = require('./ceagent.js').CEAgent;
 const CEConcept = require('./ceconcept.js').CEConcept;
@@ -486,8 +487,8 @@ class CENode{
             relationship_instance_name = type_instance_tokens[type_instance_tokens.length-1].trim();
           }
           if(relationship_label!=""&&relationship_type_name!=""&&relationship_instance_name!=""){
-            var relationship_type = get_concept_by_name(relationship_type_name);
-            var relationship_instance = get_instance_by_name(relationship_instance_name);
+            var relationship_type = this.get_concept_by_name(relationship_type_name);
+            var relationship_instance = this.get_instance_by_name(relationship_instance_name);
             if(relationship_type == null){
               //message = "Unknown relationship type: "+relationship_type_name;
               //return [false, message];
