@@ -1,4 +1,4 @@
-exports.CEAgent = class CEAgent{
+class CEAgent{
 
   constructor (node){
     this.name = "Moira";
@@ -331,3 +331,4 @@ exports.CEAgent = class CEAgent{
     }
   }
 }
+module.exports = CEAgent;

@@ -1,5 +1,5 @@
-const CENode = require('./cenode.js');
-const models = require('./cemodels.js');
+const CENode = require('./CENode.js');
+const models = require('./models.js');
 
 const node = new CENode(models.CORE);
 node.add_sentence('there is an entity named \'harold\'');
