@@ -9,8 +9,7 @@ class CEConcept{
     this._values = [];
     this._relationships = [];
     this._synonyms = [];
-    this.concept = this;
-    this.reserved_fields = ['values', 'relationships', 'synonyms', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'sentences', 'ce', 'gist'];
+
     const concept = this;
     Object.defineProperty(node.concepts, name.toLowerCase().replace(/ /g, '_'), {
       get (){

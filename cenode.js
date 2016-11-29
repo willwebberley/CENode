@@ -18,7 +18,7 @@
 
 const CEAgent = require('./CEAgent.js');
 const CEConcept = require('./CEConcept.js');
-const CEInstance = require('./CEInstance.js').CEInstance;
+const CEInstance = require('./CEInstance.js');
 
 class CENode{
 
@@ -1082,6 +1082,18 @@ class CENode{
     return this._concepts;
   }
 
+  get concepts (){
+    return this._concepts;
+  }
+
+  get_instances (){
+    return this._instances;
+  }
+
+  get instances (){
+    return this._instances;
+  }
+
     /*
    * Adds a sentence to be processed by the node.
    * This method will ALWAYS return a response by dynamically
@@ -1244,8 +1256,6 @@ class CENode{
     this._concept_dict = {};
     this._instance_dict = {};
     this.rules = [];
-    this.concepts = {};
-    this.instances = {};
     this.concept_ids = {};
     this.agent = new CEAgent(this);
     this.last_instance_id = this._instances.length;
