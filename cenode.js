@@ -17,7 +17,7 @@
 'use strict';
 
 const CEAgent = require('./CEAgent.js');
-const CEConcept = require('./CEConcept.js').CEConcept;
+const CEConcept = require('./CEConcept.js');
 const CEInstance = require('./CEInstance.js').CEInstance;
 
 class CENode{
