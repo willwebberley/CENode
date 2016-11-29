@@ -1071,7 +1071,11 @@ class CENode{
       }
     }
     return instance_list;
-  }  
+  }
+
+  get instances (){
+    return this._instances;
+  }
 
   /*
    * Get all concepts known by the node
@@ -1086,15 +1090,7 @@ class CENode{
     return this._concepts;
   }
 
-  get_instances (){
-    return this._instances;
-  }
-
-  get instances (){
-    return this._instances;
-  }
-
-    /*
+  /*
    * Adds a sentence to be processed by the node.
    * This method will ALWAYS return a response by dynamically
    * checking whether input is pure CE, a question, or NL.

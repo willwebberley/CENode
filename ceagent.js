@@ -103,6 +103,7 @@ class CEAgent{
       // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
       var feedback_policies = this.node.get_instances("feedback policy");
       for(var j = 0; j < feedback_policies.length; j++){
+        console.log(feedback_policies[i])
         var target = feedback_policies[j].target;
         var enabled = feedback_policies[j].enabled;
         var ack = feedback_policies[j].acknowledgement;
