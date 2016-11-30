@@ -3,15 +3,15 @@ class CEInstance{
   constructor (node, type, name, source){
     this.name = name;
     this.source = source;
-    this.id = node.new_instance_id();
+    this.id = node.newInstanceId();
     this.concept = type;
     this.node = node;
-    this.type_id = type.id;
+    this.typeId = type.id;
     this.sentences = [];
     this._values = [];
     this._relationships = [];
     this._synonyms = [];
-    this.reserved_fields = ['values', 'relationships', 'synonyms', 'add_value', 'add_relationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
+    this.reservedFields = ['values', 'relationships', 'synonyms', 'addValue', 'addRelationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
 
     const instance = this;
     Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {
@@ -30,7 +30,7 @@ class CEInstance{
   }
   
   get type (){
-    for(var i = 0; i < this.node._concepts.length; i++){
+    for(let i = 0; i < this.node._concepts.length; i++){
       if(this.node._concepts[i].id == this.concept.id){
         return this.node._concepts[i];
       }
@@ -38,77 +38,77 @@ class CEInstance{
   }
 
   get relationships (){
-    var rels = [];
-    for(var i = 0; i < this._relationships.length; i++){
-      var relationship = {};
+    const rels = [];
+    for(let i = 0; i < this._relationships.length; i++){
+      const relationship = {};
       relationship.label = this._relationships[i].label;
       relationship.source = this._relationships[i].source;
-      relationship.instance = this.node.get_instance_by_id(this._relationships[i].target_id);
+      relationship.instance = this.node.getInstanceById(this._relationships[i].targetId);
       rels.push(relationship);
     }
     return rels;
   }
 
   get values (){
-    var vals = [];
-    for(var i = 0; i < this._values.length; i++){
-      var value = {};
+    const vals = [];
+    for(let i = 0; i < this._values.length; i++){
+      const value = {};
       value.label = this._values[i].label;
       value.source = this._values[i].source;
-      if(this._values[i].type_id == 0){
-        value.instance = this._values[i].type_name;
+      if(this._values[i].typeId == 0){
+        value.instance = this._values[i].typeName;
       } 
       else{
-        value.instance = this.node.get_instance_by_id(this._values[i].type_id);
+        value.instance = this.node.getInstanceById(this._values[i].typeId);
       }
       vals.push(value);
     }
     return vals;
   }
 
-  add_sentence (sentence){
+  addSentence (sentence){
     this.sentences.push(sentence);
   }
 
-  get_possible_properties (){
-    var ancestor_instances = this.concept.ancestors;
-    ancestor_instances.push(this.concept);
-    var properties = {values: [], relationships: []};
-    for(var i = 0; i < ancestor_instances.length; i++){
-      for(var j = 0; j < ancestor_instances[i].values.length; j++){
-        properties.values.push(ancestor_instances[i].values[j].label.toLowerCase());
+  getPossibleProperties (){
+    const ancestorInstances = this.concept.ancestors;
+    ancestorInstances.push(this.concept);
+    const properties = {values: [], relationships: []};
+    for(let i = 0; i < ancestorInstances.length; i++){
+      for(let j = 0; j < ancestorInstances[i].values.length; j++){
+        properties.values.push(ancestorInstances[i].values[j].label.toLowerCase());
       }
-      for(var j = 0; j < ancestor_instances[i].relationships.length; j++){
-        properties.relationships.push(ancestor_instances[i].relationships[j].label.toLowerCase());
+      for(let j = 0; j < ancestorInstances[i].relationships.length; j++){
+        properties.relationships.push(ancestorInstances[i].relationships[j].label.toLowerCase());
       }
     }
     return properties;
   }
 
-  add_value (label, value_instance, propagate, source){
-    if(this.get_possible_properties().values.indexOf(label.toLowerCase()) > -1){
-      var value = {};
+  addValue (label, valueInstance, propagate, source){
+    if(this.getPossibleProperties().values.indexOf(label.toLowerCase()) > -1){
+      const value = {};
       value.source = source;
       value.label = label;
-      value.type_id = typeof value_instance === 'object' ? value_instance.id : 0;
-      value.type_name = typeof value_instance === 'object' ? value_instance.name : value_instance;
+      value.typeId = typeof valueInstance === 'object' ? valueInstance.id : 0;
+      value.typeName = typeof valueInstance === 'object' ? valueInstance.name : valueInstance;
       this._values.push(value);
-      var value_name_field = label.toLowerCase().replace(/ /g, '_');
+      const valueNameField = label.toLowerCase().replace(/ /g, '_');
 
-      if(this.reserved_fields.indexOf(value_name_field) == -1){
-        Object.defineProperty(this, value_name_field, {
+      if(this.reservedFields.indexOf(valueNameField) == -1){
+        Object.defineProperty(this, valueNameField, {
           get (){
-            return value.type_id == 0 ? value.type_name : this.node.get_instance_by_id(value.type_id);},
+            return value.typeId == 0 ? value.typeName : this.node.getInstanceById(value.typeId);},
           configurable: true
         });
 
-        if(this.reserved_fields.indexOf(value_name_field+'s') == -1 && !this.hasOwnProperty(value_name_field+'s')){
-          Object.defineProperty(this, value_name_field+'s', {
+        if(this.reservedFields.indexOf(valueNameField+'s') == -1 && !this.hasOwnProperty(valueNameField+'s')){
+          Object.defineProperty(this, valueNameField+'s', {
             get (){
-              var instances = [];
-              for(var i = 0; i < this._values.length; i++){
-                if(this._values[i].label.toLowerCase().replace(/ /g, '_') == value_name_field){
-                  instances.push(this._values[i].type_id == 0 ? this._values[i].type_name : this.node.get_instance_by_id(this._values[i].type_id));
+              const instances = [];
+              for(let i = 0; i < this._values.length; i++){
+                if(this._values[i].label.toLowerCase().replace(/ /g, '_') == valueNameField){
+                  instances.push(this._values[i].typeId == 0 ? this._values[i].typeName: this.node.getInstanceById(this._values[i].typeId));
                 }
               }
               return instances;
@@ -117,36 +117,36 @@ class CEInstance{
         }
       }
       if(propagate == null || propagate != false){
-        this.node.enact_rules(this, 'value', value_instance, source);
+        this.node.enactRules(this, 'value', valueInstance, source);
       }
     }
   }
 
-  add_relationship (label, relationship_instance, propagate, source){
-    if(this.get_possible_properties().relationships.indexOf(label.toLowerCase()) > -1){
-      var relationship = {};
+  addRelationship (label, relationshipInstance, propagate, source){
+    if(this.getPossibleProperties().relationships.indexOf(label.toLowerCase()) > -1){
+      const relationship = {};
       relationship.label = label;
       relationship.source = source;
-      relationship.target_id = relationship_instance.id;
-      relationship.target_name = relationship_instance.name;
+      relationship.targetId = relationshipInstance.id;
+      relationship.targetName = relationshipInstance.name;
       this._relationships.push(relationship);
-      var rel_name_field = label.toLowerCase().replace(/ /g, '_');
+      const relNameField = label.toLowerCase().replace(/ /g, '_');
 
-      if(this.reserved_fields.indexOf(rel_name_field) == -1){
-        Object.defineProperty(this, rel_name_field, {
+      if(this.reservedFields.indexOf(relNameField) == -1){
+        Object.defineProperty(this, relNameField, {
           get (){
-            return this.node.get_instance_by_id(relationship.target_id);
+            return this.node.getInstanceById(relationship.targetId);
           },
           configurable: true
         });
 
-        if(this.reserved_fields.indexOf(rel_name_field+'s') == -1 && !this.hasOwnProperty(rel_name_field+'s')){
-          Object.defineProperty(this, rel_name_field+'s', {
+        if(this.reservedFields.indexOf(relNameField+'s') == -1 && !this.hasOwnProperty(relNameField+'s')){
+          Object.defineProperty(this, relNameField+'s', {
             get (){
-              var instances = [];
-              for(var i = 0; i < this._relationships.length; i++){
-                if(this._relationships[i].label.toLowerCase().replace(/ /g, '_') == rel_name_field){
-                  instances.push(this.node.get_instance_by_id(this._relationships[i].target_id));
+              const instances = [];
+              for(let i = 0; i < this._relationships.length; i++){
+                if(this._relationships[i].label.toLowerCase().replace(/ /g, '_') == relNameField){
+                  instances.push(this.node.getInstanceById(this._relationships[i].targetId));
                 }
               }
               return instances;
@@ -155,13 +155,13 @@ class CEInstance{
         }
       }
       if(propagate == null || propagate != false){
-        this.node.enact_rules(this, 'relationship', relationship_instance, source);
+        this.node.enactRules(this, 'relationship', relationshipInstance, source);
       }
     }
   }
 
-  add_synonym (synonym){
-    for(var i = 0; i < this._synonyms.length; i++){
+  addSynonym (synonym){
+    for(let i = 0; i < this._synonyms.length; i++){
       if(this._synonyms[i].toLowerCase() == synonym.toLowerCase()){
         return;
       }
@@ -174,29 +174,29 @@ class CEInstance{
     });
   }
 
-  property (property_name, source){
-    return this.properties(property_name, source, true);
+  property (propertyNamee, source){
+    return this.properties(propertyName, source, true);
   }   
 
-  properties (property_name, source, only_one){
-    var properties = [];
-    for(var i = this.values.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
-      if(this.values[i].label.toLowerCase() == property_name.toLowerCase()){
-        var inst = this.values[i].instance;
-        var dat = source ? {instance: inst, source: this.values[i].source} : inst;
-        if(only_one){return dat;}
+  properties (propertyName, source, onlyOne){
+    const properties = [];
+    for(let i = this.values.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
+      if(this.values[i].label.toLowerCase() == propertyName.toLowerCase()){
+        const inst = this.values[i].instance;
+        const dat = source ? {instance: inst, source: this.values[i].source} : inst;
+        if(onlyOne){return dat;}
         properties.push(dat);
       }
     }
-    for(var i = this.relationships.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
-      if(this.relationships[i].label.toLowerCase() == property_name.toLowerCase()){
-        var inst = this.relationships[i].instance;
-        var dat = source ? {instance: inst, source: this.relationships[i].source} : inst;
-        if(only_one){return dat;}
+    for(let i = this.relationships.length - 1; i >= 0; i--){ // Reverse so we get the latest prop first
+      if(this.relationships[i].label.toLowerCase() == propertyName.toLowerCase()){
+        const inst = this.relationships[i].instance;
+        const dat = source ? {instance: inst, source: this.relationships[i].source} : inst;
+        if(onlyOne){return dat;}
         properties.push(dat);
       }
     }
-    return only_one ? null : properties;
+    return onlyOne ? null : properties;
   }
 
   get synonyms (){
@@ -204,69 +204,69 @@ class CEInstance{
   }
 
   get ce () {
-    var concept = this.concept;
+    const concept = this.concept;
     if(concept == null){return;}
-    var ce = "there is a "+concept.name+" named '"+this.name+"'";
-    var facts = [];
-    for(var i = 0; i < this._values.length; i++){
-      var value = this._values[i];
-      if(value.type_id == 0){
-        facts.push("has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.label)
+    let ce = "there is a "+concept.name+" named '"+this.name+"'";
+    const facts = [];
+    for(let i = 0; i < this._values.length; i++){
+      const value = this._values[i];
+      if(value.typeId == 0){
+        facts.push("has '"+value.typeName.replace(/'/g, "\\'")+"' as "+value.label)
       }
       else{
-        var value_instance = this.node.get_instance_by_id(value.type_id);
-        var value_concept = value_instance.type; 
-        facts.push("has the "+value_concept.name+" '"+value_instance.name+"' as "+value.label);
+        const valueInstance = this.node.getInstanceById(value.typeId);
+        const valueConcept = valueInstance.type; 
+        facts.push("has the "+valueConcept.name+" '"+valueInstance.name+"' as "+value.label);
       }
     }
-    for(var i = 0; i < this._relationships.length; i++){
-      var relationship = this._relationships[i];
-      var relationship_instance = this.node.get_instance_by_id(relationship.target_id);
-      var relationship_concept = relationship_instance.type;
-      facts.push(relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'");
+    for(let i = 0; i < this._relationships.length; i++){
+      const relationship = this._relationships[i];
+      const relationshipInstance = this.node.getInstanceById(relationship.targetId);
+      const relationshipConcept = relationshipInstance.type;
+      facts.push(relationship.label+" the "+relationshipConcept.name+" '"+relationshipInstance.name+"'");
     }
     if(facts.length > 0){ce += " that "+facts.join(" and ");}
     return ce+".";
   }
 
   get gist () {
-    var vowels = ["a", "e", "i", "o", "u"];
-    var concept = this.concept;
+    const vowels = ["a", "e", "i", "o", "u"];
+    const concept = this.concept;
     if(concept == null){return;}
-    var gist = this.name+" is";
+    let gist = this.name+" is";
     if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){gist+=" an "+concept.name+".";}
     else{gist+=" a "+concept.name+".";}
-    var facts = {};
-    var fact_found = false;
-    for(var i = 0; i < this._values.length; i++){
-      fact_found = true;
-      var value = this._values[i];
-      var fact = "";
-      if(value.type_id == 0){
-        fact = "has '"+value.type_name.replace(/'/g, "\\'")+"' as "+value.label;
+    const facts = {};
+    let factFound = false;
+    for(let i = 0; i < this._values.length; i++){
+      factFound = true;
+      const value = this._values[i];
+      let fact = "";
+      if(value.typeId == 0){
+        fact = "has '"+value.typeName.replace(/'/g, "\\'")+"' as "+value.label;
       }
       else{
-        var value_instance = this.node.get_instance_by_id(value.type_id);
-        var value_concept = value_instance.type;
-        fact = "has the "+value_concept.name+" '"+value_instance.name+"' as "+value.label;
+        const valueInstance = this.node.getInstanceById(value.typeId);
+        const valueConcept = valueInstance.type;
+        fact = "has the "+valueConcept.name+" '"+valueInstance.name+"' as "+value.label;
       }
       if(!(fact in facts)){
         facts[fact] = 0;
       }
       facts[fact]++;
     }
-    for(var i = 0; i < this._relationships.length; i++){
-      fact_found = true;
-      var relationship = this._relationships[i];
-      var relationship_instance = this.node.get_instance_by_id(relationship.target_id);
-      var relationship_concept = relationship_instance.type;
-      var fact = relationship.label+" the "+relationship_concept.name+" '"+relationship_instance.name+"'";
+    for(let i = 0; i < this._relationships.length; i++){
+      factFound = true;
+      const relationship = this._relationships[i];
+      const relationshipInstance = this.node.getInstanceById(relationship.targetId);
+      const relationshipConcept = relationshipInstance.type;
+      const fact = relationship.label+" the "+relationshipConcept.name+" '"+relationshipInstance.name+"'";
       if(!(fact in facts)){
         facts[fact] = 0;
       }
       facts[fact]++;
     }
-    if(fact_found){
+    if(factFound){
       gist += " "+this.name;
       for(fact in facts){
         gist += " "+fact;
