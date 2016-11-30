@@ -16,9 +16,9 @@
  */
 'use strict';
 
-import CEAgent from './CEAgent.js';
-import CEConcept from './CEConcept.js';
-import CEInstance from './CEInstance.js';
+const CEAgent = require('./CEAgent.js');
+const CEConcept = require('./CEConcept.js');
+const CEInstance = require('./CEInstance.js');
 
 class CENode{
 
@@ -60,11 +60,11 @@ class CENode{
    */
   get_concept_by_name (name){
     if(name == null){return null;}
-    for(var i = 0; i < this._concepts.length; i++){
+    for(let i = 0; i < this._concepts.length; i++){
       if(this._concepts[i].name.toLowerCase() == name.toLowerCase()){
         return this._concepts[i];
       }
-      for(var j = 0; j < this._concepts[i].synonyms.length; j++){
+      for(let j = 0; j < this._concepts[i].synonyms.length; j++){
         if(this._concepts[i].synonyms[j].toLowerCase() == name.toLowerCase()){
           return this._concepts[i];
         }
@@ -88,11 +88,11 @@ class CENode{
    */
   get_instance_by_name (name) {
     if(name==null){return null;}
-    for(var i = 0; i < this._instances.length; i++) {
+    for(let i = 0; i < this._instances.length; i++) {
       if(this._instances[i].name.toLowerCase() == name.toLowerCase()){
         return this._instances[i];
       }
-      for(var j = 0; j < this._instances[i].synonyms.length; j++){
+      for(let j = 0; j < this._instances[i].synonyms.length; j++){
         if(this._instances[i].synonyms[j].toLowerCase() == name.toLowerCase()){
           return this._instances[i];
         }
@@ -102,10 +102,10 @@ class CENode{
 
   parse_rule (instruction){
     if(instruction == null){return null;}
-    var rule = {};
-    var then_string = null;
-    var rel_facts = instruction.match(/^if the ([a-zA-Z0-9 ]*) ([A-Z]) ~ (.*) ~ the ([a-zA-Z0-9 ]*) ([A-Z]) then the (.*)/i);
-    var val_facts = instruction.match(/^if the ([a-zA-Z0-9 ]*) ([A-Z]) has the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ (.*) ~ then the (.*)/i);
+    const rule = {};
+    let then_string = null;
+    const rel_facts = instruction.match(/^if the ([a-zA-Z0-9 ]*) ([A-Z]) ~ (.*) ~ the ([a-zA-Z0-9 ]*) ([A-Z]) then the (.*)/i);
+    const val_facts = instruction.match(/^if the ([a-zA-Z0-9 ]*) ([A-Z]) has the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ (.*) ~ then the (.*)/i);
     if(rel_facts){
       rule.if = {};
       rule.if.concept = rel_facts[1];
@@ -124,8 +124,8 @@ class CENode{
     }
 
     if(then_string){
-      var then_rel_facts = then_string.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ (.*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/i);
-      var then_val_facts = then_string.match(/^([a-zA-Z0-9 ]*) ([A-Z]) has the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ (.*) ~/i);
+      const then_rel_facts = then_string.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ (.*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/i);
+      const then_val_facts = then_string.match(/^([a-zA-Z0-9 ]*) ([A-Z]) has the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ (.*) ~/i);
       if(then_rel_facts){
         rule.then = {};
         rule.then.concept = then_rel_facts[1];
@@ -148,15 +148,15 @@ class CENode{
     if(typeof object_instance == "string"){
       return;
     }
-    var rules = this.get_instances("rule");
-    for(var i = 0; i < this.rules.length; i++){
-      var rule = this.parse_rule(this.rules[i].instruction);
+    const rules = this.get_instances("rule");
+    for(let i = 0; i < this.rules.length; i++){
+      const rule = this.parse_rule(this.rules[i].instruction);
       if(rule == null){return;}
       if(rule.if.concept == subject_instance.type.name){
         if((property_type == "relationship" && rule.if.relationship != null) || (property_type == "value" && rule.if.value != null)){
-          var ancestor_concepts = object_instance.type.ancestors;
+          const ancestor_concepts = object_instance.type.ancestors;
           ancestor_concepts.push(object_instance.type);
-          for(var j = 0; j < ancestor_concepts.length; j++){
+          for(let j = 0; j < ancestor_concepts.length; j++){
             if(ancestor_concepts[j].name.toLowerCase() == rule.if[property_type].type.toLowerCase()){
               if(rule.then.relationship && rule.then.relationship.type == subject_instance.type.name){
                 object_instance.add_relationship(rule.then.relationship.label, subject_instance, false, source); 
@@ -187,12 +187,12 @@ class CENode{
    */
   parse_ce (t, nowrite, source){
     t = t.replace(/\s+/g, " ").replace(/\.+$/, "").trim(); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
-    var message = "";
+    let message = "";
 
     if(t.match(/^conceptualise an?/i)){
-      var concept_name = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/i)[1];
-      var stored_concept = this.get_concept_by_name(concept_name);
-      var concept = null;
+      const concept_name = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/i)[1];
+      const stored_concept = this.get_concept_by_name(concept_name);
+      let concept = null;
       if(stored_concept != null){ // if exists, simply modify existing concept
         message = "This concept already exists.";
         return [false, message];
@@ -207,14 +207,14 @@ class CENode{
         }
       }
 
-      var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b)/g);
-      for (var i=0; i<facts.length; i++) {
-        var fact = facts[i].trim();
+      const facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b)/g);
+      for (let i=0; i<facts.length; i++) {
+        const fact = facts[i].trim();
 
         // "has the type X as ~ label ~"
         if(fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
-          var facts_info = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
-          var value_type = this.get_concept_by_name(facts_info[1]);
+          const facts_info = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
+          let value_type = this.get_concept_by_name(facts_info[1]);
 
           if(facts_info[1] == "value"){value_type = 0;}
           else if(value_type == null){
@@ -230,8 +230,8 @@ class CENode{
 
         // "is a parent_concept"
         if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
-          var parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
-          var parent_concept = this.get_concept_by_name(parent_name);
+          const parent_name = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
+          const parent_concept = this.get_concept_by_name(parent_name);
           if(parent_concept == null){
             message = "Parent concept is unknown: "+parent_name;
             return [false, message];
@@ -246,19 +246,19 @@ class CENode{
     }
 
     else if(t.match(/^conceptualise the/i)){
-      var concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
-      concept = this.get_concept_by_name(concept_info[1]);
+      const concept_info = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
+      const concept = this.get_concept_by_name(concept_info[1]);
       if(!concept){
          message = "Concept "+concept_info[1]+" not known."; // if can't find concept, then fail
          return [false, message];
       }
 
-      var facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b|)/g);
-      for(var i = 0; i < facts.length; i++){
-        var fact = facts[i].trim();
+      const facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b|)/g);
+      for(let i = 0; i < facts.length; i++){
+        const fact = facts[i].trim();
 
         if(fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/)){
-          var facts_info = fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/);
+          const facts_info = fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/);
           if(nowrite == null || nowrite == false){
             concept.add_synonym(facts_info[1]);
           }
@@ -266,8 +266,8 @@ class CENode{
 
         // "concept C ~ label ~ the target T"  (e.g. the teacher T ~ teaches ~ the student S)
         if(fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
-          var facts_info = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-          var target = this.get_concept_by_name(facts_info[4]);
+          const facts_info = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
+          const target = this.get_concept_by_name(facts_info[4]);
           if(target == null){
             message = "The target of one of your input relationships is of an unknown type: "+facts_info[4];
             return [false, message];
@@ -281,8 +281,8 @@ class CENode{
 
         // "~ label ~ the target T" (e.g. and ~ loves ~ the person P)
         if(fact.match(/^~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)){
-          var facts_info = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-          target = this.get_concept_by_name(facts_info[2]);
+          const facts_info = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
+          const target = this.get_concept_by_name(facts_info[2]);
           if(target == null){
             message = "The target of one of your input relationships is of an unknown type: "+facts_info[2];
             return [false, message];
@@ -296,8 +296,8 @@ class CENode{
 
         // "has the type X as ~ label ~" (e.g. and has the room R as ~ location ~)
         if(fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
-          var facts_info = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
-          var type = this.get_concept_by_name(facts_info[1]);
+          const facts_info = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
+          let type = this.get_concept_by_name(facts_info[1]);
           if(facts_info[1] == "value"){type = 0;}
           else if(type == null){
             message = "There is an invalid value in your sentence: "+facts_info[1];
@@ -312,7 +312,7 @@ class CENode{
 
         // "is a parent_concept" (e.g. and is a entity)
         else if(fact.match(/^an? ([a-zA-Z0-9 ]*)/)){
-          var parent_info = fact.match(/^an? ([a-zA-Z0-9 ]*)/);
+          const parent_info = fact.match(/^an? ([a-zA-Z0-9 ]*)/);
 
           // Writepoint
           if(nowrite == null || nowrite == false){
@@ -324,18 +324,18 @@ class CENode{
     }
 
     else if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)){
-      var concept_facts_multiword, concept_facts_singleword, value_facts, relationship_facts_multiword, relationship_facts_singleword, synonym_facts;
-      var instance, concept;
+      let concept_facts_multiword, concept_facts_singleword, value_facts, relationship_facts_multiword, relationship_facts_singleword, synonym_facts;
+      let instance, concept;
       if(t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)){
-        var names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+        let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
         if(names == null){
           names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
           if(names == null){return [false, "Unable to determine name of instance."];}
         }
-        var concept_name = names[1];
-        var instance_name = names[2].replace(/\\/g, '');
-        var concept = this.get_concept_by_name(concept_name);
-        var current_instance = this.get_instance_by_name(instance_name);
+        const concept_name = names[1];
+        const instance_name = names[2].replace(/\\/g, '');
+        const concept = this.get_concept_by_name(concept_name);
+        const current_instance = this.get_instance_by_name(instance_name);
         if(concept == null){
           message = "Instance type unknown: "+concept_name;
           return [false, message];
@@ -362,8 +362,8 @@ class CENode{
         synonym_facts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
       }
       else if(t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
-        var concept_name, instance_name;
-        var names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+        let concept_name, instance_name;
+        let names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
         if(names != null){
           concept_name = names[1];
           instance_name = names[2].replace(/\\/g, '');
@@ -372,8 +372,8 @@ class CENode{
         }
         if(names == null || concept == null || instance == null){
           names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
-          var name_tokens = names[1].split(" ");
-          for(var i = 0; i < this._concepts.length; i++){
+          const name_tokens = names[1].split(" ");
+          for(let i = 0; i < this._concepts.length; i++){
             if(names[1].toLowerCase().indexOf(this._concepts[i].name.toLowerCase()) == 0){
               concept_name = this._concepts[i].name;
               concept = this._concepts[i];
@@ -407,18 +407,18 @@ class CENode{
         return [false, message];
       }
 
-      var concept_facts = [];
+      let concept_facts = [];
       if(concept_facts_multiword == null){concept_facts = concept_facts_singleword;}
       else{concept_facts = concept_facts_multiword.concat(concept_facts_singleword);}
-      var relationship_facts = [];
+      let relationship_facts = [];
       if(relationship_facts_multiword == null){relationship_facts = relationship_facts_singleword;}
       else{relationship_facts = relationship_facts_multiword.concat(relationship_facts_singleword);}
 
-      if(concept_facts){for(var i = 0; i < concept_facts.length; i++){
+      if(concept_facts){for(let i = 0; i < concept_facts.length; i++){
         if(concept_facts[i] != null){
-          var fact = concept_facts[i].trim();
-          var value_type, value_instance_name, value_label;
-          var facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
+          const fact = concept_facts[i].trim();
+          let value_type, value_instance_name, value_label;
+          let facts_info = fact.match(/the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
           if(facts_info != null){
             value_type = facts_info[1];
             value_instance_name = facts_info[2].replace(/\\/g, '');
@@ -426,15 +426,15 @@ class CENode{
           }
           else{
             facts_info = fact.match(/(?:\bthat\b|\band\b) ?has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/);
-            var value_type = "";
-            var type_name_tokens = facts_info[1].split(" ");
-            for(var j = 0; j < type_name_tokens.length-1; j++){value_type+=type_name_tokens[j]+" ";}
+            let value_type = "";
+            const type_name_tokens = facts_info[1].split(" ");
+            for(let j = 0; j < type_name_tokens.length-1; j++){value_type+=type_name_tokens[j]+" ";}
             value_type = value_type.trim();
             value_instance_name = type_name_tokens[type_name_tokens.length-1].trim();
             value_label = facts_info[2];   
           }
           if(value_label!=""&&value_type!=""&&value_instance_name!=""){
-            var value_instance = get_instance_by_name(value_instance_name);
+            let value_instance = get_instance_by_name(value_instance_name);
             if(value_instance == null) {
               value_instance = new CEInstance(this, this.get_concept_by_name(value_type), value_instance_name, source);
               // Writepoint 
@@ -453,12 +453,12 @@ class CENode{
         }
       }}
 
-      if(value_facts){for(var i = 0; i < value_facts.length; i++){
+      if(value_facts){for(let i = 0; i < value_facts.length; i++){
         if(value_facts[i] != null){
-          var fact = value_facts[i].trim();
-          var facts_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
-          var value_value = facts_info[1].replace(/\\/g, '');
-          var value_label = facts_info[2];
+          const fact = value_facts[i].trim();
+          const facts_info = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
+          const value_value = facts_info[1].replace(/\\/g, '');
+          const value_label = facts_info[2];
           
           // Writepoint 
           if(nowrite == null || nowrite == false){
@@ -467,11 +467,11 @@ class CENode{
         }
       }}
 
-      if(relationship_facts){for(var i = 0; i < relationship_facts.length; i++){
+      if(relationship_facts){for(let i = 0; i < relationship_facts.length; i++){
         if(relationship_facts[i] != null){
-          var fact = relationship_facts[i].trim();
-          var relationship_label, relationship_type_name, relationship_instance_name;
-          var facts_info = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
+          const fact = relationship_facts[i].trim();
+          let relationship_label, relationship_type_name, relationship_instance_name;
+          let facts_info = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
           if(facts_info != null){
             relationship_label = facts_info[1];
             relationship_type_name = facts_info[2];
@@ -479,16 +479,16 @@ class CENode{
           }
           else{
             facts_info = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/);
-            var type_instance_tokens = facts_info[2].split(" ");
+            const type_instance_tokens = facts_info[2].split(" ");
             relationship_type_name = "";
-            for(var j = 0; j < type_instance_tokens.length-1; j++){relationship_type_name+=type_instance_tokens[j]+" ";}
+            for(let j = 0; j < type_instance_tokens.length-1; j++){relationship_type_name+=type_instance_tokens[j]+" ";}
             relationship_label = facts_info[1];
             relationship_type_name = relationship_type_name.trim();
             relationship_instance_name = type_instance_tokens[type_instance_tokens.length-1].trim();
           }
           if(relationship_label!=""&&relationship_type_name!=""&&relationship_instance_name!=""){
-            var relationship_type = this.get_concept_by_name(relationship_type_name);
-            var relationship_instance = this.get_instance_by_name(relationship_instance_name);
+            const relationship_type = this.get_concept_by_name(relationship_type_name);
+            let relationship_instance = this.get_instance_by_name(relationship_instance_name);
             if(relationship_type == null){
               //message = "Unknown relationship type: "+relationship_type_name;
               //return [false, message];
@@ -514,10 +514,10 @@ class CENode{
         }
       }}
       
-      if(synonym_facts){for(var i = 0; i < synonym_facts.length; i++){
+      if(synonym_facts){for(let i = 0; i < synonym_facts.length; i++){
         if(synonym_facts[i] != null){
-          var fact = synonym_facts[i].trim();
-          var facts_info = fact.match(/is expressed by ('([^'\\]*(?:\\.[^'\\]*)*)')/);
+          const fact = synonym_facts[i].trim();
+          const facts_info = fact.match(/is expressed by ('([^'\\]*(?:\\.[^'\\]*)*)')/);
           if(nowrite == null || nowrite == false){
             instance.add_synonym(facts_info[2]);
           }
@@ -539,21 +539,21 @@ class CENode{
    */
   parse_question (t){
     if(t.match(/^where (is|are)/i)){
-      var thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
-      var instance = this.get_instance_by_name(thing);
+      const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
+      const instance = this.get_instance_by_name(thing);
       if(instance == null){
         message = "I don't know what "+thing+" is.";
         return [true, message];
       }
-      var locatable_instances = this.get_instances("location", true);
-      var locatable_ids = [];
-      var places = {};
-      var place_found = false;
-      for(var i = 0; i < locatable_instances.length; i++){locatable_ids.push(locatable_instances[i].id);}
+      const locatable_instances = this.get_instances("location", true);
+      const locatable_ids = [];
+      const places = {};
+      let place_found = false;
+      for(let i = 0; i < locatable_instances.length; i++){locatable_ids.push(locatable_instances[i].id);}
       
-      for(var i = 0; i < instance.values.length; i++){
+      for(let i = 0; i < instance.values.length; i++){
         if(locatable_ids.indexOf(instance.values[i].instance.id) > -1){
-          var place = "has "+instance.values[i].instance.name+" as "+instance.values[i].label;
+          const place = "has "+instance.values[i].instance.name+" as "+instance.values[i].label;
           if(!(place in places)){
             places[place] = 0;
           }
@@ -561,9 +561,9 @@ class CENode{
           place_found = true;
         }
       }
-      for(var i = 0; i < instance.relationships.length; i++){
+      for(let i = 0; i < instance.relationships.length; i++){
         if(locatable_ids.indexOf(instance.relationships[i].instance.id) > -1){
-          var place = instance.relationships[i].label+" "+instance.relationships[i].instance.name;
+          const place = instance.relationships[i].label+" "+instance.relationships[i].instance.name;
           if(!(place in places)){
             places[place] = 0;
           }
@@ -587,11 +587,11 @@ class CENode{
     }
 
     else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)){
-      var thing = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g,'').replace(/\bthe\b/g, '').replace(/'/g, '');
-      var instance = null;
-      var locatable_instances = this.get_instances("location", true);
-      var located_instances = [];
-      for(var i = 0; i < locatable_instances.length; i++){
+      const thing = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g,'').replace(/\bthe\b/g, '').replace(/'/g, '');
+      let instance = null;
+      const locatable_instances = this.get_instances("location", true);
+      const located_instances = [];
+      for(let i = 0; i < locatable_instances.length; i++){
         if(thing.toLowerCase().indexOf(locatable_instances[i].name.toLowerCase()) > -1){
           instance = locatable_instances[i];break;
         }
@@ -600,14 +600,14 @@ class CENode{
         message = thing+" is not an instance of type location.";
         return [true, message];
       }
-      var things = {};
-      var thing_found = false;
-      for(var i = 0; i < this._instances.length; i++){
-        var vals = this._instances[i].values;
-        var rels = this._instances[i].relationships;
-        if(vals!=null){for(var j = 0; j < vals.length; j++){
+      const things = {};
+      let thing_found = false;
+      for(let i = 0; i < this._instances.length; i++){
+        const vals = this._instances[i].values;
+        const rels = this._instances[i].relationships;
+        if(vals!=null){for(let j = 0; j < vals.length; j++){
           if(vals[j].instance.id == instance.id){
-            var thing = "the "+this._instances[i].type.name+" "+this._instances[i].name+" has the "+instance.type.name+" "+instance.name+" as "+vals[j].label;
+            const thing = "the "+this._instances[i].type.name+" "+this._instances[i].name+" has the "+instance.type.name+" "+instance.name+" as "+vals[j].label;
             if(!(thing in things)){
               things[thing] = 0;
             }
@@ -615,9 +615,9 @@ class CENode{
             thing_found = true;
           }
         }}   
-        if(rels!=null){for(var j = 0; j < rels.length; j++){
+        if(rels!=null){for(let j = 0; j < rels.length; j++){
           if(rels[j].instance.id == instance.id){
-            var thing = "the "+this._instances[i].type.name+" "+this._instances[i].name+" "+rels[j].label+" the "+instance.type.name+" "+instance.name;
+            const thing = "the "+this._instances[i].type.name+" "+this._instances[i].name+" "+rels[j].label+" the "+instance.type.name+" "+instance.name;
             if(!(thing in things)){
               things[thing] = 0;
             }
@@ -632,7 +632,7 @@ class CENode{
       }
 
       message = '';
-      for(thing in things){
+      for(const thing in things){
         message += " "+thing;
         if(things[thing] > 1){
           message += " ("+things[thing]+" times)";
@@ -646,8 +646,8 @@ class CENode{
       t = t.replace(/\?/g,'').replace(/'/g, '').replace(/\./g, '');
 
       // If we have an exact match (i.e. 'who is The Doctor?')
-      var name = t.match(/^(\bwho\b|\bwhat\b) (?:is|are) ([a-zA-Z0-9_ ]*)/i);
-      var instance;
+      let name = t.match(/^(\bwho\b|\bwhat\b) (?:is|are) ([a-zA-Z0-9_ ]*)/i);
+      let instance;
       if(name){
         instance = this.get_instance_by_name(name[2]);
         if(instance != null){
@@ -659,12 +659,12 @@ class CENode{
       name = t.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9_ ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
       instance = this.get_instance_by_name(name);
       if(instance == null){
-        var concept = this.get_concept_by_name(name);
+        const concept = this.get_concept_by_name(name);
         if(concept == null){
-          var possibilities = [];
-          for(var i = 0; i < this._concepts.length; i++){
-            for(var j = 0; j < this._concepts[i].values.length; j++){
-              var v = this._concepts[i].values[j];
+          const possibilities = [];
+          for(let i = 0; i < this._concepts.length; i++){
+            for(let j = 0; j < this._concepts[i].values.length; j++){
+              const v = this._concepts[i].values[j];
               if(v.label.toLowerCase() == name.toLowerCase()){
                 if(v.type == 0){
                   possibilities.push("is a possible value of a type of "+this._concepts[i].name+" (e.g. \"the "+this._concepts[i].name+" '"+this._concepts[i].name.toUpperCase()+" NAME' has 'VALUE' as "+name+"\")");
@@ -674,8 +674,8 @@ class CENode{
                 }
               }     
             }
-            for(var j = 0; j < this._concepts[i].relationships.length; j++){
-              var r = this._concepts[i].relationships[j];
+            for(let j = 0; j < this._concepts[i].relationships.length; j++){
+              const r = this._concepts[i].relationships[j];
               if(r.label.toLowerCase() == name.toLowerCase()){
                 possibilities.push("describes the relationship between a type of "+this._concepts[i].name+" and a type of "+r.concept.name+" (e.g. \"the "+this._concepts[i].name+" '"+this._concepts[i].name.toUpperCase()+" NAME' "+name+" the "+r.concept.name+" '"+r.concept.name.toUpperCase()+" NAME'\")");
               }
@@ -697,12 +697,12 @@ class CENode{
 
     else if(t.match(/^(\bwho\b|\bwhat\b) does/i)){
       try{
-        var data = t.match(/^(\bwho\b|\bwhat\b) does ([a-zA-Z0-9_ ]*)/i);      
-        var body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
-        var tokens = body.split(' ');
-        var instance;
-        for(var i = 0; i < tokens.length; i++){
-          var test_string = tokens.slice(0, i).join(' ').trim();
+        const data = t.match(/^(\bwho\b|\bwhat\b) does ([a-zA-Z0-9_ ]*)/i);      
+        const body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
+        const tokens = body.split(' ');
+        let instance;
+        for(let i = 0; i < tokens.length; i++){
+          const test_string = tokens.slice(0, i).join(' ').trim();
           if(!instance){
             instance = this.get_instance_by_name(test_string);
           }
@@ -711,15 +711,15 @@ class CENode{
           }
         }
         if(instance){
-          var property_name = tokens.splice(instance.name.split(' ').length, tokens.length - 1).join(' ').trim();
-          var fixed_property_name = property_name;
-          var property = instance.property(property_name);
+          const property_name = tokens.splice(instance.name.split(' ').length, tokens.length - 1).join(' ').trim();
+          let fixed_property_name = property_name;
+          let property = instance.property(property_name);
           if (!property){
             fixed_property_name = property_name.replace(/s/ig, '');
             property = instance.property(fixed_property_name); 
           }
           if (!property){
-            var prop_tokens = property_name.split(' ');
+            const prop_tokens = property_name.split(' ');
             prop_tokens[0] = prop_tokens[0] + 's';
             fixed_property_name = prop_tokens.join(' ').trim();
             property = instance.property(fixed_property_name);
@@ -737,12 +737,12 @@ class CENode{
 
     else if(t.match(/^(\bwho\b|\bwhat\b)/i)){
       try{
-        var data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
-        var body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
-        var tokens = body.split(' ');
-        var instance;
-        for(var i = 0; i < tokens.length; i++){
-          var test_string = tokens.slice(tokens.length - (i+1), tokens.length).join(' ').trim();
+        const data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
+        const body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
+        const tokens = body.split(' ');
+        let instance;
+        for(let i = 0; i < tokens.length; i++){
+          const test_string = tokens.slice(tokens.length - (i+1), tokens.length).join(' ').trim();
           if(!instance){
             instance = this.get_instance_by_name(test_string);
           }
@@ -754,13 +754,13 @@ class CENode{
           }
         } 
         if(instance){
-          var property_name = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
-          for(var i = 0; i < this._instances.length; i++){
-            var subject = this._instances[i];
-            var fixed_property_name = property_name;
-            var property = subject.property(property_name);
+          const property_name = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
+          for(let i = 0; i < this._instances.length; i++){
+            const subject = this._instances[i];
+            let fixed_property_name = property_name;
+            let property = subject.property(property_name);
             if (!property){
-              var prop_tokens = property_name.split(' ');
+              const prop_tokens = property_name.split(' ');
               if(prop_tokens[0][prop_tokens[0].length-1].toLowerCase() == 's'){
                 prop_tokens[0] = prop_tokens[0].substring(0, prop_tokens[0].length - 1);
               }
@@ -768,7 +768,7 @@ class CENode{
               property = subject.property(fixed_property_name);
             }
             if (!property){
-              var prop_tokens = property_name.split(' ');
+              const prop_tokens = property_name.split(' ');
               prop_tokens[0] = prop_tokens[0] + 's';
               fixed_property_name = prop_tokens.join(' ').trim();
               property = subject.property(fixed_property_name);
@@ -787,15 +787,15 @@ class CENode{
     }
 
     else if(t.match(/^list (\ball\b|\binstances\b)/i)){
-      var ins = [];
-      var s = "";
+      let ins = [];
+      let s = "";
       if(t.toLowerCase().indexOf("list instances of type") == 0){
-        var con = t.toLowerCase().replace("list instances of type", "").trim();
+        const con = t.toLowerCase().replace("list instances of type", "").trim();
         ins = this.get_instances(con);
         s = "Instances of type '"+con+"':";
       }
       else if(t.toLowerCase().indexOf("list all instances of type") == 0){
-        var con = t.toLowerCase().replace("list all instances of type", "").trim();
+        const con = t.toLowerCase().replace("list all instances of type", "").trim();
         ins = this.get_instances(con, true);
         s = "All instances of type '"+con+"':";
       }
@@ -806,8 +806,8 @@ class CENode{
       if(ins.length == 0){
         return [true, "I could not find any instances matching your query."];
       }
-      var names = [];
-      for(var i = 0; i < ins.length; i++){
+      const names = [];
+      for(let i = 0; i < ins.length; i++){
         names.push(ins[i].name);
       }     
       return [true, s+" "+names.join(", ")];
@@ -828,18 +828,18 @@ class CENode{
    */
   parse_nl (t){
     t = t.replace(/'/g, '').replace(/\./g, '');
-    var tokens = t.split(" ");
-    var and_facts = t.split(/\band\b/);
+    const tokens = t.split(" ");
+    const and_facts = t.split(/\band\b/);
 
     // Try to find any mentions of known instances and tie them together using
     // values and relationships.
     
-    var common_words = ["there", "what", "who", "where", "theres", "is", "as", "and", "has", "that", "the", "a", "an", "named", "called", "name", "with", "conceptualise", "on", "at", "in"];
-    var focus_instance=null;
-    var smallest_index = 999999;
-    for(var i = 0; i < this._instances.length; i++){
-      var possible_names = this._instances[i].synonyms.concat(this._instances[i].name);
-      for(var j = 0; j < possible_names.length; j++){
+    const common_words = ["there", "what", "who", "where", "theres", "is", "as", "and", "has", "that", "the", "a", "an", "named", "called", "name", "with", "conceptualise", "on", "at", "in"];
+    let focus_instance=null;
+    let smallest_index = 999999;
+    for(let i = 0; i < this._instances.length; i++){
+      const possible_names = this._instances[i].synonyms.concat(this._instances[i].name);
+      for(let j = 0; j < possible_names.length; j++){
         if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) > -1){
           if(t.toLowerCase().indexOf(possible_names[j].toLowerCase()) < smallest_index){
             focus_instance = this._instances[i];
@@ -850,40 +850,39 @@ class CENode{
       }
     }
     if(focus_instance != null){
-      var focus_concept = focus_instance.type;
+      const focus_concept = focus_instance.type;
+      const focus_instance_words = focus_instance.name.toLowerCase().split(" ");
+      const focus_concept_words = focus_concept.name.toLowerCase().split(" ");
+      for(let i = 0; i < focus_instance_words.length; i++){common_words.push(focus_instance_words[i]);}
+      for(let i = 0; i < focus_concept_words.length; i++){common_words.push(focus_concept_words[i]);}
 
-      var focus_instance_words = focus_instance.name.toLowerCase().split(" ");
-      var focus_concept_words = focus_concept.name.toLowerCase().split(" ");
-      for(var i = 0; i < focus_instance_words.length; i++){common_words.push(focus_instance_words[i]);}
-      for(var i = 0; i < focus_concept_words.length; i++){common_words.push(focus_concept_words[i]);}
+      let ce = "the "+focus_concept.name+" '"+focus_instance.name+"' ";
+      const facts = [];
 
-      var ce = "the "+focus_concept.name+" '"+focus_instance.name+"' ";
-      var facts = [];
-
-      var parents = focus_concept.ancestors;
+      const parents = focus_concept.ancestors;
       parents.push(focus_concept);
 
-      var possible_relationships = [];
-      var possible_values = [];
-      for (var i = 0; i < parents.length; i++) {
+      let possible_relationships = [];
+      let possible_values = [];
+      for (let i = 0; i < parents.length; i++) {
         possible_relationships = possible_relationships.concat(parents[i].relationships);
         possible_values = possible_values.concat(parents[i].values);
       }
 
-      var and_facts = t.split(/\band\b/g);
-      for(var k = 0; k < and_facts.length; k++){
-        var f = and_facts[k].toLowerCase(); 
-        var fact_tokens = f.split(" ");
-        for(var i = 0; i < possible_values.length; i++){
-          var value_words = possible_values[i].label.toLowerCase().split(" ");
-          for(var j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
+      const and_facts = t.split(/\band\b/g);
+      for(let k = 0; k < and_facts.length; k++){
+        const f = and_facts[k].toLowerCase(); 
+        const fact_tokens = f.split(" ");
+        for(let i = 0; i < possible_values.length; i++){
+          const value_words = possible_values[i].label.toLowerCase().split(" ");
+          for(let j = 0; j < value_words.length; j++){common_words.push(value_words[j]);}
 
           if(possible_values[i].concept){
-            var value_concept = possible_values[i].concept;
-            var value_instances = this.get_instances(value_concept.name, true);
-            for(var j = 0; j < value_instances.length; j++){
-              var possible_names = value_instances[j].synonyms.concat(value_instances[j].name);
-              for(var l = 0; l < possible_names.length; l++){
+            const value_concept = possible_values[i].concept;
+            const value_instances = this.get_instances(value_concept.name, true);
+            for(let j = 0; j < value_instances.length; j++){
+              const possible_names = value_instances[j].synonyms.concat(value_instances[j].name);
+              for(let l = 0; l < possible_names.length; l++){
                 if(f.toLowerCase().indexOf(possible_names[l].toLowerCase())>-1){
                   facts.push("has the "+value_concept.name+" '"+value_instances[j].name+"' as "+possible_values[i].label);
                   break;
@@ -893,8 +892,8 @@ class CENode{
           }
           else{
             if(f.toLowerCase().indexOf(possible_values[i].label.toLowerCase()) > -1){
-              var value_name = "";
-              for(var j = 0; j < fact_tokens.length; j++){
+              let value_name = "";
+              for(let j = 0; j < fact_tokens.length; j++){
                 if(common_words.indexOf(fact_tokens[j].toLowerCase()) == -1 ){
                   value_name += fact_tokens[j]+" ";
                 }
@@ -906,15 +905,15 @@ class CENode{
           }
         }
 
-        var used_indices = [];
-        for(var i = 0; i < possible_relationships.length; i++){
+        const used_indices = [];
+        for(let i = 0; i < possible_relationships.length; i++){
           if(possible_relationships[i].concept){
-            var rel_concept = possible_relationships[i].concept;
-            var rel_instances = this.get_instances(rel_concept.name, true);
-            for(var j = 0; j < rel_instances.length; j++){
-              var possible_names = rel_instances[j].synonyms.concat(rel_instances[j].name);
-              for(var k = 0; k < possible_names.length; k++){
-                var index = f.toLowerCase().indexOf(' '+possible_names[k].toLowerCase()); // ensure object at least starts with the phrase (but not ends with, as might be plural)
+            const rel_concept = possible_relationships[i].concept;
+            const rel_instances = this.get_instances(rel_concept.name, true);
+            for(let j = 0; j < rel_instances.length; j++){
+              const possible_names = rel_instances[j].synonyms.concat(rel_instances[j].name);
+              for(let k = 0; k < possible_names.length; k++){
+                const index = f.toLowerCase().indexOf(' '+possible_names[k].toLowerCase()); // ensure object at least starts with the phrase (but not ends with, as might be plural)
                 if(index >- 1 && used_indices.indexOf(index) == -1){
                   facts.push(possible_relationships[i].label+" the "+rel_concept.name+" '"+rel_instances[j].name+"'");
                   used_indices.push(index);
@@ -930,23 +929,23 @@ class CENode{
       }
     }
 
-    for(var i = 0; i < this._concepts.length; i++){
+    for(let i = 0; i < this._concepts.length; i++){
       if(t.toLowerCase().indexOf(this._concepts[i].name.toLowerCase()) > -1){
-        var concept_words = this._concepts[i].name.toLowerCase().split(" ");
+        const concept_words = this._concepts[i].name.toLowerCase().split(" ");
         common_words.push(this._concepts[i].name.toLowerCase());
-        for(var j = 0; j < concept_words; j++){
+        for(let j = 0; j < concept_words; j++){
           common_words.push(concept_words[j]);
         }
-        var new_instance_name = "";
-        for(var j = 0; j < tokens.length; j++){
+        let new_instance_name = "";
+        for(let j = 0; j < tokens.length; j++){
           if(common_words.indexOf(tokens[j].toLowerCase()) == -1){
             new_instance_name += tokens[j]+" ";
           }
         }
         if(new_instance_name != ""){
-          return [true, "there is a "+this._concepts[i].name+" named '"+new_instance_name.trim()+"'"];
+          return [true, "there is a "+this._concepts[i].name+" named '"+this.new_instance_name.trim()+"'"];
         }
-        return [true, "there is a "+this._concepts[i].name+" named '"+_concepts[i].name+" "+_instances.length+1+"'"];
+        return [true, "there is a "+this._concepts[i].name+" named '"+this._concepts[i].name+" "+this._instances.length+1+"'"];
       }
     }
     return [false, "Un-parseable input: "+t];
@@ -961,14 +960,14 @@ class CENode{
    * Returns: str
    */
   guess_next (t){
-    var s = t.trim().toLowerCase();
-    var tokens = t.split(" ");
-    var last_word = tokens[tokens.length-1];
-    var last_concept = this._concepts[this._concepts.length-1];
-    var number_of_tildes = 0;
-    var index_of_first_tilde = 0;
-    for(var i = 0; i < tokens.length; i++){if(tokens[i] == "~"){number_of_tildes++;if(number_of_tildes==1){index_of_first_tilde=i;}}}
-    var possible_words = [];
+    const s = t.trim().toLowerCase();
+    const tokens = t.split(" ");
+    const last_word = tokens[tokens.length-1];
+    const last_concept = this._concepts[this._concepts.length-1];
+    let number_of_tildes = 0;
+    let index_of_first_tilde = 0;
+    for(let i = 0; i < tokens.length; i++){if(tokens[i] == "~"){number_of_tildes++;if(number_of_tildes==1){index_of_first_tilde=i;}}}
+    const possible_words = [];
     if(t == ""){return t;}
     if(number_of_tildes == 1){
       try{
@@ -997,28 +996,28 @@ class CENode{
       possible_words.push("the ");
     } 
 
-    var mentioned_instances = [];
+    const mentioned_instances = [];
 
     if(s.indexOf("there is") == -1 || tokens.length == 1){
-      for(var i = 0; i < this._instances.length; i++){
+      for(let i = 0; i < this._instances.length; i++){
         possible_words.push(this._instances[i].name);
         if(s.indexOf(this._instances[i].name.toLowerCase()) > -1){
           mentioned_instances.push(this._instances[i]);
         }
       }
     }
-    for(var i = 0; i < this._concepts.length; i++){
+    for(let i = 0; i < this._concepts.length; i++){
       possible_words.push(this._concepts[i].name);
-      var concept_mentioned = false;
-      for(var j = 0; j < mentioned_instances.length; j++){
+      let concept_mentioned = false;
+      for(let j = 0; j < mentioned_instances.length; j++){
         if(mentioned_instances[j].concept_id == this._concepts[i].id){concept_mentioned = true;break;}
       }
       if(s.indexOf(this._concepts[i].name.toLowerCase()) > -1 || concept_mentioned){
-        for(var j = 0; j < this._concepts[i].values.length; j++){possible_words.push(this._concepts[i].values[j].label);}
-        for(var j = 0; j < this._concepts[i].relationships.length; j++){possible_words.push(this._concepts[i].relationships[j].label);}
+        for(let j = 0; j < this._concepts[i].values.length; j++){possible_words.push(this._concepts[i].values[j].label);}
+        for(let j = 0; j < this._concepts[i].relationships.length; j++){possible_words.push(this._concepts[i].relationships[j].label);}
       }
     }
-    for(var i = 0; i < possible_words.length; i++){
+    for(let i = 0; i < possible_words.length; i++){
       if(possible_words[i].toLowerCase().indexOf(tokens[tokens.length-1].toLowerCase()) == 0){
         tokens[tokens.length-1] = possible_words[i];
         return tokens.join(" ");
@@ -1043,14 +1042,14 @@ class CENode{
    * Returns: [obj{instance}]
    */
   get_instances (concept_type, recurse){
-    var instance_list = [];
+    let instance_list = [];
     if(concept_type == null){
       instance_list = this._instances;
     }
     else if(concept_type != null && (recurse == null || recurse == false)){
-      var concept = this.get_concept_by_name(concept_type);
+      const concept = this.get_concept_by_name(concept_type);
       if(concept){
-        for(var i = 0; i < this._instances.length; i++){
+        for(let i = 0; i < this._instances.length; i++){
           if(this._instances[i].type.id == concept.id){
             instance_list.push(this._instances[i]);
           }
@@ -1058,12 +1057,12 @@ class CENode{
       }
     }
     else if(concept_type != null && recurse == true){
-      var concept = this.get_concept_by_name(concept_type);
+      const concept = this.get_concept_by_name(concept_type);
       if(concept){
-        var descendants = concept.descendants.concat(concept);
-        var children_ids = [];
-        for(var i = 0; i < descendants.length; i++){children_ids.push(descendants[i].id);}
-        for(var i = 0; i < this._instances.length; i++){
+        const descendants = concept.descendants.concat(concept);
+        const children_ids = [];
+        for(let i = 0; i < descendants.length; i++){children_ids.push(descendants[i].id);}
+        for(let i = 0; i < this._instances.length; i++){
           if(children_ids.indexOf(this._instances[i].type.id) > -1){
             instance_list.push(this._instances[i]);
           }
@@ -1109,12 +1108,12 @@ class CENode{
     sentence = sentence.trim();
     sentence = sentence.replace("{now}", new Date().getTime());
     sentence = sentence.replace("{uid}", this.new_card_id());
-    var return_data = {};
-    var ce_success = this.parse_ce(sentence, false, source);
+    const return_data = {};
+    const ce_success = this.parse_ce(sentence, false, source);
     if(ce_success[0] == false){
-      var question_success = this.parse_question(sentence);
+      const question_success = this.parse_question(sentence);
       if(question_success[0] == false){
-        var nl_success = this.parse_nl(sentence);
+        const nl_success = this.parse_nl(sentence);
         if(nl_success[0] == false){
           return_data.type = "gist";
         }
@@ -1150,8 +1149,8 @@ class CENode{
     sentence = sentence.trim();
     sentence = sentence.replace("{now}", new Date().getTime());
     sentence = sentence.replace("{uid}", this.new_card_id());
-    var return_data = {};
-    var success = this.parse_ce(sentence, nowrite, source);
+    const return_data = {};
+    const success = this.parse_ce(sentence, nowrite, source);
     return_data.success = success[0];
     return_data.type = "gist";
     return_data.data = success[1];
@@ -1168,8 +1167,8 @@ class CENode{
    * (Note that type and data will be null unless success = true)
    */
   ask_question (sentence){
-    var return_data = {};
-    var success = this.parse_question(sentence);
+    const return_data = {};
+    const success = this.parse_question(sentence);
     return_data.success = success[0];
     if(success[0] == true){
       return_data.type = "gist";
@@ -1186,8 +1185,8 @@ class CENode{
    * Returns: {type: str, data: str}
    */
   add_nl (sentence){
-    var return_data = {};
-    var success = this.parse_nl(sentence);
+    const return_data = {};
+    const success = this.parse_nl(sentence);
     if(success[0] == true){
       return_data.type = "confirm";
     }
@@ -1207,8 +1206,8 @@ class CENode{
    * Returns: [[bool, str]...]
    */
   add_sentences (sentences, source){
-    var responses = [];
-    for(var i = 0; i < sentences.length; i++){
+    const responses = [];
+    for(let i = 0; i < sentences.length; i++){
       if(sentences[i] && sentences[i].length > 0){
         responses.push(this.add_sentence(sentences[i], source));
       }
@@ -1224,8 +1223,8 @@ class CENode{
    * Returns: [[bool, str]...]
    */
   load_model (sentences){
-    var responses = [];
-    for(var i = 0; i < sentences.length; i++){
+    const responses = [];
+    for(let i = 0; i < sentences.length; i++){
       responses.push(this.add_ce(sentences[i]));
     }
     return responses;
@@ -1257,7 +1256,7 @@ class CENode{
     this.last_instance_id = this._instances.length;
     this.last_concept_id = this._concepts.length;
     this.last_card_id = 0;
-    for(var i = 0; i < arguments.length; i++){
+    for(let i = 0; i < arguments.length; i++){
       this.load_model(arguments[i]);
     }
   }
@@ -1272,7 +1271,7 @@ module.exports = CENode;
 /*
  * Utility object to support writing the node to storage.
  */
-var util = {
+const util = {
   on_client: function(){
     if(typeof window != 'undefined' && window.document){
       return true;
@@ -1289,8 +1288,8 @@ var util = {
     } catch(err){console.log(err);}
   },
   store_node_node: function(key, node){
-    var fs = require('fs');
-    var file = JSON.stringify(this.get_concepts())+"NODESEPARATOR"+JSON.stringify(this.get_instances());
+    const fs = require('fs');
+    const file = JSON.stringify(this.get_concepts())+"NODESEPARATOR"+JSON.stringify(this.get_instances());
     fs.writeFile("./"+key+"_node", file, function(err){u
       if(err){console.log(err);}
     });
@@ -1301,20 +1300,20 @@ var util = {
   },
   load_node_client: function(key){
     try{
-      var data = {};
+      const data = {};
       data.instances = JSON.parse(localStorage.getItem(key+"_instances"));
       data.concepts = JSON.parse(localStorage.getItem(key+"_concepts"));
       return node;
     } catch(err){console.log(err);}
   },
   load_instances_node: function(key, callback){
-    var fs = require('fs');
-    var data = {};
+    const fs = require('fs');
+    const data = {};
     fs.readFile("./"+key+"_node", 'utf8', function(err, str){
       if(err){console.log(err);}
       else{
         try{
-          var split = str.split("NODESEPARATOR");
+          const split = str.split("NODESEPARATOR");
           data.concepts = JSON.parse(split[0]);
           data.instances = JSON.parse(split[1]);
           if(callback){callback(data);}
@@ -1327,7 +1326,7 @@ var util = {
 /*
  * Utility object to support network tasks.
  */
-var net = {
+const net = {
   make_request: function(method, node_url, path, data, callback){
     try{
       if(util.on_client()){net.make_request_client(method, node_url, path, data, callback);}
@@ -1338,7 +1337,7 @@ var net = {
   },  
   make_request_client: function(method, node_url, path, data, callback){
     console.log(method+" "+path);
-    var xhr = new XMLHttpRequest();
+    const xhr = new XMLHttpRequest();
     xhr.open(method, node_url+path);
     xhr.onreadystatechange = function(){
       if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302) && callback != null){
@@ -1355,15 +1354,15 @@ var net = {
 
   },
   make_request_node: function(method, node_url, path, data, callback){
-    var http = require('http');
-    var options = {
+    const http = require('http');
+    const options = {
       host: node_url,
       path: path,
       method: method,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'}
     };
-    var req = http.request(options, function(response){
-      var body = '';
+    const req = http.request(options, function(response){
+      let body = '';
       response.on('data', function(chunk){body+=chunk;});
       response.on('end', function(){
         body = decodeURIComponent(body.replace(/\+/g, ' '));
@@ -1377,11 +1376,11 @@ var net = {
 
 // If running as a Node.js service, start the server.
 if(!util.on_client() && require.main === module){
-  var POST_SENTENCES_ENDPOINT = "/sentences";
-  var GET_CARDS_ENDPOINT = "/cards";
-  var http = require('http');
-  var PORT = 5555;
-  var node = new CENode(MODELS.CORE);
+  const POST_SENTENCES_ENDPOINT = "/sentences";
+  const GET_CARDS_ENDPOINT = "/cards";
+  const http = require('http');
+  let PORT = 5555;
+  const node = new CENode(MODELS.CORE);
   node.add_sentence("there is a forwardall policy named 'p1' that has 'true' as all agents and has the timestamp '0' as start time and has 'true' as enabled");
 
   if(process.argv.length > 2){node.agent.set_name(process.argv[2]);}
@@ -1389,41 +1388,41 @@ if(!util.on_client() && require.main === module){
   console.log("Set local agent's name to '"+node.agent.get_name()+"'.");
 
   function post_sentences(request, response){
-    var body = "";
+    let body = "";
     request.on('data', function(chunk){
       body+=chunk;
     });     
     request.on('end', function(){
       body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
-      var sentences = body.split(/\\n|\n/);
-      var responses = node.add_sentences(sentences);
+      const sentences = body.split(/\\n|\n/);
+      const responses = node.add_sentences(sentences);
       response.write(responses.map(function(resp){return resp.data;}).join("\n"));
       response.end();
     });
   }
 
   function get_cards(request, response, ignores){
-    var url = decodeURIComponent(request.url);
-    var agent_regex = url.match(/agent=(.*)/);
-    var agent_str = null;
-    var agents = [];
-    var ignores = ignores ? ignores : [];
+    const url = decodeURIComponent(request.url);
+    const agent_regex = url.match(/agent=(.*)/);
+    let agent_str = null;
+    let agents = [];
+    ignores = ignores ? ignores : [];
     if(agent_regex != null){agent_str = agent_regex[1];}
     if(agent_str != null){
       agents = agent_str.toLowerCase().split(",");
     }
-    var cards = node.get_instances("card", true);
-    var s = "";
-    for(var i = 0; i < cards.length; i++){
+    const cards = node.get_instances("card", true);
+    let s = "";
+    for(let i = 0; i < cards.length; i++){
       if(ignores.indexOf(cards[i].name) == -1){
         if(agents == null || agents.length == 0){
           s += cards[i].ce+"\n";
         }
         else{
-          var tos = cards[i].is_tos;
+          const tos = cards[i].is_tos;
           if(tos){
-            for(var j = 0; j < tos.length; j++){
-              for(var k = 0; k < agents.length; k++){
+            for(let j = 0; j < tos.length; j++){
+              for(let k = 0; k < agents.length; k++){
                 if(tos[j].name.toLowerCase() == agents[k]){
                   s += cards[i].ce+"\n";
                   break;
@@ -1442,9 +1441,9 @@ if(!util.on_client() && require.main === module){
     response.setHeader("Access-Control-Allow-Origin", "*");
     if(request.method == "GET"){
       if(request.url == "/"){
-        var ins = node.get_instances();
-        var con = node.get_concepts();
-        var s = '<html><head><title>CENode Management</title></head><body><h1>CENode Server Admin Interface</h1>';
+        const ins = node.get_instances();
+        const con = node.get_concepts();
+        let s = '<html><head><title>CENode Management</title></head><body><h1>CENode Server Admin Interface</h1>';
         s+='<div style="width:48%;float:left;"><h2>Conceptual model</h2><p>Load a bundled model to the node:</p><form action="/model" method="POST"><select name="model">';
         for(key in MODELS){s+='<option value="'+key+'">'+key+'</option>';}
         s +='</select><input type="submit"></form>';
@@ -1475,12 +1474,12 @@ if(!util.on_client() && require.main === module){
     }
     else if(request.method == "POST"){
       if(request.url.indexOf(GET_CARDS_ENDPOINT) == 0){
-        var body = "";
+        let body = "";
         request.on('data', function(chunk){
           body+=chunk;
         });
         request.on('end', function(){
-          var ignores = body.split(/\\n|\n/);
+          const ignores = body.split(/\\n|\n/);
           response.writeHead(200, {"Content-Type": "text/ce"});
           get_cards(request, response, ignores);
         });
@@ -1494,18 +1493,18 @@ if(!util.on_client() && require.main === module){
         post_sentences(request, response);      
       }
       else if(request.url == "/model"){
-        var body = "";
+        let body = "";
         request.on('data', function(chunk){
           body+=chunk;
         });
         request.on('end', function(){
-          var components = {};
+          const components = {};
           body.replace(
             new RegExp("([^?=&]+)(=([^&]*))?", "g"),
               function($0, $1, $2, $3) { components[$1] = $3; }
           );
           if(components.model in MODELS){
-            var model = MODELS[components.model];
+            const model = MODELS[components.model];
             node.add_sentences(model);
           }
         });
@@ -1513,7 +1512,7 @@ if(!util.on_client() && require.main === module){
         response.end();
       }
       else if(request.url == "/agent_name"){
-        var body = "";
+        let body = "";
         request.on('data', function(chunk){
           body+=chunk;
         });     
