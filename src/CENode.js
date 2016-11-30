@@ -16,9 +16,9 @@
  */
 'use strict';
 
-const CEAgent = require('./CEAgent.js');
-const CEConcept = require('./CEConcept.js');
-const CEInstance = require('./CEInstance.js');
+import CEAgent from './CEAgent.js';
+import CEConcept from './CEConcept.js';
+import CEInstance from './CEInstance.js';
 
 class CENode{
 
