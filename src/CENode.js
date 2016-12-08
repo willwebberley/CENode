@@ -458,11 +458,11 @@ class CENode{
           const fact = valueFacts[i].trim();
           const factsInfo = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
           const valueValue = factsInfo[1].replace(/\\/g, '');
-          const valueLabel = factsInfoo[2];
+          const valueLabel = factsInfo[2];
           
           // Writepoint 
           if(nowrite == null || nowrite == false){
-            instance.addValuee(valueLabel, valueValue, true, source);
+            instance.addValue(valueLabel, valueValue, true, source);
           }
         }
       }}
@@ -479,7 +479,7 @@ class CENode{
           }
           else{
             factsInfo = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/);
-            const typeInstanceTokens = factsInfoo[2].split(" ");
+            const typeInstanceTokens = factsInfo[2].split(" ");
             relationshipTypeName = "";
             for(let j = 0; j < typeInstanceTokens.length-1; j++){relationshipTypeName+=typeInstanceTokens[j]+" ";}
             relationshipLabel = factsInfo[1];
