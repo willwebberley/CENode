@@ -6,8 +6,8 @@ const GET_CARDS_ENDPOINT = "/cards";
 
 const node = new CENode(CORE_MODEL, SERVER_MODEL);
 let port = 5555;
-if(process.argv.length < 1){
-  port = process.argv[1];
+if(process.argv.length > 3){
+  port = process.argv[3];
 }
 if(process.argv.length > 2){
   node.agent.setName(process.argv[2]);
@@ -28,21 +28,19 @@ require('http').createServer((request, response) => {
       s+='<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent-name"><input type="text" name="name" value="'+node.agent.getName()+'" /><input type="submit" /></form>';
       s+='<p>Other options:</p><button onclick="window.location=\'/reset\';">Empty model</button>';
       s+='</div><div style="clear:both;"></div>';
-      s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2><textarea style="width:100%;height:300px;" readonly>';
+      s+='<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2>';
       for(const concept of con){
         s += concept.name;
         if (concept.parents.length){
           s += ' (' + concept.parents[0].name + ')';
         }
-        s += '\n';
+        s += '<br>';
       } 
-      s+='</textarea></div>';
-      s+='<div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2><textarea style="width:100%;height:300px;" readonly>';
+      s+='</div><div style="display:inline-block;width:45%;float:right;"><h2>Instances</h2>';
       for(const instance of ins){
-       s += instance.name + ' (' + instance.type.name + ')\n';
+       s += instance.name + ' (' + instance.type.name + ')<br>';
       } 
-      s+='</textarea></div>';
-      s+='</ul><body></html>';
+      s+='</div><body></html>';
       response.writeHead(200, {"Content-Type": "text/html"});
       response.end(s);
     }
@@ -116,7 +114,6 @@ require('http').createServer((request, response) => {
       request.on('end', function(){
         body = decodeURIComponent(body.replace("name=","").replace(/\+/g, ' '));
         node.agent.setName(body);
-        console.log("Set local agent's name to '"+node.agent.getName()+"'.");
         response.writeHead(302, { 'Location': '/'});
         response.end();
       });
