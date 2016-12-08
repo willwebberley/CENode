@@ -66,10 +66,8 @@ require('http').createServer((request, response) => {
 
     if(request.url.indexOf(GET_CARDS_ENDPOINT) == 0){
       let body = "";
-      request.on('data', function(chunk){
-        body+=chunk;
-      });
-      request.on('end', function(){
+      request.on('data', chunk => body += chunk);
+      request.on('end', () => {
         const ignores = body.split(/\\n|\n/);
         response.writeHead(200, {"Content-Type": "text/ce"});
         getCards(request, response, ignores);
@@ -84,26 +82,6 @@ require('http').createServer((request, response) => {
     else if(request.url == "/ui/sentences"){
       response.writeHead(302, {"Location": "/"});
       postSentences(request, response);      
-    }
-
-    else if(request.url == "/model"){
-      let body = "";
-      request.on('data', function(chunk){
-        body+=chunk;
-      });
-      request.on('end', function(){
-        const components = {};
-        body.replace(
-          new RegExp("([^?=&]+)(=([^&]*))?", "g"),
-            function($0, $1, $2, $3) { components[$1] = $3; }
-        );
-        if(components.model in MODELS){
-          const model = MODELS[components.model];
-          node.addSentences(model);
-        }
-      });
-      response.writeHead(302, { 'Location': '/'});
-      response.end();
     }
 
     else if(request.url == "/agent-name"){
