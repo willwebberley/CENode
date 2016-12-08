@@ -145,15 +145,15 @@ class CENode{
   }
 
   enactRules (subjectInstance, propertyType, objectInstance, source){
-    if(typeof objectInstance == "string"){
+    if(typeof objectInstance == 'string'){
       return;
     }
-    const rules = this.getInstances("rule");
+    const rules = this.getInstances('rule');
     for(let i = 0; i < this.rules.length; i++){
       const rule = this.parseRule(this.rules[i].instruction);
       if(rule == null){return;}
       if(rule.if.concept == subjectInstance.type.name){
-        if((propertyType == "relationship" && rule.if.relationship != null) || (propertyType == "value" && rule.if.value != null)){
+        if((propertyType == 'relationship' && rule.if.relationship != null) || (propertyType == 'value' && rule.if.value != null)){
           const ancestorConcepts = objectInstance.type.ancestors;
           ancestorConcepts.push(objectInstance.type);
           for(let j = 0; j < ancestorConcepts.length; j++){
@@ -186,15 +186,15 @@ class CENode{
    * Returns: [bool, str] (bool = success, str = error or parsed string)
    */
   parseCE (t, nowrite, source){
-    t = t.replace(/\s+/g, " ").replace(/\.+$/, "").trim(); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
-    let message = "";
+    t = t.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Replace all whitespace with a single space (e.g. removes tabs/newlines)
+    let message = '';
 
     if(t.match(/^conceptualise an?/i)){
       const conceptName = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/i)[1];
       const storedConcept = this.getConceptByName(conceptName);
       let concept = null;
       if(storedConcept != null){ // if exists, simply modify existing concept
-        message = "This concept already exists.";
+        message = 'This concept already exists.';
         return [false, message];
       }
       else{ // otherwise create a new one and add it to list
@@ -216,9 +216,9 @@ class CENode{
           const factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
           let valueType = this.getConceptByName(factsInfo[1]);
 
-          if(factsInfo[1] == "value"){valueType = 0;}
+          if(factsInfo[1] == 'value'){valueType = 0;}
           else if(valueType == null){
-            message = "A property type is unknown: "+factsInfo[1];
+            message = 'A property type is unknown: '+factsInfo[1];
             return [false, message];
           }
 
@@ -233,7 +233,7 @@ class CENode{
           const parentName = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
           const parentConcept = this.getConceptByName(parentName);
           if(parentConcept == null){
-            message = "Parent concept is unknown: "+parentName;
+            message = 'Parent concept is unknown: '+parentName;
             return [false, message];
           }
           // Writepoint
@@ -249,7 +249,7 @@ class CENode{
       const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
       const concept = this.getConceptByName(conceptInfo[1]);
       if(!concept){
-         message = "Concept "+conceptInfo[1]+" not known."; // if can't find concept, then fail
+         message = 'Concept '+conceptInfo[1]+' not known.'; // if can't find concept, then fail
          return [false, message];
       }
 
@@ -269,7 +269,7 @@ class CENode{
           const factsInfo = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
           const target = this.getConceptByName(factsInfo[4]);
           if(target == null){
-            message = "The target of one of your input relationships is of an unknown type: "+factsInfo[4];
+            message = 'The target of one of your input relationships is of an unknown type: '+factsInfo[4];
             return [false, message];
           }
           
@@ -284,7 +284,7 @@ class CENode{
           const factsInfo = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
           const target = this.getConceptByName(factsInfo[2]);
           if(target == null){
-            message = "The target of one of your input relationships is of an unknown type: "+factsInfo[2];
+            message = 'The target of one of your input relationships is of an unknown type: '+factsInfo[2];
             return [false, message];
           }
           
@@ -298,9 +298,9 @@ class CENode{
         if(fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
           const factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
           let type = this.getConceptByName(factsInfo[1]);
-          if(factsInfo[1] == "value"){type = 0;}
+          if(factsInfo[1] == 'value'){type = 0;}
           else if(type == null){
-            message = "There is an invalid value in your sentence: "+factsInfo[1];
+            message = 'There is an invalid value in your sentence: '+factsInfo[1];
             return [false, message];
           }
 
@@ -330,18 +330,18 @@ class CENode{
         let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
         if(names == null){
           names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
-          if(names == null){return [false, "Unable to determine name of instance."];}
+          if(names == null){return [false, 'Unable to determine name of instance.'];}
         }
         const conceptName = names[1];
         const instanceName = names[2].replace(/\\/g, '');
         const concept = this.getConceptByName(conceptName);
         const currentInstance = this.getInstanceByName(instanceName);
         if(concept == null){
-          message = "Instance type unknown: "+conceptName;
+          message = 'Instance type unknown: '+conceptName;
           return [false, message];
         }
         if(currentInstance != null && currentInstance.type.id == concept.id){
-          message = "There is already an instance of this type with this name."; // Don't create 2 instances with same name and same concept id
+          message = 'There is already an instance of this type with this name.'; // Don't create 2 instances with same name and same concept id
           return [true, message, currentInstance];
         }
         
@@ -372,12 +372,12 @@ class CENode{
         }
         if(names == null || concept == null || instance == null){
           names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
-          const nameTokens = names[1].split(" ");
+          const nameTokens = names[1].split(' ');
           for(let i = 0; i < this._concepts.length; i++){
             if(names[1].toLowerCase().indexOf(this._concepts[i].name.toLowerCase()) == 0){
               conceptName = this._concepts[i].name;
               concept = this._concepts[i];
-              instanceName = nameTokens[concept.name.split(" ").length];
+              instanceName = nameTokens[concept.name.split(' ').length];
               instance = this.getInstanceByName(instanceName);
               break;
             }
@@ -385,7 +385,7 @@ class CENode{
         }
         
         if(concept == null || instance == null){
-          message = "Unknown concept/instance combination: "+conceptName+"/"+instanceName;
+          message = 'Unknown concept/instance combination: '+conceptName+'/'+instanceName;
           return [false, message];
         }
 
@@ -403,7 +403,7 @@ class CENode{
       }
 
       if(concept == null || instance == null){
-        message = "Unable to find instance type or name";
+        message = 'Unable to find instance type or name';
         return [false, message];
       }
 
@@ -426,14 +426,14 @@ class CENode{
           }
           else{
             factsInfo = fact.match(/(?:\bthat\b|\band\b) ?has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/);
-            let valueType = "";
-            const typeNameTokens = factsInfo[1].split(" ");
-            for(let j = 0; j < typeNameTokens.length-1; j++){valueType+=typeNameTokens[j]+" ";}
+            let valueType = '';
+            const typeNameTokens = factsInfo[1].split(' ');
+            for(let j = 0; j < typeNameTokens.length-1; j++){valueType+=typeNameTokens[j]+' ';}
             valueType = valueType.trim();
             valueInstanceName = typeNameTokens[typeNameTokens.length-1].trim();
             valueLabel = factsInfo[2];   
           }
-          if(valueLabel!=""&&valueType!=""&&valueInstanceName!=""){
+          if(valueLabel!=''&&valueType!=''&&valueInstanceName!=''){
             let valueInstance = getInstanceByName(valueInstanceName);
             if(valueInstance == null) {
               valueInstance = new CEInstance(this, this.getConcpetByName(valueType), valueInstanceName, source);
@@ -479,18 +479,18 @@ class CENode{
           }
           else{
             factsInfo = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/);
-            const typeInstanceTokens = factsInfo[2].split(" ");
-            relationshipTypeName = "";
-            for(let j = 0; j < typeInstanceTokens.length-1; j++){relationshipTypeName+=typeInstanceTokens[j]+" ";}
+            const typeInstanceTokens = factsInfo[2].split(' ');
+            relationshipTypeName = '';
+            for(let j = 0; j < typeInstanceTokens.length-1; j++){relationshipTypeName+=typeInstanceTokens[j]+' ';}
             relationshipLabel = factsInfo[1];
             relationshipTypeName = relationshipTypeName.trim();
             relationshipInstanceName = typeInstanceTokens[typeInstanceTokens.length-1].trim();
           }
-          if(relationshipLabel!=""&&relationshipTypeName!=""&&relationshipInstanceName!=""){
+          if(relationshipLabel!=''&&relationshipTypeName!=''&&relationshipInstanceName!=''){
             const relationshipType = this.getConceptByName(relationshipTypeName);
             let relationshipInstance = this.getInstanceByName(relationshipInstanceName);
             if(relationshipType == null){
-              //message = "Unknown relationship type: "+relationshipTypeName;
+              //message = 'Unknown relationship type: '+relationshipTypeName;
               //return [false, message];
             }
             else{
@@ -542,10 +542,10 @@ class CENode{
       const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
       const instance = this.getInstanceByName(thing);
       if(instance == null){
-        message = "I don't know what "+thing+" is.";
+        message = 'I don't know what '+thing+' is.';
         return [true, message];
       }
-      const locatableInstances = this.getInstances("location", true);
+      const locatableInstances = this.getInstances('location', true);
       const locatableIds = [];
       const places = {};
       let placeFound = false;
@@ -553,7 +553,7 @@ class CENode{
       
       for(let i = 0; i < instance.values.length; i++){
         if(locatableIds.indexOf(instance.values[i].instance.id) > -1){
-          const place = "has "+instance.values[i].instance.name+" as "+instance.values[i].label;
+          const place = 'has '+instance.values[i].instance.name+' as '+instance.values[i].label;
           if(!(place in places)){
             places[place] = 0;
           }
@@ -563,7 +563,7 @@ class CENode{
       }
       for(let i = 0; i < instance.relationships.length; i++){
         if(locatableIds.indexOf(instance.relationships[i].instance.id) > -1){
-          const place = instance.relationships[i].label+" "+instance.relationships[i].instance.name;
+          const place = instance.relationships[i].label+' '+instance.relationships[i].instance.name;
           if(!(place in places)){
             places[place] = 0;
           }
@@ -572,24 +572,24 @@ class CENode{
         }
       }
       if(!placeFound){
-        message = "I don't know where "+instance.name+" is.";
+        message = 'I don't know where '+instance.name+' is.';
         return [true, message];
       }
       message = instance.name;
       for(place in places){
-        message += " "+place;
+        message += ' '+place;
         if(places[place] > 1){
-          message += " ("+places[place]+" times)";
+          message += ' ('+places[place]+' times)';
         }
-        message += " and";
+        message += ' and';
       }
-      return [true, message.substring(0, message.length - 4)+"."];
+      return [true, message.substring(0, message.length - 4)+'.'];
     }
 
     else if(t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)){
       const thing = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g,'').replace(/\bthe\b/g, '').replace(/'/g, '');
       let instance = null;
-      const locatableInstances = this.getInstances("location", true);
+      const locatableInstances = this.getInstances('location', true);
       const locatedInstances = [];
       for(let i = 0; i < locatableInstances.length; i++){
         if(thing.toLowerCase().indexOf(locatableInstances[i].name.toLowerCase()) > -1){
@@ -597,7 +597,7 @@ class CENode{
         }
       }
       if(instance == null){
-        message = thing+" is not an instance of type location.";
+        message = thing+' is not an instance of type location.';
         return [true, message];
       }
       const things = {};
@@ -607,7 +607,7 @@ class CENode{
         const rels = this._instances[i].relationships;
         if(vals!=null){for(let j = 0; j < vals.length; j++){
           if(vals[j].instance.id == instance.id){
-            const thing = "the "+this._instances[i].type.name+" "+this._instances[i].name+" has the "+instance.type.name+" "+instance.name+" as "+vals[j].label;
+            const thing = 'the '+this._instances[i].type.name+' '+this._instances[i].name+' has the '+instance.type.name+' '+instance.name+' as '+vals[j].label;
             if(!(thing in things)){
               things[thing] = 0;
             }
@@ -617,7 +617,7 @@ class CENode{
         }}   
         if(rels!=null){for(let j = 0; j < rels.length; j++){
           if(rels[j].instance.id == instance.id){
-            const thing = "the "+this._instances[i].type.name+" "+this._instances[i].name+" "+rels[j].label+" the "+instance.type.name+" "+instance.name;
+            const thing = 'the '+this._instances[i].type.name+' '+this._instances[i].name+' '+rels[j].label+' the '+instance.type.name+' '+instance.name;
             if(!(thing in things)){
               things[thing] = 0;
             }
@@ -627,19 +627,19 @@ class CENode{
         }}
       }
       if(!thingFound){
-        message = "I don't know what is located in/on/at the "+instance.type.name+" "+instance.name+".";
+        message = "I don't know what is located in/on/at the "+instance.type.name+' '+instance.name+'.';
         return [true, message];
       }
 
       message = '';
       for(const thing in things){
-        message += " "+thing;
+        message += ' '+thing;
         if(things[thing] > 1){
-          message += " ("+things[thing]+" times)";
+          message += ' ('+things[thing]+' times)';
         }
-        message += " and";
+        message += ' and';
       }
-      return [true, message.substring(0, message.length - 4)+"."];
+      return [true, message.substring(0, message.length - 4)+'.'];
     }
 
     else if(t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)){

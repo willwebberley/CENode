@@ -129,74 +129,74 @@ class CEConcept{
   };
 
   get ce (){ 
-    let ce = "conceptualise a ~ "+this.name+" ~ "+this.name.charAt(0).toUpperCase();
+    let ce = 'conceptualise a ~ '+this.name+' ~ '+this.name.charAt(0).toUpperCase();
     if(this.parents.length > 0 || this._values.length > 0 || this._relationships.length > 0){
-      ce += " that";
+      ce += ' that';
     }
     if(this.parents.length > 0){
       for(let i = 0; i < this.parents.length; i++){
-        ce+= " is a "+this.parents[i].name;
-        if(i < this.parents.length-1){ce+=" and";}
+        ce+= ' is a '+this.parents[i].name;
+        if(i < this.parents.length-1){ce+=' and';}
       }
     }
     let facts = [];
-    const alph = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"];
+    const alph = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O'];
     for(let i = 0; i < this._values.length; i++){
       if(this._values[i].type == 0){
-        facts.push("has the value "+alph[i]+" as "+this._values[i].label);
+        facts.push('has the value '+alph[i]+' as '+this._values[i].label);
       }
       else{
         const valType = this.node.getConceptById(this._values[i].type);
-        facts.push("has the "+valType.name+" "+valType.name.charAt(0).toUpperCase()+" as "+this._values[i].label);
+        facts.push('has the '+valType.name+' '+valType.name.charAt(0).toUpperCase()+' as '+this._values[i].label);
       }
     }  
     if(facts.length > 0){
-      if(this.parents.length > 0){ce += " and";}
-      ce += " "+facts.join(" and ");
+      if(this.parents.length > 0){ce += ' and';}
+      ce += ' '+facts.join(' and ');
     }
-    ce+=".";
+    ce+='.';
     if(this._relationships.length > 0){
       facts = [];
-      ce += "\nconceptualise the "+this.name+" "+this.name.charAt(0).toUpperCase();
+      ce += '\nconceptualise the '+this.name+' '+this.name.charAt(0).toUpperCase();
       for(let i = 0; i < this._relationships.length; i++){
         const relType = this.node.getConceptById(this._relationships[i].target);
-        facts.push("~ "+this._relationships[i].label+" ~ the "+relType.name+" "+alph[i]);
+        facts.push('~ '+this._relationships[i].label+' ~ the '+relType.name+' '+alph[i]);
       }
       if(facts.length > 0){
-        if(this.parents.length > 0 || this._values.length > 0){ce += " and";}
-        ce += " "+facts.join(" and ")+".";
+        if(this.parents.length > 0 || this._values.length > 0){ce += ' and';}
+        ce += ' '+facts.join(' and ')+'.';
       }
     }
     return ce;
   };
 
   get gist (){
-    let gist = "";
-    if(this.parents.length > 0){gist += "A "+this.name;}
+    let gist = '';
+    if(this.parents.length > 0){gist += 'A '+this.name;}
     for(let i = 0; i < this.parents.length; i++){
-      gist += " is a type of "+this.parents[i].name;
-      if(i < this.parents.length-1){gist+=" and";}
+      gist += ' is a type of '+this.parents[i].name;
+      if(i < this.parents.length-1){gist+=' and';}
     }
-    if(this.parents.length > 0){gist += ".";}
+    if(this.parents.length > 0){gist += '.';}
     const facts = [];
     for(let i = 0; i < this._values.length; i++){
       if(this._values[i].type == 0){
-        facts.push("has a value called "+this._values[i].label);
+        facts.push('has a value called '+this._values[i].label);
       }
       else{
         const valType = this.node.getConceptById(this._values[i].type);
-        facts.push("has a type of "+valType.name+" called "+this._values[i].label);
+        facts.push('has a type of '+valType.name+' called '+this._values[i].label);
       }
     }  
     for(let i = 0; i < this._relationships.length; i++){
       const relType = this.node.getConceptById(this._relationships[i].target);
-      facts.push(this._relationships[i].label+" a type of "+relType.name);
+      facts.push(this._relationships[i].label+' a type of '+relType.name);
     }
     if(facts.length > 0){
-      gist += " An instance of "+this.name+" "+facts.join(" and ")+".";
+      gist += ' An instance of '+this.name+' '+facts.join(' and ')+'.';
     }
     else if(facts.length == 0 && this.parents.length == 0){
-      gist += "A "+this.name+" has no attributes or relationships.";
+      gist += 'A '+this.name+' has no attributes or relationships.';
     }
     return gist;
   };

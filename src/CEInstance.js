@@ -225,23 +225,23 @@ class CEInstance{
       const relationshipConcept = relationshipInstance.type;
       facts.push(relationship.label+" the "+relationshipConcept.name+" '"+relationshipInstance.name+"'");
     }
-    if(facts.length > 0){ce += " that "+facts.join(" and ");}
-    return ce+".";
+    if(facts.length > 0){ce += " that "+facts.join(' and ');}
+    return ce+'.';
   }
 
   get gist () {
-    const vowels = ["a", "e", "i", "o", "u"];
+    const vowels = ['a', 'e', 'i', 'o', 'u'];
     const concept = this.concept;
     if(concept == null){return;}
-    let gist = this.name+" is";
-    if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){gist+=" an "+concept.name+".";}
-    else{gist+=" a "+concept.name+".";}
+    let gist = this.name+' is';
+    if(vowels.indexOf(concept.name.toLowerCase()[0]) > -1){gist+=' an '+concept.name+'.';}
+    else{gist+=' a '+concept.name+'.';}
     const facts = {};
     let factFound = false;
     for(let i = 0; i < this._values.length; i++){
       factFound = true;
       const value = this._values[i];
-      let fact = "";
+      let fact = '';
       if(value.typeId == 0){
         fact = "has '"+value.typeName.replace(/'/g, "\\'")+"' as "+value.label;
       }
@@ -267,15 +267,15 @@ class CEInstance{
       facts[fact]++;
     }
     if(factFound){
-      gist += " "+this.name;
+      gist += ' '+this.name;
       for(fact in facts){
-        gist += " "+fact;
+        gist += ' '+fact;
         if(facts[fact] > 1){
-          gist += " ("+facts[fact]+" times)";
+          gist += ' ('+facts[fact]+' times)';
         }
-        gist += " and";
+        gist += ' and';
       }
-      gist = gist.substring(0, gist.length - 4)+"."; // Remove last ' and' and add full stop
+      gist = gist.substring(0, gist.length - 4)+'.'; // Remove last ' and' and add full stop
     }
     return gist;   
   }

@@ -3,7 +3,7 @@
 class CEAgent{
 
   constructor (node){
-    this.name = "Moira";
+    this.name = 'Moira';
     this.lastSuccessfulRequest = 0;
     this.node = node;
     this.unsentTellCards = {};
@@ -51,10 +51,10 @@ class CEAgent{
      * Now handle the actual card:
      */
 
-    if(from && card.type.name == "ask card"){
+    if(from && card.type.name == 'ask card'){
       // Get the relevant information from the node
       const data = this.node.askQuestion(content);
-      const askPolicies = this.node.getInstances("ask policy");
+      const askPolicies = this.node.getInstances('ask policy');
       for(let j = 0; j < askPolicies.length; j++){
         if(askPolicies[j].enabled == 'true'){
           const targetName = askPolicies[j].target.name;
@@ -83,7 +83,7 @@ class CEAgent{
       return this.node.addSentence(c);
     }
 
-    else if(from && card.type.name == "tell card"){
+    else if(from && card.type.name == 'tell card'){
       // Add the CE sentence to the node
       const data = this.node.addCE(content, false, from.name); 
       if(!data.success){
@@ -92,7 +92,7 @@ class CEAgent{
       let responseCard;
       if(data.success == true){
         // Add sentence to any active tell policy queues
-        const tellPolicies = this.node.getInstances("tell policy");
+        const tellPolicies = this.node.getInstances('tell policy');
         for(let j = 0; j < tellPolicies.length; j++){
           if(tellPolicies[j].enabled == 'true'){
             const targetName = tellPolicies[j].target.name;
@@ -103,7 +103,7 @@ class CEAgent{
       }
       // Check feedback policies to see if input 'tell card' requires a response
       // The type of response card is determined by the way it was handled by the node (nl, gist, tell, etc.)
-      const feedbackPolicies = this.node.getInstances("feedback policy");
+      const feedbackPolicies = this.node.getInstances('feedback policy');
       for(let j = 0; j < feedbackPolicies.length; j++){
         console.log(feedbackPolicies[i])
         const target = feedbackPolicies[j].target;
@@ -111,12 +111,12 @@ class CEAgent{
         const ack = feedbackPolicies[j].acknowledgement;
         if(target.name.toLowerCase() == from.name.toLowerCase() && enabled == 'true'){
           let c;
-          if(ack == "basic"){c = "OK.";}
+          if(ack == 'basic'){c = 'OK.';}
           else{
-            if(data.type == "tell"){
-              c = "OK. I added this to my knowledge base: "+data.data;
+            if(data.type == 'tell'){
+              c = 'OK. I added this to my knowledge base: '+data.data;
             }
-            else if(data.type == "ask" || data.type == "confirm" || data.type == "gist"){
+            else if(data.type == 'ask' || data.type == 'confirm' || data.type == 'gist'){
               c = data.data;
             }
           }
@@ -126,7 +126,7 @@ class CEAgent{
       return responseCard;
     }
 
-    else if(from && card.type.name == "nl card"){
+    else if(from && card.type.name == 'nl card'){
       let newCard = null;
       // Firstly, check if card content is valid CE, but without writing to model:
       let data = this.node.addCE(content, true, from.name);
@@ -155,7 +155,7 @@ class CEAgent{
   pollCards (){
     if(setTimeout){
       setTimeout(() => {
-        const cardList = this.node.getInstances("card", true);
+        const cardList = this.node.getInstances('card', true);
         for(let i = 0; i < cardList.length; i++){
           this.handleCard(cardList[i]); 
         }
@@ -165,7 +165,7 @@ class CEAgent{
   }
 
   getInstance (){
-    const instances = this.node.getInstances("agent");
+    const instances = this.node.getInstances('agent');
     for(let i = 0; i < instances.length; i++){
       if(instances[i].name.toLowerCase() == name.toLowerCase()){
         return instances[i];
@@ -177,10 +177,10 @@ class CEAgent{
     if(setTimeout){
       setTimeout(() => {
         try{
-          const tellPolicies = this.node.getInstances("tell policy");
-          const askPolicies = this.node.getInstances("ask policy");
-          const listenPolicies = this.node.getInstances("listen policy");
-          const forwardallPolicies = this.node.getInstances("forwardall policy");
+          const tellPolicies = this.node.getInstances('tell policy');
+          const askPolicies = this.node.getInstances('ask policy');
+          const listenPolicies = this.node.getInstances('listen policy');
+          const forwardallPolicies = this.node.getInstances('forwardall policy');
 
           // For each tell policy in place, send all currently-untold cards to each target
           // To save on transit costs, if there are multiple cards to be sent to one target, they are 
@@ -190,7 +190,7 @@ class CEAgent{
             if(target && target.name){
               const cards = this.unsentTellCards[target.name];
               if(cards){
-                let data = "";
+                let data = '';
                 for(let j = 0; j < cards.length; j++){
                   try{
                     const card = cards[j];
@@ -203,14 +203,14 @@ class CEAgent{
                         if(tos[k].id == target.id){inCard = true;break;}
                       }
                       if(!inCard){
-                        card.addRelationship("is to", target);
+                        card.addRelationship('is to', target);
                       }
-                      data += card.ce+"\n";
+                      data += card.ce+'\n';
                     }
                   } catch(err){}
                 }
-                if(data != ""){
-                  net.makeRequest("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
+                if(data != ''){
+                  net.makeRequest('POST', target.address, POST_SENTENCES_ENDPOINT, data, resp => {
                     this.lastSuccessfulRequest= new Date().getTime();
                     this.unsentTellCards[target.name] = [];
                   });
@@ -227,7 +227,7 @@ class CEAgent{
             if(target && target.name){
               const cards = this.unsentAskCards[target.name];
               if(cards){
-                let data = "";
+                let data = '';
                 for(let j = 0; j < cards.length; j++){
                   try{
                     const card = cards[j];
@@ -241,7 +241,7 @@ class CEAgent{
                         if(tos[k].id == target.id){inCard = true;break;}
                       }
                       if(!inCard){
-                        card.addRelationship("is to", target);
+                        card.addRelationship('is to', target);
                       }
                       // Make sure an agent is not already a sender
                       inCard = false;
@@ -249,14 +249,14 @@ class CEAgent{
                         if(froms[k].id == getInstance().id){inCard = true;break;}
                       }
                       if(!inCard){
-                        card.addRelationship("is from", getInstance());
+                        card.addRelationship('is from', getInstance());
                       }
-                      data += card.ce+"\n";
+                      data += card.ce+'\n';
                     }
                   } catch(err){}
                 }
-                if(data != ""){
-                  net.makeRequest("POST", target.address, POST_SENTENCES_ENDPOINT, data, function(resp){
+                if(data != ''){
+                  net.makeRequest('POST', target.address, POST_SENTENCES_ENDPOINT, data, resp => {
                     this.lastSuccessfulRequest = new Date().getTime();
                     this.unsentAskCards[target.name] = [];
                   });
@@ -273,9 +273,9 @@ class CEAgent{
             for(let j = 0; j < allCards.length; j++){
               data = data + allCards[j].name+'\n';
             }
-            net.makeRequest("POST", target.address, GET_CARDS_ENDPOINT+"?agent="+name, data, function(resp){
+            net.makeRequest('POST', target.address, GET_CARDS_ENDPOINT+'?agent='+name, data, resp => {
               this.lastSuccessfulRequest = new Date().getTime();
-              const cards = resp.split("\n");
+              const cards = resp.split('\n');
               this.node.addSentences(cards);
             });
           }
@@ -284,9 +284,9 @@ class CEAgent{
           // to every other known agent.
           for(let i = 0; i < forwardallPolicies.length; i++){
             const policy = forwardallPolicies[i];
-            if(policy.enabled == "true"){
-              const agents = policy.all_agents == "true" ? this.node.getInstances("agent") : policy.targets;
-              const cards = this.node.getInstances("tell card");
+            if(policy.enabled == 'true'){
+              const agents = policy.all_agents == 'true' ? this.node.getInstances('agent') : policy.targets;
+              const cards = this.node.getInstances('tell card');
               if(policy.start_time){
                 const startTime = policy.start_time.name;
                 for(let i = 0; i < cards.length; i++){
@@ -315,7 +315,7 @@ class CEAgent{
                             }
                           }
                           if(!agentIsRecipient && agents[j].name.toLowerCase() != name.toLowerCase() && agents[j].name.toLowerCase() != from.name.toLowerCase()){
-                            card.addRelationship("is to", agents[j]);
+                            card.addRelationship('is to', agents[j]);
                           }
                         }
                       }
@@ -339,7 +339,7 @@ class CEAgent{
  * Utility object to support network tasks.
  */
 const net = {
-  makeRequest: function(method, nodeURL, path, data, callback){
+  makeRequest (method, nodeURL, path, data, callback){
     try{
       if(typeof window != 'undefined' && window.document){
         net.makeRequestClient(method, nodeURL, path, data, callback);
@@ -352,8 +352,8 @@ const net = {
       console.log('CENode network error: '+err);
     }
   },  
-  makeRequestClient: function(method, nodeURL, path, data, callback){
-    console.log(method+" "+path);
+  makeRequestClient (method, nodeURL, path, data, callback){
+    console.log(method+' '+path);
     const xhr = new XMLHttpRequest();
     xhr.open(method, nodeURL+path);
     xhr.onreadystatechange = () => {
@@ -362,7 +362,7 @@ const net = {
       }
     };
     if(data != null){
-      xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      xhr.setRequestHeader('Content-type','application/x-www-form-urlencoded');
       xhr.send(data);
     }
     else{
@@ -370,7 +370,7 @@ const net = {
     }
 
   },
-  makeRequestNode: function(method, nodeURL, path, data, callback){
+  makeRequestNode (method, nodeURL, path, data, callback){
     const http = require('http');
     const options = {
       host: nodeURL,
@@ -378,13 +378,10 @@ const net = {
       method: method,
       headers: {'Content-Type': 'application/x-www-form-urlencoded'}
     };
-    const req = http.request(options, function(response){
+    const req = http.request(options, response => {
       let body = '';
-      response.on('data', function(chunk){body+=chunk;});
-      response.on('end', function(){
-        body = decodeURIComponent(body.replace(/\+/g, ' '));
-        callback(body);
-      });
+      response.on('data', chunk => body+=chunk);
+      response.on('end', () => callback(decodeURIComponent(body.replace(/\+/g, ' '))));
     });
     if(data != null){req.write(data);}
     req.end();
