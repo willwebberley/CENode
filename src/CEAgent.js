@@ -1,3 +1,5 @@
+'use strict';
+
 class CEAgent{
 
   constructor (node){
@@ -332,4 +334,61 @@ class CEAgent{
     }
   }
 }
+
+/*
+ * Utility object to support network tasks.
+ */
+const net = {
+  makeRequest: function(method, nodeURL, path, data, callback){
+    try{
+      if(typeof window != 'undefined' && window.document){
+        net.makeRequestClient(method, nodeURL, path, data, callback);
+      }
+      else{
+        net.makeRequestNode(method, nodeURL, path, data, callback);
+      }
+    } 
+    catch(err){
+      console.log('CENode network error: '+err);
+    }
+  },  
+  makeRequestClient: function(method, nodeURL, path, data, callback){
+    console.log(method+" "+path);
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, nodeURL+path);
+    xhr.onreadystatechange = () => {
+      if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302) && callback != null){
+        callback(xhr.responseText);
+      }
+    };
+    if(data != null){
+      xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      xhr.send(data);
+    }
+    else{
+      xhr.send();
+    }
+
+  },
+  makeRequestNode: function(method, nodeURL, path, data, callback){
+    const http = require('http');
+    const options = {
+      host: nodeURL,
+      path: path,
+      method: method,
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    };
+    const req = http.request(options, function(response){
+      let body = '';
+      response.on('data', function(chunk){body+=chunk;});
+      response.on('end', function(){
+        body = decodeURIComponent(body.replace(/\+/g, ' '));
+        callback(body);
+      });
+    });
+    if(data != null){req.write(data);}
+    req.end();
+  }
+}
+
 module.exports = CEAgent;

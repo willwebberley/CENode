@@ -1246,13 +1246,13 @@ class CENode{
    * sentence sets to be processed.
    */
   constructor (){
+    this.agent = new CEAgent(this);
     this._concepts = [];
     this._instances = [];
     this._conceptDict = {};
     this._instanceDict = {};
     this.rules = [];
     this.conceptIds = {};
-    this.agent = new CEAgent(this);
     this.lastInstanceId = this._instances.length;
     this.lastConceptId = this._concepts.length;
     this.lastCardId = 0;
@@ -1262,75 +1262,3 @@ class CENode{
   }
 }
 module.exports = CENode;
-
-
-/*
- * HELPER UTILITIES
- */
-
-/*
- * Utility object to support writing the node to storage.
- */
-const util = {
-  onClient: function(){
-    if(typeof window != 'undefined' && window.document){
-      return true;
-    }
-  }
-}
-
-/*
- * Utility object to support network tasks.
- */
-const net = {
-  makeRequest: function(method, nodeURL, path, data, callback){
-    try{
-      if(util.onClient()){net.makeRequestClient(method, nodeURL, path, data, callback);}
-      else{net.makeRequestNode(method, nodeURL, path, data, callback);}
-    } catch(err){
-      console.log('CENode network error: '+err);
-    }
-  },  
-  makeRequestClient: function(method, nodeURL, path, data, callback){
-    console.log(method+" "+path);
-    const xhr = new XMLHttpRequest();
-    xhr.open(method, nodeURL+path);
-    xhr.onreadystatechange = function(){
-      if(xhr.readyState==4 && (xhr.status==200 || xhr.status==302) && callback != null){
-        callback(xhr.responseText);
-      }
-    };
-    if(data != null){
-      xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-      xhr.send(data);
-    }
-    else{
-      xhr.send();
-    }
-
-  },
-  makeRequestNode: function(method, nodeURL, path, data, callback){
-    const http = require('http');
-    const options = {
-      host: nodeURL,
-      path: path,
-      method: method,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
-    };
-    const req = http.request(options, function(response){
-      let body = '';
-      response.on('data', function(chunk){body+=chunk;});
-      response.on('end', function(){
-        body = decodeURIComponent(body.replace(/\+/g, ' '));
-        callback(body);
-      });
-    });
-    if(data != null){req.write(data);}
-    req.end();
-  }
-}
-
-// If running as a Node.js service, start the server.
-if(!util.onClient() && require.main === module){
-  new require('./CEServer.js')();  
-}

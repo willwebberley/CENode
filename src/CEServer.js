@@ -86,10 +86,8 @@ require('http').createServer((request, response) => {
 
     else if(request.url == "/agent-name"){
       let body = "";
-      request.on('data', function(chunk){
-        body+=chunk;
-      });     
-      request.on('end', function(){
+      request.on('data', chunk => body+=chunk);
+      request.on('end', () => {
         body = decodeURIComponent(body.replace("name=","").replace(/\+/g, ' '));
         node.agent.setName(body);
         response.writeHead(302, { 'Location': '/'});
@@ -111,14 +109,12 @@ require('http').createServer((request, response) => {
 
 function postSentences (request, response){
   let body = "";
-  request.on('data', function(chunk){
-    body+=chunk;
-  });     
-  request.on('end', function(){
+  request.on('data', chunk => body+=chunk);
+  request.on('end', () => {
     body = decodeURIComponent(body.replace("sentence=","").replace(/\+/g, ' '));
     const sentences = body.split(/\\n|\n/);
     const responses = node.addSentences(sentences);
-    response.write(responses.map(function(resp){return resp.data;}).join("\n"));
+    response.write(responses.map(resp => resp.data).join("\n"));
     response.end();
   });
 }
