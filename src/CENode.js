@@ -542,7 +542,7 @@ class CENode{
       const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
       const instance = this.getInstanceByName(thing);
       if(instance == null){
-        message = 'I don't know what '+thing+' is.';
+        message = 'I don\'t know what '+thing+' is.';
         return [true, message];
       }
       const locatableInstances = this.getInstances('location', true);
@@ -572,7 +572,7 @@ class CENode{
         }
       }
       if(!placeFound){
-        message = 'I don't know where '+instance.name+' is.';
+        message = 'I don\'t know where '+instance.name+' is.';
         return [true, message];
       }
       message = instance.name;
