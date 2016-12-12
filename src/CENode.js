@@ -541,6 +541,7 @@ class CENode{
     if(t.match(/^where (is|are)/i)){
       const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');//.replace(/(\bthe\b|\ba\b)/g, '').trim();
       const instance = this.getInstanceByName(thing);
+      let message;
       if(instance == null){
         message = 'I don\'t know what '+thing+' is.';
         return [true, message];
@@ -576,7 +577,7 @@ class CENode{
         return [true, message];
       }
       message = instance.name;
-      for(place in places){
+      for(const place in places){
         message += ' '+place;
         if(places[place] > 1){
           message += ' ('+places[place]+' times)';
