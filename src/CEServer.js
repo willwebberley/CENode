@@ -1,6 +1,7 @@
 const CENode = require('./CENode.js');
 const CORE_MODEL = require('../models/core.js');
 const SERVER_MODEL = require('../models/server.js');
+
 const POST_SENTENCES_ENDPOINT = '/sentences';
 const GET_CARDS_ENDPOINT = '/cards';
 
@@ -13,11 +14,58 @@ if (process.argv.length > 2) {
   node.agent.setName(process.argv[2]);
 }
 
+function postSentences(request, response) {
+  let body = '';
+  request.on('data', (chunk) => { body += chunk; });
+  request.on('end', () => {
+    body = decodeURIComponent(body.replace('sentence=', '').replace(/\+/g, ' '));
+    const sentences = body.split(/\\n|\n/);
+    const responses = node.addSentences(sentences);
+    response.write(responses.map(resp => resp.data).join('\n'));
+    response.end();
+  });
+}
+
+function getCards(request, response, ignoresInput) {
+  const url = decodeURIComponent(request.url);
+  const agentRegex = url.match(/agent=(.*)/);
+  const ignores = ignoresInput || [];
+  let agentStr = null;
+  let agents = [];
+  if (agentRegex !== null) { agentStr = agentRegex[1]; }
+  if (agentStr !== null) {
+    agents = agentStr.toLowerCase().split(',');
+  }
+  const cards = node.getInstances('card', true);
+  let s = '';
+  for (let i = 0; i < cards.length; i += 1) {
+    if (ignores.indexOf(cards[i].name) === -1) {
+      if (agents === null || agents.length === 0) {
+        s += `${cards[i].ce}\n`;
+      } else {
+        const tos = cards[i].isTos;
+        if (tos) {
+          for (let j = 0; j < tos.length; j += 1) {
+            for (let k = 0; k < agents.length; k += 1) {
+              if (tos[j].name.toLowerCase() === agents[k]) {
+                s += `${cards[i].ce}\n`;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  response.write(s);
+  response.end();
+}
+
 require('http').createServer((request, response) => {
   response.setHeader('Access-Control-Allow-Origin', '*');
 
-  if (request.method == 'GET') {
-    if (request.url == '/') {
+  if (request.method === 'GET') {
+    if (request.url === '/') {
       const ins = node.getInstances();
       const con = node.getConcepts();
       let s = '<html><head><title>CENode Management</title></head><body><h1>CENode Server Admin Interface</h1>';
@@ -41,10 +89,10 @@ require('http').createServer((request, response) => {
       s += '</div><body></html>';
       response.writeHead(200, { 'Content-Type': 'text/html' });
       response.end(s);
-    } else if (request.url.indexOf(GET_CARDS_ENDPOINT) == 0) {
+    } else if (request.url.indexOf(GET_CARDS_ENDPOINT) === 0) {
       response.writeHead(200, { 'Content-Type': 'text/ce' });
       getCards(request, response);
-    } else if (request.url == '/reset') {
+    } else if (request.url === '/reset') {
       node.resetAll();
       response.writeHead(302, { Location: '/' });
       response.end();
@@ -52,24 +100,24 @@ require('http').createServer((request, response) => {
       response.writeHead(404);
       response.end('404: Resource not found for method GET.');
     }
-  } else if (request.method == 'POST') {
-    if (request.url.indexOf(GET_CARDS_ENDPOINT) == 0) {
+  } else if (request.method === 'POST') {
+    if (request.url.indexOf(GET_CARDS_ENDPOINT) === 0) {
       let body = '';
-      request.on('data', chunk => body += chunk);
+      request.on('data', (chunk) => { body += chunk; });
       request.on('end', () => {
         const ignores = body.split(/\\n|\n/);
         response.writeHead(200, { 'Content-Type': 'text/ce' });
         getCards(request, response, ignores);
       });
-    } else if (request.url == POST_SENTENCES_ENDPOINT) {
+    } else if (request.url === POST_SENTENCES_ENDPOINT) {
       response.writeHead(200, { 'Content-Type': 'text/ce' });
       postSentences(request, response);
-    } else if (request.url == '/ui/sentences') {
+    } else if (request.url === '/ui/sentences') {
       response.writeHead(302, { Location: '/' });
       postSentences(request, response);
-    } else if (request.url == '/agent-name') {
+    } else if (request.url === '/agent-name') {
       let body = '';
-      request.on('data', chunk => body += chunk);
+      request.on('data', (chunk) => { body += chunk; });
       request.on('end', () => {
         body = decodeURIComponent(body.replace('name=', '').replace(/\+/g, ' '));
         node.agent.setName(body);
@@ -85,51 +133,3 @@ require('http').createServer((request, response) => {
     response.end('405: Method not allowed on this server.');
   }
 }).listen(port || 5555);
-
-function postSentences(request, response) {
-  let body = '';
-  request.on('data', chunk => body += chunk);
-  request.on('end', () => {
-    body = decodeURIComponent(body.replace('sentence=', '').replace(/\+/g, ' '));
-    const sentences = body.split(/\\n|\n/);
-    const responses = node.addSentences(sentences);
-    response.write(responses.map(resp => resp.data).join('\n'));
-    response.end();
-  });
-}
-
-function getCards(request, response, ignores) {
-  const url = decodeURIComponent(request.url);
-  const agentRegex = url.match(/agent=(.*)/);
-  let agentStr = null;
-  let agents = [];
-  ignores = ignores ? ignores : [];
-  if (agentRegex != null) { agentStr = agentRegex[1]; }
-  if (agentStr != null) {
-    agents = agentStr.toLowerCase().split(',');
-  }
-  const cards = node.getInstances('card', true);
-  let s = '';
-  for (let i = 0; i < cards.length; i++) {
-    if (ignores.indexOf(cards[i].name) == -1) {
-      if (agents == null || agents.length == 0) {
-        s += `${cards[i].ce}\n`;
-      } else {
-        const tos = cards[i].isTos;
-        if (tos) {
-          for (let j = 0; j < tos.length; j++) {
-            for (let k = 0; k < agents.length; k++) {
-              if (tos[j].name.toLowerCase() == agents[k]) {
-                s += `${cards[i].ce}\n`;
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  response.write(s);
-  response.end();
-}
-
