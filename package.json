@@ -3,10 +3,15 @@
   "description": "A pure JavaScript implementation of the ITA project's CEStore - called CENode. CENode is able to understand the basic sentence types parsed by the CEStore, such as conceptualising and instance creation.",
   "author": "Will Webberley & Alun Preece",
   "scripts": {
-    "build": "babel src -d lib"
+    "build": "babel src -d lib",
+    "lint-fix": "eslint src/*.js --fix",
+    "lint": "eslint src/*.js"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
-    "babel-preset-latest": "^6.16.0"
+    "babel-preset-latest": "^6.16.0",
+    "eslint": "^3.12.2",
+    "eslint-config-airbnb-base": "^11.0.0",
+    "eslint-plugin-import": "^2.2.0"
   }
 }
