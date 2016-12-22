@@ -1,3 +1,5 @@
+'use strict';
+
 const CEConcept = require('./CEConcept.js');
 const CEInstance = require('./CEInstance.js');
 

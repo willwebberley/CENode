@@ -1,3 +1,5 @@
+'use strict';
+
 class CEInstance{
   
   constructor (node, type, name, source){
