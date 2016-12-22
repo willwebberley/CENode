@@ -268,7 +268,7 @@ class CEInstance{
     }
     if(factFound){
       gist += ' '+this.name;
-      for(fact in facts){
+      for(const fact in facts){
         gist += ' '+fact;
         if(facts[fact] > 1){
           gist += ' ('+facts[fact]+' times)';
