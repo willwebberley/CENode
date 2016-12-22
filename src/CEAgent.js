@@ -3,13 +3,15 @@
 class CEAgent{
 
   constructor (node){
+    if (!node){
+      throw 'CEAgents must be instantiated with a CENode object'
+    }
     this.name = 'Moira';
     this.lastSuccessfulRequest = 0;
     this.node = node;
     this.unsentTellCards = {};
     this.unsentAskCards = {};
     this.handledCards = [];
-
     this.pollCards();
     this.enactPolicies();
   }

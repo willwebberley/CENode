@@ -40,6 +40,9 @@ class CENode{
     return this.lastConceptId;
   }
   newCardId (){
+    if (!this.agent){
+      return null;
+    }
     this.lastCardId++;
     return this.agent.getName() + this.lastCardId;
   }
@@ -185,7 +188,6 @@ class CENode{
    */
   parseCE (t, nowrite, source){
     t = t.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
-
     if (t.match(/^conceptualise an?/i)){
       return this.ceParser.newConcept(t, nowrite, source);  
     }
@@ -653,12 +655,19 @@ class CENode{
     this._concepts = [];
   }
 
+  /*
+   * Initialise and attach a new CEAgent to handle 
+   * cards and policies for the node.
+   */
+  attachAgent (agent){
+    this.agent = agent || new CEAgent(this);
+  }
+
   /* 
    * Initialise node by adding any passed models as
    * sentence sets to be processed.
    */
   constructor (){
-    this.agent = new CEAgent(this);
     this.ceParser = new CEParser(this);
     this.questionParser = new QuestionParser(this);
     this._concepts = [];
