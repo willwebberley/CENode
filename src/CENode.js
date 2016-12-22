@@ -15,7 +15,6 @@
  *
  */
 
-
 const CEAgent = require('./CEAgent.js');
 const CEParser = require('./CEParser.js');
 const QuestionParser = require('./QuestionParser.js');
