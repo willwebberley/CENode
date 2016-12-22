@@ -3,7 +3,8 @@
         "ecmaVersion": 6
     },
     "rules": {
-      "max-len": 0
+      "max-len": 0,
+      "no-restricted-syntax": 0
     },
     "extends": "airbnb-base"
 }
