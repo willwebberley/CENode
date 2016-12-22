@@ -1,5 +1,3 @@
-
-
 class NLParser {
 
   parse(t) {
@@ -12,24 +10,24 @@ class NLParser {
     const commonWords = ['there', 'what', 'who', 'where', 'theres', 'is', 'as', 'and', 'has', 'that', 'the', 'a', 'an', 'named', 'called', 'name', 'with', 'conceptualise', 'on', 'at', 'in'];
     let focusInstance = null;
     let smallestIndex = 999999;
-    for (let i = 0; i < this.node._instances.length; i++) {
-      const possibleNames = this.node._instances[i].synonyms.concat(this.node._instances[i].name);
-      for (let j = 0; j < possibleNames.length; j++) {
+    for (let i = 0; i < this.node.instances.length; i += 1) {
+      const possibleNames = this.node.instances[i].synonyms.concat(this.node.instances[i].name);
+      for (let j = 0; j < possibleNames.length; j += 1) {
         if (t.toLowerCase().indexOf(possibleNames[j].toLowerCase()) > -1) {
           if (t.toLowerCase().indexOf(possibleNames[j].toLowerCase()) < smallestIndex) {
-            focusInstance = this.node._instances[i];
+            focusInstance = this.node.instances[i];
             smallestIndex = t.toLowerCase().indexOf(possibleNames[j].toLowerCase());
             break;
           }
         }
       }
     }
-    if (focusInstance != null) {
+    if (focusInstance !== null) {
       const focusConcept = focusInstance.type;
       const focusInstanceWords = focusInstance.name.toLowerCase().split(' ');
       const focusConceptWords = focusConcept.name.toLowerCase().split(' ');
-      for (let i = 0; i < focusInstanceWords.length; i++) { commonWords.push(focusInstanceWords[i]); }
-      for (let i = 0; i < focusConceptWords.length; i++) { commonWords.push(focusConceptWords[i]); }
+      for (let i = 0; i < focusInstanceWords.length; i += 1) { commonWords.push(focusInstanceWords[i]); }
+      for (let i = 0; i < focusConceptWords.length; i += 1) { commonWords.push(focusConceptWords[i]); }
 
       const ce = `the ${focusConcept.name} '${focusInstance.name}' `;
       const facts = [];
@@ -39,25 +37,24 @@ class NLParser {
 
       let possibleRelationships = [];
       let possibleValues = [];
-      for (let i = 0; i < parents.length; i++) {
+      for (let i = 0; i < parents.length; i += 1) {
         possibleRelationships = possibleRelationships.concat(parents[i].relationships);
         possibleValues = possibleValues.concat(parents[i].values);
       }
 
-      const andFacts = t.split(/\band\b/g);
-      for (let k = 0; k < andFacts.length; k++) {
+      for (let k = 0; k < andFacts.length; k += 1) {
         const f = andFacts[k].toLowerCase();
         const factTokens = f.split(' ');
-        for (let i = 0; i < possibleValues.length; i++) {
+        for (let i = 0; i < possibleValues.length; i += 1) {
           const valueWords = possibleValues[i].label.toLowerCase().split(' ');
-          for (let j = 0; j < valueWords.length; j++) { commonWords.push(valueWords[j]); }
+          for (let j = 0; j < valueWords.length; j += 1) { commonWords.push(valueWords[j]); }
 
           if (possibleValues[i].concept) {
             const valueConcept = possibleValues[i].concept;
             const valueInstances = this.node.getInstances(valueConcept.name, true);
-            for (let j = 0; j < valueInstances.length; j++) {
+            for (let j = 0; j < valueInstances.length; j += 1) {
               const possibleNames = valueInstances[j].synonyms.concat(valueInstances[j].name);
-              for (let l = 0; l < possibleNames.length; l++) {
+              for (let l = 0; l < possibleNames.length; l += 1) {
                 if (f.toLowerCase().indexOf(possibleNames[l].toLowerCase()) > -1) {
                   facts.push(`has the ${valueConcept.name} '${valueInstances[j].name}' as ${possibleValues[i].label}`);
                   break;
@@ -66,27 +63,27 @@ class NLParser {
             }
           } else if (f.toLowerCase().indexOf(possibleValues[i].label.toLowerCase()) > -1) {
             let valueName = '';
-            for (let j = 0; j < factTokens.length; j++) {
-              if (commonWords.indexOf(factTokens[j].toLowerCase()) == -1) {
+            for (let j = 0; j < factTokens.length; j += 1) {
+              if (commonWords.indexOf(factTokens[j].toLowerCase()) === -1) {
                 valueName += `${factTokens[j]} `;
               }
             }
-            if (valueName != '') {
+            if (valueName !== '') {
               facts.push(`has '${valueName.trim()}' as ${possibleValues[i].label}`);
             }
           }
         }
 
         const usedIndices = [];
-        for (let i = 0; i < possibleRelationships.length; i++) {
+        for (let i = 0; i < possibleRelationships.length; i += 1) {
           if (possibleRelationships[i].concept) {
             const relConcept = possibleRelationships[i].concept;
             const relInstances = this.node.getInstances(relConcept.name, true);
-            for (let j = 0; j < relInstances.length; j++) {
+            for (let j = 0; j < relInstances.length; j += 1) {
               const possibleNames = relInstances[j].synonyms.concat(relInstances[j].name);
-              for (let k = 0; k < possibleNames.length; k++) {
-                const index = f.toLowerCase().indexOf(` ${possibleNames[k].toLowerCase()}`); // ensure object at least starts with the phrase (but not ends with, as might be plural)
-                if (index > -1 && usedIndices.indexOf(index) == -1) {
+              for (let l = 0; l < possibleNames.length; l += 1) {
+                const index = f.toLowerCase().indexOf(` ${possibleNames[l].toLowerCase()}`); // ensure object at least starts with the phrase (but not ends with, as might be plural)
+                if (index > -1 && usedIndices.indexOf(index) === -1) {
                   facts.push(`${possibleRelationships[i].label} the ${relConcept.name} '${relInstances[j].name}'`);
                   usedIndices.push(index);
                   break;
@@ -101,23 +98,23 @@ class NLParser {
       }
     }
 
-    for (let i = 0; i < this.node._concepts.length; i++) {
-      if (t.toLowerCase().indexOf(this.node._concepts[i].name.toLowerCase()) > -1) {
-        const conceptWords = this.node._concepts[i].name.toLowerCase().split(' ');
-        commonWords.push(this.node._concepts[i].name.toLowerCase());
-        for (let j = 0; j < conceptWords; j++) {
+    for (let i = 0; i < this.node.concepts.length; i += 1) {
+      if (t.toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) > -1) {
+        const conceptWords = this.node.concepts[i].name.toLowerCase().split(' ');
+        commonWords.push(this.node.concepts[i].name.toLowerCase());
+        for (let j = 0; j < conceptWords; j += 1) {
           commonWords.push(conceptWords[j]);
         }
         let newInstanceName = '';
-        for (let j = 0; j < tokens.length; j++) {
-          if (commonWords.indexOf(tokens[j].toLowerCase()) == -1) {
+        for (let j = 0; j < tokens.length; j += 1) {
+          if (commonWords.indexOf(tokens[j].toLowerCase()) === -1) {
             newInstanceName += `${tokens[j]} `;
           }
         }
-        if (newInstanceName != '') {
-          return [true, `there is a ${this.node._concepts[i].name} named '${this.node.newInstanceName.trim()}'`];
+        if (newInstanceName !== '') {
+          return [true, `there is a ${this.node.concepts[i].name} named '${this.node.newInstanceName.trim()}'`];
         }
-        return [true, `there is a ${this.node._concepts[i].name} named '${this.node._concepts[i].name} ${this.node._instances.length}${1}'`];
+        return [true, `there is a ${this.node.concepts[i].name} named '${this.node.concepts[i].name} ${this.node.instances.length}${1}'`];
       }
     }
     return [false, `Un-parseable input: ${t}`];
