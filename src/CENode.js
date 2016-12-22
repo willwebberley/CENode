@@ -400,34 +400,17 @@ class CENode{
    * Returns: {type: str, data: str}
    */
   addSentence (sentence, source){
-    sentence = sentence.trim();
-    sentence = sentence.replace("{now}", new Date().getTime());
-    sentence = sentence.replace("{uid}", this.newCardId());
-    const returnData = {};
-    const ceSuccess = this.parseCE(sentence, false, source);
-    if(ceSuccess[0] == false){
-      const questionSuccess = this.parseQuestion(sentence);
-      if(questionSuccess[0] == false){
-        const nlSuccess = this.parseNL(sentence);
-        if(nlSuccess[0] == false){
-          returnData.type = "gist";
-        }
-        else{
-          returnData.type = "confirm";
-        }
-        returnData.data = nlSuccess[1];
-      }
-      else{
-        returnData.type = "gist";
-        returnData.data = questionSuccess[1];
-      }
+    const ceResult = this.addCE(sentence, false, source);
+    if (ceResult.success){
+      return ceResult;
     }
-    else{
-      returnData.type = "tell";
-      returnData.data = ceSuccess[1];
-      returnData.result = ceSuccess[2];
+
+    const questionResult = this.askQuestion(sentence);
+    if (questionResult.success){
+      return questionResult;
     }
-    return returnData;
+
+    return this.addNL(sentence);
   }
 
   /*
@@ -444,13 +427,13 @@ class CENode{
     sentence = sentence.trim();
     sentence = sentence.replace("{now}", new Date().getTime());
     sentence = sentence.replace("{uid}", this.newCardId());
-    const returnData = {};
     const success = this.parseCE(sentence, nowrite, source);
-    returnData.success = success[0];
-    returnData.type = "gist";
-    returnData.data = success[1];
-    if(success[2]){returnData.result = success[2];}
-    return returnData;
+    return {
+      success: success[0],
+      type: 'gist',
+      data: success[1],
+      result: success[2] || undefined
+    }
   }
 
   /*
@@ -462,14 +445,12 @@ class CENode{
    * (Note that type and data will be null unless success = true)
    */
   askQuestion (sentence){
-    const returnData = {};
     const success = this.parseQuestion(sentence);
-    returnData.success = success[0];
-    if(success[0] == true){
-      returnData.type = "gist";
-      returnData.data = success[1];
-    }
-    return returnData;
+    return {
+      success: success[0],
+      type: success[0] ? 'gist' : undefined,
+      data: success[0] ? success[1] : undefined
+    };
   }
 
   /*
@@ -480,16 +461,11 @@ class CENode{
    * Returns: {type: str, data: str}
    */
   addNL (sentence){
-    const returnData = {};
     const success = this.parseNL(sentence);
-    if(success[0] == true){
-      returnData.type = "confirm";
-    }
-    else{
-      returnData.type = "gist";
-    }
-    returnData.data = success[1];
-    return returnData;
+    return {
+      type: success[0] ? 'confirm' : 'gist',
+      data: success[1]
+    };
   }
 
   /*
@@ -503,9 +479,7 @@ class CENode{
   addSentences (sentences, source){
     const responses = [];
     for(let i = 0; i < sentences.length; i++){
-      if(sentences[i] && sentences[i].length > 0){
-        responses.push(this.addSentence(sentences[i], source));
-      }
+      responses.push(this.addSentence(sentences[i], source));
     }
     return responses;
   }
