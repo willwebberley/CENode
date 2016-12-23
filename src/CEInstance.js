@@ -118,7 +118,7 @@ class CEInstance {
         }
       }
       if (propagate !== false) {
-        this.node.enactRules(this, 'value', valueInstance, source);
+        this.node.ruleEngine.enactRules(this, 'value', valueInstance, source);
       }
     }
   }
@@ -156,7 +156,7 @@ class CEInstance {
         }
       }
       if (propagate !== false) {
-        this.node.enactRules(this, 'relationship', relationshipInstance, source);
+        this.node.ruleEngine.enactRules(this, 'relationship', relationshipInstance, source);
       }
     }
   }
