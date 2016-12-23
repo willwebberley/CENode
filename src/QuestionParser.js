@@ -4,7 +4,7 @@ class QuestionParser {
     const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');// .replace(/(\bthe\b|\ba\b)/g, '').trim();
     const instance = this.node.getInstanceByName(thing);
     let message;
-    if (instance === null) {
+    if (!instance) {
       message = `I don't know what ${thing} is.`;
       return [true, message];
     }
@@ -58,7 +58,7 @@ class QuestionParser {
         instance = locatableInstances[i]; break;
       }
     }
-    if (instance === null) {
+    if (!instance) {
       return [true, `${thing} is not an instance of type location.`];
     }
     const things = {};
@@ -66,7 +66,7 @@ class QuestionParser {
     for (let i = 0; i < this.node.instances.length; i += 1) {
       const vals = this.node.instances[i].values;
       const rels = this.node.instances[i].relationships;
-      if (vals !== null) {
+      if (vals) {
         for (let j = 0; j < vals.length; j += 1) {
           if (vals[j].instance.id === instance.id) {
             const thing2 = `the ${this.node.instances[i].type.name} ${this.node.instances[i].name} has the ${instance.type.name} ${instance.name} as ${vals[j].label}`;
@@ -78,7 +78,7 @@ class QuestionParser {
           }
         }
       }
-      if (rels !== null) {
+      if (rels) {
         for (let j = 0; j < rels.length; j += 1) {
           if (rels[j].instance.id === instance.id) {
             const thing2 = `the ${this.node.instances[i].type.name} ${this.node.instances[i].name} ${rels[j].label} the ${instance.type.name} ${instance.name}`;
@@ -114,7 +114,7 @@ class QuestionParser {
     let instance;
     if (name) {
       instance = this.node.getInstanceByName(name[2]);
-      if (instance !== null) {
+      if (instance) {
         return [true, instance.gist];
       }
     }
@@ -122,9 +122,9 @@ class QuestionParser {
     // Otherwise, try and infer it
     name = t.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9_ ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
     instance = this.node.getInstanceByName(name);
-    if (instance === null) {
+    if (!instance) {
       const concept = this.node.getConceptByName(name);
-      if (concept === null) {
+      if (!concept) {
         const possibilities = [];
         for (let i = 0; i < this.node.concepts.length; i += 1) {
           for (let j = 0; j < this.node.concepts[i].values.length; j += 1) {

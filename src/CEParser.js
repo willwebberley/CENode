@@ -2,18 +2,18 @@ const CEConcept = require('./CEConcept.js');
 const CEInstance = require('./CEInstance.js');
 
 class CEParser {
-  newConcept(t, nowrite, source) {
+  newConcept(t, dryRun, source) {
     const conceptName = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/i)[1];
     const storedConcept = this.node.getConceptByName(conceptName);
     let concept = null;
-    if (storedConcept !== null) { // if exists, simply modify existing concept
+    if (storedConcept) { // if exists, simply modify existing concept
       return [false, 'This concept already exists.'];
     }
     // otherwise create a new one and add it to list
     concept = new CEConcept(this.node, conceptName, source);
 
     // Writepoint
-    if (!nowrite) {
+    if (!dryRun) {
       this.node.concepts.push(concept);
       this.node.conceptDict[concept.id] = concept;
     }
@@ -27,12 +27,12 @@ class CEParser {
         const factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
         let valueType = this.node.getConceptByName(factsInfo[1]);
 
-        if (factsInfo[1] === 'value') { valueType = 0; } else if (valueType === null) {
+        if (factsInfo[1] === 'value') { valueType = 0; } else if (!valueType) {
           return [false, `A property type is unknown: ${factsInfo[1]}`];
         }
 
         // Writepoint
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addValue(factsInfo[3], valueType, source);
         }
       }
@@ -41,11 +41,11 @@ class CEParser {
       if (fact.match(/^an? ([a-zA-Z0-9 ]*)/)) {
         const parentName = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
         const parentConcept = this.node.getConceptByName(parentName);
-        if (parentConcept === null) {
+        if (!parentConcept) {
           return [false, `Parent concept is unknown: ${parentName}`];
         }
         // Writepoint
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addParent(parentConcept);
         }
       }
@@ -53,7 +53,7 @@ class CEParser {
     return [true, t, concept];
   }
 
-  modifyConcept(t, nowrite, source) {
+  modifyConcept(t, dryRun, source) {
     const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
     const concept = this.node.getConceptByName(conceptInfo[1]);
     if (!concept) {
@@ -66,7 +66,7 @@ class CEParser {
 
       if (fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/)) {
         const factsInfo = fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/);
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addSynonym(factsInfo[1]);
         }
       }
@@ -75,12 +75,12 @@ class CEParser {
       if (fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)) {
         const factsInfo = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
         const target = this.node.getConceptByName(factsInfo[4]);
-        if (target === null) {
+        if (!target) {
           return [false, `The target of one of your input relationships is of an unknown type: ${factsInfo[4]}`];
         }
 
         // Writepoint
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addRelationship(factsInfo[3], target, source);
         }
       }
@@ -89,12 +89,12 @@ class CEParser {
       if (fact.match(/^~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)) {
         const factsInfo = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
         const target = this.node.getConceptByName(factsInfo[2]);
-        if (target === null) {
+        if (!target) {
           return [false, `The target of one of your input relationships is of an unknown type: ${factsInfo[2]}`];
         }
 
         // Writepoint
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addRelationship(factsInfo[1], target, source);
         }
       }
@@ -103,19 +103,19 @@ class CEParser {
       if (fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
         const factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
         let type = this.node.getConceptByName(factsInfo[1]);
-        if (factsInfo[1] === 'value') { type = 0; } else if (type === null) {
+        if (factsInfo[1] === 'value') { type = 0; } else if (!type) {
           return [false, `There is an invalid value in your sentence: ${factsInfo[1]}`];
         }
 
         // Writepoint
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addValue(factsInfo[3], type, source);
         }
       } else if (fact.match(/^an? ([a-zA-Z0-9 ]*)/)) { // "is a parentConcept" (e.g. and is a entity)
         const parentInfo = fact.match(/^an? ([a-zA-Z0-9 ]*)/);
 
         // Writepoint
-        if (!nowrite) {
+        if (!dryRun) {
           concept.addParent(this.node.getConceptByName(parentInfo[1]));
         }
       }
@@ -123,7 +123,7 @@ class CEParser {
     return [true, t, concept];
   }
 
-  newInstance(t, nowrite, source) {
+  newInstance(t, dryRun, source) {
     let conceptFactsMultiword;
     let conceptFactsSingleword;
     let valueFacts;
@@ -134,18 +134,18 @@ class CEParser {
     let concept;
     if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
       let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (names === null) {
+      if (!names) {
         names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
-        if (names === null) { return [false, 'Unable to determine name of instance.']; }
+        if (!names) { return [false, 'Unable to determine name of instance.']; }
       }
       const conceptName = names[1];
       const instanceName = names[2].replace(/\\/g, '');
       concept = this.node.getConceptByName(conceptName);
       const currentInstance = this.node.getInstanceByName(instanceName);
-      if (concept === null) {
+      if (!concept) {
         return [false, `Instance type unknown: ${conceptName}`];
       }
-      if (currentInstance !== null && currentInstance.type.id === concept.id) {
+      if (currentInstance && currentInstance.type.id === concept.id) {
         return [true, 'There is already an instance of this type with this name.', currentInstance];
       }
 
@@ -153,7 +153,7 @@ class CEParser {
       instance.sentences.push(t);
 
       // Writepoint
-      if (!nowrite) {
+      if (!dryRun) {
         this.node.instances.push(instance);
         this.node.instanceDict[instance.id] = instance;
       }
@@ -168,13 +168,13 @@ class CEParser {
       let conceptName;
       let instanceName;
       let names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (names !== null) {
+      if (names) {
         conceptName = names[1];
         instanceName = names[2].replace(/\\/g, '');
         instance = this.node.getInstanceByName(instanceName);
         concept = this.node.getConceptByName(conceptName);
       }
-      if (names === null || concept === null || instance === null) {
+      if (!names || !concept || !instance) {
         names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
         const nameTokens = names[1].split(' ');
         for (let i = 0; i < this.node.concepts.length; i += 1) {
@@ -188,12 +188,12 @@ class CEParser {
         }
       }
 
-      if (concept === null || instance === null) {
+      if (!concept || !instance) {
         return [false, `Unknown concept/instance combination: ${conceptName}/${instanceName}`];
       }
 
       // Writepoint
-      if (!nowrite) {
+      if (!dryRun) {
         instance.sentences.push(t);
       }
 
@@ -205,24 +205,24 @@ class CEParser {
       synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
     }
 
-    if (concept === null || instance === null) {
+    if (!concept || !instance) {
       return [false, 'Unable to find instance type or name'];
     }
 
     let conceptFacts = [];
-    if (conceptFactsMultiword === null) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
+    if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
     let relationshipFacts = [];
-    if (relationshipFactsMultiword === null) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
+    if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
     if (conceptFacts) {
       for (let i = 0; i < conceptFacts.length; i += 1) {
-        if (conceptFacts[i] !== null) {
+        if (conceptFacts[i]) {
           const fact = conceptFacts[i].trim();
           let valueType;
           let valueInstanceName;
           let valueLabel;
           let factsInfo = fact.match(/the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
-          if (factsInfo !== null) {
+          if (factsInfo) {
             valueType = factsInfo[1];
             valueInstanceName = factsInfo[2].replace(/\\/g, '');
             valueLabel = factsInfo[3];
@@ -236,10 +236,10 @@ class CEParser {
           }
           if (valueLabel !== '' && valueType !== '' && valueInstanceName !== '') {
             let valueInstance = this.node.getInstanceByName(valueInstanceName);
-            if (valueInstance === null) {
+            if (!valueInstance) {
               valueInstance = new CEInstance(this.node, this.node.getConcpetByName(valueType), valueInstanceName, source);
             // Writepoint
-              if (!nowrite) {
+              if (!dryRun) {
                 valueInstance.sentences.push(t);
                 this.node.instances.push(valueInstance);
                 this.node.instanceDict[valueInstance.id] = valueInstance;
@@ -247,7 +247,7 @@ class CEParser {
             }
 
           // Writepoint
-            if (!nowrite) {
+            if (!dryRun) {
               instance.addValue(valueLabel, valueInstance, true, source);
             }
           }
@@ -257,14 +257,14 @@ class CEParser {
 
     if (valueFacts) {
       for (let i = 0; i < valueFacts.length; i += 1) {
-        if (valueFacts[i] !== null) {
+        if (valueFacts[i]) {
           const fact = valueFacts[i].trim();
           const factsInfo = fact.match(/has '([^'\\]*(?:\\.[^'\\]*)*)' as ([a-zA-Z0-9 ]*)/);
           const valueValue = factsInfo[1].replace(/\\/g, '');
           const valueLabel = factsInfo[2];
 
         // Writepoint
-          if (!nowrite) {
+          if (!dryRun) {
             instance.addValue(valueLabel, valueValue, true, source);
           }
         }
@@ -273,13 +273,13 @@ class CEParser {
 
     if (relationshipFacts) {
       for (let i = 0; i < relationshipFacts.length; i += 1) {
-        if (relationshipFacts[i] !== null) {
+        if (relationshipFacts[i]) {
           const fact = relationshipFacts[i].trim();
           let relationshipLabel;
           let relationshipTypeName;
           let relationshipInstanceName;
           let factsInfo = fact.match(/(?:\bthat\b|\band\b|) ?([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/);
-          if (factsInfo !== null) {
+          if (factsInfo) {
             relationshipLabel = factsInfo[1];
             relationshipTypeName = factsInfo[2];
             relationshipInstanceName = factsInfo[3].replace(/\\/g, '');
@@ -295,14 +295,14 @@ class CEParser {
           if (relationshipLabel !== '' && relationshipTypeName !== '' && relationshipInstanceName !== '') {
             const relationshipType = this.node.getConceptByName(relationshipTypeName);
             let relationshipInstance = this.node.getInstanceByName(relationshipInstanceName);
-            if (relationshipType === null) {
+            if (!relationshipType) {
               return [false, `Unknown relationship type: ${relationshipTypeName}`];
             }
-            if (relationshipInstance === null) {
+            if (!relationshipInstance) {
               relationshipInstance = new CEInstance(this.node, this.node.getConceptByName(relationshipTypeName), relationshipInstanceName, source);
 
             // Writepoint
-              if (!nowrite) {
+              if (!dryRun) {
                 relationshipInstance.sentences.push(t);
                 this.node.instances.push(relationshipInstance);
                 this.node.instanceDict[relationshipInstance.id] = relationshipInstance;
@@ -310,7 +310,7 @@ class CEParser {
             }
 
           // Writepoint
-            if (!nowrite) {
+            if (!dryRun) {
               instance.addRelationship(relationshipLabel, relationshipInstance, true, source);
             }
           }
@@ -320,10 +320,10 @@ class CEParser {
 
     if (synonymFacts) {
       for (let i = 0; i < synonymFacts.length; i += 1) {
-        if (synonymFacts[i] !== null) {
+        if (synonymFacts[i]) {
           const fact = synonymFacts[i].trim();
           const factsInfo = fact.match(/is expressed by ('([^'\\]*(?:\\.[^'\\]*)*)')/);
-          if (!nowrite) {
+          if (!dryRun) {
             instance.addSynonym(factsInfo[2]);
           }
         }

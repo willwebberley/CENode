@@ -22,7 +22,7 @@ class NLParser {
         }
       }
     }
-    if (focusInstance !== null) {
+    if (focusInstance) {
       const focusConcept = focusInstance.type;
       const focusInstanceWords = focusInstance.name.toLowerCase().split(' ');
       const focusConceptWords = focusConcept.name.toLowerCase().split(' ');

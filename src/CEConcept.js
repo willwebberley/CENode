@@ -88,7 +88,7 @@ class CEConcept {
       const current = stack.pop();
       children.push(current);
       const currentChildren = current.children;
-      if (currentChildren != null) {
+      if (currentChildren) {
         for (let i = 0; i < currentChildren.length; i += 1) {
           stack.push(currentChildren[i]);
         }

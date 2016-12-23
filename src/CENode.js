@@ -62,7 +62,7 @@ class CENode {
    * Returns: obj{concept}
    */
   getConceptByName(name) {
-    if (name === null) { return null; }
+    if (!name) { return null; }
     for (let i = 0; i < this.concepts.length; i += 1) {
       if (this.concepts[i].name.toLowerCase() === name.toLowerCase()) {
         return this.concepts[i];
@@ -153,9 +153,9 @@ class CENode {
     }
     for (let i = 0; i < this.rules.length; i += 1) {
       const rule = this.parseRule(this.rules[i].instruction);
-      if (rule === null) { return; }
+      if (!rule) { return; }
       if (rule.if.concept === subjectInstance.type.name) {
-        if ((propertyType === 'relationship' && rule.if.relationship != null) || (propertyType === 'value' && rule.if.value != null)) {
+        if ((propertyType === 'relationship' && rule.if.relationship) || (propertyType === 'value' && rule.if.value)) {
           const ancestorConcepts = objectInstance.type.ancestors;
           ancestorConcepts.push(objectInstance.type);
           for (let j = 0; j < ancestorConcepts.length; j += 1) {
@@ -179,19 +179,19 @@ class CENode {
    *  - modifications to existing concepts or instances
    *  - no action (i.e. invalid or duplicate CE)
    *
-   *  The nowrite argument is optional. If set to 'true', the method will behave
+   *  The dryRun argument is optional. If set to 'true', the method will behave
    *  as normal, but will not actually modify the node's model.
    *
    * Returns: [bool, str] (bool = success, str = error or parsed string)
    */
-  parseCE(input, nowrite, source) {
+  parseCE(input, dryRun, source) {
     const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
     if (t.match(/^conceptualise an?/i)) {
-      return this.ceParser.newConcept(t, nowrite, source);
+      return this.ceParser.newConcept(t, dryRun, source);
     } else if (t.match(/^conceptualise the/i)) {
-      return this.ceParser.modifyConcept(t, nowrite, source);
+      return this.ceParser.modifyConcept(t, dryRun, source);
     } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
-      return this.ceParser.newInstance(t, nowrite, source);
+      return this.ceParser.newInstance(t, dryRun, source);
     }
     return [false, null];
   }
@@ -323,9 +323,9 @@ class CENode {
    */
   getInstances(conceptType, recurse) {
     let instanceList = [];
-    if (conceptType === null) {
+    if (!conceptType) {
       instanceList = this.instances;
-    } else if (conceptType != null && (recurse === null || recurse === false)) {
+    } else if (conceptType && !recurse) {
       const concept = this.getConceptByName(conceptType);
       if (concept) {
         for (let i = 0; i < this.instances.length; i += 1) {
@@ -334,7 +334,7 @@ class CENode {
           }
         }
       }
-    } else if (conceptType != null && recurse === true) {
+    } else if (conceptType && recurse === true) {
       const concept = this.getConceptByName(conceptType);
       if (concept) {
         const descendants = concept.descendants.concat(concept);
@@ -389,12 +389,12 @@ class CENode {
    * Attempt to parse CE and add data to the node.
    * Indicates whether CE was successfully parsed.
    *
-   * nowrite is an optional argument to perform a dry-run.
+   * dryRun is an optional argument to perform a dry-run.
    *
    * Returns: {success: bool, type: str, data: str}
    */
-  addCE(sentence, nowrite, source) {
-    const success = this.parseCE(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), nowrite, source);
+  addCE(sentence, dryRun, source) {
+    const success = this.parseCE(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), dryRun, source);
     return {
       success: success[0],
       type: 'gist',

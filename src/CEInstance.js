@@ -117,7 +117,7 @@ class CEInstance {
           });
         }
       }
-      if (propagate === null || propagate !== false) {
+      if (propagate !== false) {
         this.node.enactRules(this, 'value', valueInstance, source);
       }
     }
@@ -155,7 +155,7 @@ class CEInstance {
           });
         }
       }
-      if (propagate === null || propagate !== false) {
+      if (propagate !== false) {
         this.node.enactRules(this, 'relationship', relationshipInstance, source);
       }
     }
@@ -202,7 +202,7 @@ class CEInstance {
 
   get ce() {
     const concept = this.concept;
-    if (concept === null) { return ''; }
+    if (!concept) { return ''; }
     let ce = `there is a ${concept.name} named '${this.name}'`;
     const facts = [];
     for (let i = 0; i < this.valueIds.length; i += 1) {
@@ -228,7 +228,7 @@ class CEInstance {
   get gist() {
     const vowels = ['a', 'e', 'i', 'o', 'u'];
     const concept = this.concept;
-    if (concept === null) { return ''; }
+    if (!concept) { return ''; }
     let gist = `${this.name} is`;
     if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}.`; }
     const facts = {};

@@ -16,11 +16,11 @@ const net = {
     const xhr = new XMLHttpRequest();
     xhr.open(method, nodeURL + path);
     xhr.onreadystatechange = () => {
-      if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 302) && callback !== null) {
+      if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 302) && callback) {
         callback(xhr.responseText);
       }
     };
-    if (data !== null) {
+    if (data) {
       xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
       xhr.send(data);
     } else {
@@ -107,7 +107,7 @@ class CEAgent {
       for (let j = 0; j < froms.length; j += 1) {
         c += ` and is to the ${froms[j].type.name} '${froms[j].name}'`;
       }
-      if (urls !== null) {
+      if (urls) {
         for (let j = 0; j < urls.length; j += 1) {
           c += ` and has '${urls[j]}' as linked content`;
         }

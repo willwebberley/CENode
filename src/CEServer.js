@@ -32,15 +32,15 @@ function getCards(request, response, ignoresInput) {
   const ignores = ignoresInput || [];
   let agentStr = null;
   let agents = [];
-  if (agentRegex !== null) { agentStr = agentRegex[1]; }
-  if (agentStr !== null) {
+  if (agentRegex) { agentStr = agentRegex[1]; }
+  if (agentStr) {
     agents = agentStr.toLowerCase().split(',');
   }
   const cards = node.getInstances('card', true);
   let s = '';
   for (let i = 0; i < cards.length; i += 1) {
     if (ignores.indexOf(cards[i].name) === -1) {
-      if (agents === null || agents.length === 0) {
+      if (!agents || agents.length === 0) {
         s += `${cards[i].ce}\n`;
       } else {
         const tos = cards[i].isTos;
