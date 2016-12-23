@@ -22,15 +22,6 @@ const NLParser = require('./NLParser.js');
 
 class CENode {
 
- /*
- * Code for generating instance, concept, and card IDs.
- *
- * Instance/concept IDs based on number of each type so far created
- * Returns int
- *
- * Card IDs based on number of cards and the local agent's name
- * Returns str
- */
   newInstanceId() {
     this.lastInstanceId += 1;
     return this.lastInstanceId;
@@ -47,20 +38,10 @@ class CENode {
     return this.agent.getName() + this.lastCardId;
   }
 
-  /*
-   * Get the concept with ID 'id'
-   *
-   * Returns: obj{concept}
-   */
   getConceptById(id) {
     return this.conceptDict[id];
   }
 
-  /*
-   * Get the concept with name 'name'
-   *
-   * Returns: obj{concept}
-   */
   getConceptByName(name) {
     if (!name) { return null; }
     for (let i = 0; i < this.concepts.length; i += 1) {
@@ -76,20 +57,10 @@ class CENode {
     return null;
   }
 
-  /*
-   * Get the instance with ID 'id'
-   *
-   * Returns: obj{instance}
-   */
   getInstanceById(id) {
     return this.instanceDict[id];
   }
 
-  /*
-   * Get the instance with name 'name'
-   *
-   * Returns: obj{instance}
-   */
   getInstanceByName(name) {
     if (!name) { return null; }
     for (let i = 0; i < this.instances.length; i += 1) {
@@ -233,77 +204,6 @@ class CENode {
    */
   parseNL(input) {
     return this.nlParser.parse(input.replace(/'/g, '').replace(/\./g, ''));
-  }
-
-  /*
-   * Return a string representing a guess at what the user is trying to say next.
-   * Actually what is returned is the input string + the next word/phrase based on:
-   *  - current state of conceptual model (i.e. names/relationships of concepts/instances)
-   *  - key words/phrases (e.g. "conceptualise a ")
-   *
-   * Returns: str
-   */
-  guessNext(t) {
-    const s = t.trim().toLowerCase();
-    const tokens = t.split(' ');
-    let numberOfTildes = 0;
-    let indexOfFirstTilde = 0;
-    for (let i = 0; i < tokens.length; i += 1) { if (tokens[i] === '~') { numberOfTildes += 1; if (numberOfTildes === 1) { indexOfFirstTilde = i; } } }
-    const possibleWords = [];
-    if (t === '') { return t; }
-    if (numberOfTildes === 1) {
-      try {
-        return `${t} ~ ${tokens[indexOfFirstTilde + 1].charAt(0).toUpperCase()} `;
-      } catch (err) { /* continue anyway */ }
-    }
-    if (s.match(/^conceptualise a ~ (.*) ~ [A-Z] /)) {
-      return `${t} that `;
-    }
-
-    if (tokens.length < 2) {
-      possibleWords.push('conceptualise a ~ ');
-      possibleWords.push('there is a ');
-      possibleWords.push('where is ');
-      possibleWords.push('what is ');
-      possibleWords.push('who is ');
-    }
-    if (tokens.length > 2) {
-      possibleWords.push("named '");
-      possibleWords.push('that ');
-      possibleWords.push('is a ');
-      possibleWords.push('and is ');
-      possibleWords.push('and has the ');
-      possibleWords.push('the ');
-    }
-
-    const mentionedInstances = [];
-
-    if (s.indexOf('there is') === -1 || tokens.length === 1) {
-      for (let i = 0; i < this.instances.length; i += 1) {
-        possibleWords.push(this.instances[i].name);
-        if (s.indexOf(this.instances[i].name.toLowerCase()) > -1) {
-          mentionedInstances.push(this.instances[i]);
-        }
-      }
-    }
-    for (let i = 0; i < this.concepts.length; i += 1) {
-      possibleWords.push(this.concepts[i].name);
-      let conceptMentioned = false;
-      for (let j = 0; j < mentionedInstances.length; j += 1) {
-        if (mentionedInstances[j].conceptId === this.concepts[i].id) { conceptMentioned = true; break; }
-      }
-      if (s.indexOf(this.concepts[i].name.toLowerCase()) > -1 || conceptMentioned) {
-        for (let j = 0; j < this.concepts[i].values.length; j += 1) { possibleWords.push(this.concepts[i].values[j].label); }
-        for (let j = 0; j < this.concepts[i].relationships.length; j += 1) { possibleWords.push(this.concepts[i].relationships[j].label); }
-      }
-    }
-    for (let i = 0; i < possibleWords.length; i += 1) {
-      if (possibleWords[i].toLowerCase().indexOf(tokens[tokens.length - 1].toLowerCase()) === 0) {
-        tokens[tokens.length - 1] = possibleWords[i];
-        return tokens.join(' ');
-      }
-    }
-    return t;
   }
 
   /*

@@ -120,6 +120,77 @@ class NLParser {
     return [false, `Un-parseable input: ${t}`];
   }
 
+  /*
+   * Return a string representing a guess at what the user is trying to say next.
+   * Actually what is returned is the input string + the next word/phrase based on:
+   *  - current state of conceptual model (i.e. names/relationships of concepts/instances)
+   *  - key words/phrases (e.g. "conceptualise a ")
+   *
+   * Returns: str
+   */
+  guessNext(t) {
+    const s = t.trim().toLowerCase();
+    const tokens = t.split(' ');
+    let numberOfTildes = 0;
+    let indexOfFirstTilde = 0;
+    for (let i = 0; i < tokens.length; i += 1) { if (tokens[i] === '~') { numberOfTildes += 1; if (numberOfTildes === 1) { indexOfFirstTilde = i; } } }
+    const possibleWords = [];
+    if (t === '') { return t; }
+    if (numberOfTildes === 1) {
+      try {
+        return `${t} ~ ${tokens[indexOfFirstTilde + 1].charAt(0).toUpperCase()} `;
+      } catch (err) { /* continue anyway */ }
+    }
+    if (s.match(/^conceptualise a ~ (.*) ~ [A-Z] /)) {
+      return `${t} that `;
+    }
+
+    if (tokens.length < 2) {
+      possibleWords.push('conceptualise a ~ ');
+      possibleWords.push('there is a ');
+      possibleWords.push('where is ');
+      possibleWords.push('what is ');
+      possibleWords.push('who is ');
+    }
+    if (tokens.length > 2) {
+      possibleWords.push("named '");
+      possibleWords.push('that ');
+      possibleWords.push('is a ');
+      possibleWords.push('and is ');
+      possibleWords.push('and has the ');
+      possibleWords.push('the ');
+    }
+
+    const mentionedInstances = [];
+
+    if (s.indexOf('there is') === -1 || tokens.length === 1) {
+      for (let i = 0; i < this.node.instances.length; i += 1) {
+        possibleWords.push(this.node.instances[i].name);
+        if (s.indexOf(this.node.instances[i].name.toLowerCase()) > -1) {
+          mentionedInstances.push(this.node.instances[i]);
+        }
+      }
+    }
+    for (let i = 0; i < this.node.concepts.length; i += 1) {
+      possibleWords.push(this.node.concepts[i].name);
+      let conceptMentioned = false;
+      for (let j = 0; j < mentionedInstances.length; j += 1) {
+        if (mentionedInstances[j].conceptId === this.node.concepts[i].id) { conceptMentioned = true; break; }
+      }
+      if (s.indexOf(this.node.concepts[i].name.toLowerCase()) > -1 || conceptMentioned) {
+        for (let j = 0; j < this.node.concepts[i].values.length; j += 1) { possibleWords.push(this.node.concepts[i].values[j].label); }
+        for (let j = 0; j < this.node.concepts[i].relationships.length; j += 1) { possibleWords.push(this.node.concepts[i].relationships[j].label); }
+      }
+    }
+    for (let i = 0; i < possibleWords.length; i += 1) {
+      if (possibleWords[i].toLowerCase().indexOf(tokens[tokens.length - 1].toLowerCase()) === 0) {
+        tokens[tokens.length - 1] = possibleWords[i];
+        return tokens.join(' ');
+      }
+    }
+    return t;
+  }
+
   constructor(node) {
     this.node = node;
   }

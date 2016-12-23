@@ -39,12 +39,14 @@ class QuestionParser {
       return [true, message];
     }
     message = instance.name;
-    for (const place of places) {
-      message += ` ${place}`;
-      if (places[place] > 1) {
-        message += ` (${places[place]} times)`;
+    for (const place in places) {
+      if (place) {
+        message += ` ${place}`;
+        if (places[place] > 1) {
+          message += ` (${places[place]} times)`;
+        }
+        message += ' and';
       }
-      message += ' and';
     }
     return [true, `${message.substring(0, message.length - 4)}.`];
   }
