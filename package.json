@@ -3,7 +3,7 @@
   "description": "A pure JavaScript implementation of the ITA project's CEStore - called CENode. CENode is able to understand the basic sentence types parsed by the CEStore, such as conceptualising and instance creation.",
   "author": "Will Webberley & Alun Preece",
   "scripts": {
-    "build-web": "babel src -d lib && webpack --config .webpackrc.js && uglifyjs dist/cenode.js --mangle -o dist/cenode.min.js --source-map dist/cenode.js.map",
+    "build-web": "babel src -d lib && webpack --config .webpackrc.js && mv dist/CENode.js dist/cenode.js && mv dist/CEModels.js dist/models.js && uglifyjs dist/cenode.js --mangle -o dist/cenode.min.js --source-map dist/cenode.js.map",
     "lint-fix": "eslint src/*.js --fix",
     "lint": "eslint src/*.js"
   },

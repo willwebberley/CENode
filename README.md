@@ -8,7 +8,7 @@ See also the [Getting Started Tutorial](https://github.com/flyingsparx/CENode/bl
 
 ## Installation and use
 
-CENode can be imported into your Node apps or run in a browser.
+CENode can be imported into your Node apps or run in a browser. Either way, you will need Node and NPM installed before continuing, so install these for your platform first.
 
 ### Building for a browser
 
@@ -55,10 +55,10 @@ const node = require('./path/to/CENode/src/CENode.js');
 A small and simple webserver is also included for submitting and retrieving CE cards over HTTP. Run the webserver using Node.
 
 ```bash
-$ /path/to/CENode/src/CEServer.js
+$ node /path/to/CENode/src/CEServer.js
 ```
 
-Please see the documentation for information on how to configure the server.
+Please see the documentation for information on how to configure and use the server.
 
 ## API reference
 
