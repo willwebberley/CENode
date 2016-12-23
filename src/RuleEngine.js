@@ -46,7 +46,7 @@ class RuleEngine {
     if (typeof objectInstance === 'string') {
       return;
     }
-    const rules = this.getInstances('rule');
+    const rules = this.node.getInstances('rule');
     for (let i = 0; i < rules.length; i += 1) {
       const rule = this.parseRule(rules[i].instruction);
       if (!rule) { return; }

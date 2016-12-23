@@ -6,7 +6,7 @@ Please visit the project's [home page](http://cenode.io) for more information an
 
 See also the [Getting Started Tutorial](https://github.com/flyingsparx/CENode/blob/master/docs/getting_started.md).
 
-## Installation and use
+## Quickstart guide
 
 CENode can be imported into your Node apps or run in a browser. Either way, you will need Node and NPM installed before continuing, so install these for your platform first.
 
@@ -22,12 +22,13 @@ Build the library for use in a browser.
 npm run build-web
 ```
 
-A file `cenode.js` (along with `cenode.min.js` and `cenode.js.map`) will be generated in the `dist/` directory.
+A file `cenode.js` (along with `cenode.min.js` and `cenode.js.map`) will be generated in the `dist/` directory. Additionally, CENode's default models (including the CE `core` model) are also produced during the build process.
 
-Include whichever file (standard or minified) suits your needs best in your webapp markup.
+Include whichever CENode file (standard or minified) suits your needs best in your webapp markup. If you wish, also include the models file which will allow you to later use the `core` model.
 ```html
 ...
 <script src="cenode.min.js"></script>
+<script src="models.js'></script> <!-- If you need it -->
 ...
 ```
 
@@ -40,6 +41,14 @@ Once included, the `CENode` variable is exposed.
 ...
 ```
 
+If you chose to include the default models file too (which is recommended for most applications), then the `core` model - and any other models you need - can be passed to the node during instantiation.
+```html
+...
+<script>
+  var node = new CENode(CEModels.core, myCustomModel, ...);
+</script>
+```
+
 From here, use the documentation to learn more.
 
 ### Importing into your Node app
@@ -47,7 +56,17 @@ From here, use the documentation to learn more.
 CENode doesn't need to be built or processed to be included in your Node app. Simply `require` the library from the `src` directory.
 
 ```javascript
-const node = require('./path/to/CENode/src/CENode.js');
+const CENode = require('./path/to/CENode/src/CENode.js');
+
+const node = new CENode();
+```
+
+Alternatively, if you want to take advantage of the CE core model, then this can also be imported and included along with any of your own models you may have.
+```javascript
+const CENode = require('./path/to/CENode/src/CENode.js');
+const CEModels = require('./path/to/CENode/models/index.js');
+
+const node = new CENode(CEModels.core, myCustomModel, ...);
 ```
 
 ## Running as a server
