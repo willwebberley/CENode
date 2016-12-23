@@ -13,7 +13,7 @@ class CEParser {
     concept = new CEConcept(this.node, conceptName, source);
 
     // Writepoint
-    if (nowrite === null || nowrite === false) {
+    if (!nowrite) {
       this.node.concepts.push(concept);
       this.node.conceptDict[concept.id] = concept;
     }
@@ -32,7 +32,7 @@ class CEParser {
         }
 
         // Writepoint
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addValue(factsInfo[3], valueType, source);
         }
       }
@@ -45,7 +45,7 @@ class CEParser {
           return [false, `Parent concept is unknown: ${parentName}`];
         }
         // Writepoint
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addParent(parentConcept);
         }
       }
@@ -66,7 +66,7 @@ class CEParser {
 
       if (fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/)) {
         const factsInfo = fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/);
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addSynonym(factsInfo[1]);
         }
       }
@@ -80,7 +80,7 @@ class CEParser {
         }
 
         // Writepoint
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addRelationship(factsInfo[3], target, source);
         }
       }
@@ -94,7 +94,7 @@ class CEParser {
         }
 
         // Writepoint
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addRelationship(factsInfo[1], target, source);
         }
       }
@@ -108,14 +108,14 @@ class CEParser {
         }
 
         // Writepoint
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addValue(factsInfo[3], type, source);
         }
       } else if (fact.match(/^an? ([a-zA-Z0-9 ]*)/)) { // "is a parentConcept" (e.g. and is a entity)
         const parentInfo = fact.match(/^an? ([a-zA-Z0-9 ]*)/);
 
         // Writepoint
-        if (nowrite === null || nowrite === false) {
+        if (!nowrite) {
           concept.addParent(this.node.getConceptByName(parentInfo[1]));
         }
       }
@@ -153,7 +153,7 @@ class CEParser {
       instance.sentences.push(t);
 
       // Writepoint
-      if (nowrite === null || nowrite === false) {
+      if (!nowrite) {
         this.node.instances.push(instance);
         this.node.instanceDict[instance.id] = instance;
       }
@@ -193,7 +193,7 @@ class CEParser {
       }
 
       // Writepoint
-      if (nowrite === null || nowrite === false) {
+      if (!nowrite) {
         instance.sentences.push(t);
       }
 
@@ -239,7 +239,7 @@ class CEParser {
             if (valueInstance === null) {
               valueInstance = new CEInstance(this.node, this.node.getConcpetByName(valueType), valueInstanceName, source);
             // Writepoint
-              if (nowrite === null || nowrite === false) {
+              if (!nowrite) {
                 valueInstance.sentences.push(t);
                 this.node.instances.push(valueInstance);
                 this.node.instanceDict[valueInstance.id] = valueInstance;
@@ -247,7 +247,7 @@ class CEParser {
             }
 
           // Writepoint
-            if (nowrite === null || nowrite === false) {
+            if (!nowrite) {
               instance.addValue(valueLabel, valueInstance, true, source);
             }
           }
@@ -264,7 +264,7 @@ class CEParser {
           const valueLabel = factsInfo[2];
 
         // Writepoint
-          if (nowrite === null || nowrite === false) {
+          if (!nowrite) {
             instance.addValue(valueLabel, valueValue, true, source);
           }
         }
@@ -302,7 +302,7 @@ class CEParser {
               relationshipInstance = new CEInstance(this.node, this.node.getConceptByName(relationshipTypeName), relationshipInstanceName, source);
 
             // Writepoint
-              if (nowrite === null || nowrite === false) {
+              if (!nowrite) {
                 relationshipInstance.sentences.push(t);
                 this.node.instances.push(relationshipInstance);
                 this.node.instanceDict[relationshipInstance.id] = relationshipInstance;
@@ -310,7 +310,7 @@ class CEParser {
             }
 
           // Writepoint
-            if (nowrite === null || nowrite === false) {
+            if (!nowrite) {
               instance.addRelationship(relationshipLabel, relationshipInstance, true, source);
             }
           }
@@ -323,7 +323,7 @@ class CEParser {
         if (synonymFacts[i] !== null) {
           const fact = synonymFacts[i].trim();
           const factsInfo = fact.match(/is expressed by ('([^'\\]*(?:\\.[^'\\]*)*)')/);
-          if (nowrite === null || nowrite === false) {
+          if (!nowrite) {
             instance.addSynonym(factsInfo[2]);
           }
         }

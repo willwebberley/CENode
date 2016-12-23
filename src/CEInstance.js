@@ -8,8 +8,8 @@ class CEInstance {
     this.node = node;
     this.typeId = type.id;
     this.sentences = [];
-    this.values = [];
-    this.relationships = [];
+    this.valueIds = [];
+    this.relationshipIds = [];
     this.synonyms = [];
     this.reservedFields = ['values', 'relationships', 'synonyms', 'addValue', 'addRelationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
 
@@ -40,11 +40,11 @@ class CEInstance {
 
   get relationships() {
     const rels = [];
-    for (let i = 0; i < this.relationships.length; i += 1) {
+    for (let i = 0; i < this.relationshipIds.length; i += 1) {
       const relationship = {};
-      relationship.label = this.relationships[i].label;
-      relationship.source = this.relationships[i].source;
-      relationship.instance = this.node.getInstanceById(this.relationships[i].targetId);
+      relationship.label = this.relationshipIds[i].label;
+      relationship.source = this.relationshipIds[i].source;
+      relationship.instance = this.node.getInstanceById(this.relationshipIds[i].targetId);
       rels.push(relationship);
     }
     return rels;
@@ -52,14 +52,14 @@ class CEInstance {
 
   get values() {
     const vals = [];
-    for (let i = 0; i < this.values.length; i += 1) {
+    for (let i = 0; i < this.valueIds.length; i += 1) {
       const value = {};
-      value.label = this.values[i].label;
-      value.source = this.values[i].source;
-      if (this.values[i].typeId === 0) {
-        value.instance = this.values[i].typeName;
+      value.label = this.valueIds[i].label;
+      value.source = this.valueIds[i].source;
+      if (this.valueIds[i].typeId === 0) {
+        value.instance = this.valueIds[i].typeName;
       } else {
-        value.instance = this.node.getInstanceById(this.values[i].typeId);
+        value.instance = this.node.getInstanceById(this.valueIds[i].typeId);
       }
       vals.push(value);
     }
@@ -92,7 +92,7 @@ class CEInstance {
       value.label = label;
       value.typeId = typeof valueInstance === 'object' ? valueInstance.id : 0;
       value.typeName = typeof valueInstance === 'object' ? valueInstance.name : valueInstance;
-      this.values.push(value);
+      this.valueIds.push(value);
       const valueNameField = label.toLowerCase().replace(/ /g, '_');
 
       if (this.reservedFields.indexOf(valueNameField) === -1) {
@@ -107,9 +107,9 @@ class CEInstance {
           Object.defineProperty(this, `${valueNameField}s`, {
             get() {
               const instances = [];
-              for (let i = 0; i < this.values.length; i += 1) {
-                if (this.values[i].label.toLowerCase().replace(/ /g, '_') === valueNameField) {
-                  instances.push(this.values[i].typeId === 0 ? this.values[i].typeName : this.node.getInstanceById(this.values[i].typeId));
+              for (let i = 0; i < this.valueIds.length; i += 1) {
+                if (this.valueIds[i].label.toLowerCase().replace(/ /g, '_') === valueNameField) {
+                  instances.push(this.valueIds[i].typeId === 0 ? this.valueIds[i].typeName : this.node.getInstanceById(this.valueIds[i].typeId));
                 }
               }
               return instances;
@@ -130,7 +130,7 @@ class CEInstance {
       relationship.source = source;
       relationship.targetId = relationshipInstance.id;
       relationship.targetName = relationshipInstance.name;
-      this.relationships.push(relationship);
+      this.relationshipIds.push(relationship);
       const relNameField = label.toLowerCase().replace(/ /g, '_');
 
       if (this.reservedFields.indexOf(relNameField) === -1) {
@@ -145,9 +145,9 @@ class CEInstance {
           Object.defineProperty(this, `${relNameField}s`, {
             get() {
               const instances = [];
-              for (let i = 0; i < this.relationships.length; i += 1) {
-                if (this.relationships[i].label.toLowerCase().replace(/ /g, '_') === relNameField) {
-                  instances.push(this.node.getInstanceById(this.relationships[i].targetId));
+              for (let i = 0; i < this.relationshipIds.length; i += 1) {
+                if (this.relationshipIds[i].label.toLowerCase().replace(/ /g, '_') === relNameField) {
+                  instances.push(this.node.getInstanceById(this.relationshipIds[i].targetId));
                 }
               }
               return instances;
@@ -181,18 +181,18 @@ class CEInstance {
 
   properties(propertyName, source, onlyOne) {
     const properties = [];
-    for (let i = this.values.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
-      if (this.values[i].label.toLowerCase() === propertyName.toLowerCase()) {
-        const inst = this.values[i].instance;
-        const dat = source ? { instance: inst, source: this.values[i].source } : inst;
+    for (let i = this.valueIds.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
+      if (this.valueIds[i].label.toLowerCase() === propertyName.toLowerCase()) {
+        const inst = this.valueIds[i].instance;
+        const dat = source ? { instance: inst, source: this.valueIds[i].source } : inst;
         if (onlyOne) { return dat; }
         properties.push(dat);
       }
     }
-    for (let i = this.relationships.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
-      if (this.relationships[i].label.toLowerCase() === propertyName.toLowerCase()) {
-        const inst = this.relationships[i].instance;
-        const dat = source ? { instance: inst, source: this.relationships[i].source } : inst;
+    for (let i = this.relationshipIds.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
+      if (this.relationshipIds[i].label.toLowerCase() === propertyName.toLowerCase()) {
+        const inst = this.relationshipIds[i].instance;
+        const dat = source ? { instance: inst, source: this.relationshipIds[i].source } : inst;
         if (onlyOne) { return dat; }
         properties.push(dat);
       }
@@ -200,17 +200,13 @@ class CEInstance {
     return onlyOne ? null : properties;
   }
 
-  get synonyms() {
-    return this.synonyms;
-  }
-
   get ce() {
     const concept = this.concept;
     if (concept === null) { return ''; }
     let ce = `there is a ${concept.name} named '${this.name}'`;
     const facts = [];
-    for (let i = 0; i < this.values.length; i += 1) {
-      const value = this.values[i];
+    for (let i = 0; i < this.valueIds.length; i += 1) {
+      const value = this.valueIds[i];
       if (value.typeId === 0) {
         facts.push(`has '${value.typeName.replace(/'/g, "\\'")}' as ${value.label}`);
       } else {
@@ -219,8 +215,8 @@ class CEInstance {
         facts.push(`has the ${valueConcept.name} '${valueInstance.name}' as ${value.label}`);
       }
     }
-    for (let i = 0; i < this.relationships.length; i += 1) {
-      const relationship = this.relationships[i];
+    for (let i = 0; i < this.relationshipIds.length; i += 1) {
+      const relationship = this.relationshipIds[i];
       const relationshipInstance = this.node.getInstanceById(relationship.targetId);
       const relationshipConcept = relationshipInstance.type;
       facts.push(`${relationship.label} the ${relationshipConcept.name} '${relationshipInstance.name}'`);
@@ -237,9 +233,9 @@ class CEInstance {
     if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}.`; }
     const facts = {};
     let factFound = false;
-    for (let i = 0; i < this.values.length; i += 1) {
+    for (let i = 0; i < this.valueIds.length; i += 1) {
       factFound = true;
-      const value = this.values[i];
+      const value = this.valueIds[i];
       let fact = '';
       if (value.typeId === 0) {
         fact = `has '${value.typeName.replace(/'/g, "\\'")}' as ${value.label}`;
@@ -253,9 +249,9 @@ class CEInstance {
       }
       facts[fact] += 1;
     }
-    for (let i = 0; i < this.relationships.length; i += 1) {
+    for (let i = 0; i < this.relationshipIds.length; i += 1) {
       factFound = true;
-      const relationship = this.relationships[i];
+      const relationship = this.relationshipIds[i];
       const relationshipInstance = this.node.getInstanceById(relationship.targetId);
       const relationshipConcept = relationshipInstance.type;
       const fact = `${relationship.label} the ${relationshipConcept.name} '${relationshipInstance.name}'`;
