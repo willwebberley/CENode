@@ -1,12 +1,12 @@
 const CENode = require('./CENode.js');
-const CORE_MODEL = require('../models/core.js');
-const SERVER_MODEL = require('../models/server.js');
+const CEModels = require('../models/index.js');
 
 const POST_SENTENCES_ENDPOINT = '/sentences';
 const GET_CARDS_ENDPOINT = '/cards';
 
-const node = new CENode(CORE_MODEL, SERVER_MODEL);
+const node = new CENode(CEModels.core, CEModels.server);
 node.attachAgent();
+
 let port = 5555;
 if (process.argv.length > 3) {
   port = process.argv[3];

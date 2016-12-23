@@ -28,7 +28,7 @@ Include whichever CENode file (standard or minified) suits your needs best in yo
 ```html
 ...
 <script src="cenode.min.js"></script>
-<script src="models.js'></script> <!-- If you need it -->
+<script src="models.js"></script> <!-- If you need it -->
 ...
 ```
 
