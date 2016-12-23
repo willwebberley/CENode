@@ -1,6 +1,7 @@
 testing.js
 node_modules/
 lib/
+dist/
 *.sw*
 .DS_Store
 *.bbl
