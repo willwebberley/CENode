@@ -6,6 +6,7 @@ const POST_SENTENCES_ENDPOINT = '/sentences';
 const GET_CARDS_ENDPOINT = '/cards';
 
 const node = new CENode(CORE_MODEL, SERVER_MODEL);
+node.attachAgent();
 let port = 5555;
 if (process.argv.length > 3) {
   port = process.argv[3];
