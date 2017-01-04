@@ -200,6 +200,7 @@ class CEParser {
     let concept;
     let instance;
     if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)){
+      // the person 'fred' eats the fruit orange
       const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
       if (names) {
         concept = this.node.getConceptByName(names[1]);
@@ -211,7 +212,8 @@ class CEParser {
       for (let i = 0; i < this.node.concepts.length; i += 1) {
         if (names[1].toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) === 0) {
           concept = this.node.concepts[i];
-          instance = this.node.getInstanceByName(nameTokens[concept.name.split(' ').length]);
+          const instanceName = nameTokens[concept.name.split(' ').length].toLowerCase();
+          instance = concept[instanceName]
           break;
         }
       }
@@ -226,12 +228,14 @@ class CEParser {
       instance.sentences.push(t);
     }
 
-    const conceptFactsMultiword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-    const conceptFactsSingleword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
-    const valueFacts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-    const relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    const relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
-    const synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+    const test = t.toLowerCase().replace(`the ${concept.name.toLowerCase()} ${instance.name.toLowerCase()}`, '');
+
+    const conceptFactsMultiword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+    const conceptFactsSingleword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
+    const valueFacts = test.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+    const relationshipFactsMultiword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+    const relationshipFactsSingleword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
+    const synonymFacts = test.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
 
     let conceptFacts = [];
     if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
