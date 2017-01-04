@@ -23,8 +23,10 @@ class CEParser {
       return this.newConcept(t, dryRun, source);
     } else if (t.match(/^conceptualise the/i)) {
       return this.modifyConcept(t, dryRun, source);
-    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)){
       return this.newInstance(t, dryRun, source);
+    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+      return this.modifyInstance(t, dryRun, source);
     }
     return [false, null];
   }
@@ -151,93 +153,96 @@ class CEParser {
   }
 
   newInstance(t, dryRun, source) {
-    let conceptFactsMultiword;
-    let conceptFactsSingleword;
-    let valueFacts;
-    let relationshipFactsMultiword;
-    let relationshipFactsSingleword;
-    let synonymFacts;
     let instance;
     let concept;
-    if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
-      let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (!names) {
-        names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
-        if (!names) { return [false, 'Unable to determine name of instance.']; }
-      }
-      const conceptName = names[1];
-      const instanceName = names[2].replace(/\\/g, '');
-      concept = this.node.getConceptByName(conceptName);
-      const currentInstance = this.node.getInstanceByName(instanceName);
-      if (!concept) {
-        return [false, `Instance type unknown: ${conceptName}`];
-      }
-      if (currentInstance && currentInstance.type.id === concept.id) {
-        return [true, 'There is already an instance of this type with this name.', currentInstance];
-      }
-
-      instance = new CEInstance(this.node, concept, instanceName, source);
-      instance.sentences.push(t);
-
-      // Writepoint
-      if (!dryRun) {
-        this.node.instances.push(instance);
-        this.node.instanceDict[instance.id] = instance;
-      }
-
-      conceptFactsMultiword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-      conceptFactsSingleword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
-      valueFacts = t.match(/(?:\bthat\b|\band\b) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-      relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-      relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
-      synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) { // Editing an existing instance
-      let conceptName;
-      let instanceName;
-      if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)){
-        const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-        if (names) {
-          conceptName = names[1];
-          instanceName = names[2].replace(/\\/g, '');
-          instance = this.node.getInstanceByName(instanceName);
-          concept = this.node.getConceptByName(conceptName);
-        }
-      } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)){
-        const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
-        const nameTokens = names[1].split(' ');
-        for (let i = 0; i < this.node.concepts.length; i += 1) {
-          if (names[1].toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) === 0) {
-            conceptName = this.node.concepts[i].name;
-            concept = this.node.concepts[i];
-            instanceName = nameTokens[concept.name.split(' ').length];
-            instance = this.node.getInstanceByName(instanceName);
-            break;
-          }
-        }
-      }
-
-      if (!concept || !instance) {
-        return [false, `Unknown concept/instance combination: ${conceptName}/${instanceName}`];
-      }
-
-      // Writepoint
-      if (!dryRun) {
-        instance.sentences.push(t);
-      }
-
-      conceptFactsMultiword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-      conceptFactsSingleword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
-      valueFacts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-      relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-      relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
-      synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+    let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+    if (!names) {
+      names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
+      if (!names) { return [false, 'Unable to determine name of instance.']; }
     }
+    const conceptName = names[1];
+    const instanceName = names[2].replace(/\\/g, '');
+    concept = this.node.getConceptByName(conceptName);
+    const currentInstance = this.node.getInstanceByName(instanceName);
+    if (!concept) {
+      return [false, `Instance type unknown: ${conceptName}`];
+    }
+    if (currentInstance && currentInstance.type.id === concept.id) {
+      return [true, 'There is already an instance of this type with this name.', currentInstance];
+    }
+
+    instance = new CEInstance(this.node, concept, instanceName, source);
+    instance.sentences.push(t);
+
+    // Writepoint
+    if (!dryRun) {
+      this.node.instances.push(instance);
+      this.node.instanceDict[instance.id] = instance;
+    }
+
+    const conceptFactsMultiword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+    const conceptFactsSingleword = t.match(/(?:\bthat\b|\band\b) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
+    const valueFacts = t.match(/(?:\bthat\b|\band\b) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+    const relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+    const relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
+    const synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+
+    let conceptFacts = [];
+  if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
+  let relationshipFacts = [];
+  if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
+
+  this.parseInstanceFacts(instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+  return [true, t, instance];
+  }
+  
+  modifyInstance(t, dryRun, source) {
+    let concept;
+    let instance;
+    if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)){
+      const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+      if (names) {
+        concept = this.node.getConceptByName(names[1]);
+        instance = this.node.getInstanceByName(names[2].replace(/\\/g, ''));
+      }
+    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)){
+      const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
+      const nameTokens = names[1].split(' ');
+      for (let i = 0; i < this.node.concepts.length; i += 1) {
+        if (names[1].toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) === 0) {
+          concept = this.node.concepts[i];
+          instance = this.node.getInstanceByName(nameTokens[concept.name.split(' ').length]);
+          break;
+        }
+      }
+    }
+
+    if (!concept || !instance) {
+      return [false, `Unknown concept/instance combination in: ${t}`];
+    }
+
+    // Writepoint
+    if (!dryRun) {
+      instance.sentences.push(t);
+    }
+
+    const conceptFactsMultiword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+    const conceptFactsSingleword = t.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
+    const valueFacts = t.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
+    const relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+    const relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
+    const synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
 
     let conceptFacts = [];
     if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
     let relationshipFacts = [];
     if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
+    this.parseInstanceFacts(instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+    return [true, t, instance];
+  }
+
+  parseInstanceFacts (instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source) {
     if (conceptFacts) {
       for (let i = 0; i < conceptFacts.length; i += 1) {
         if (conceptFacts[i]) {
@@ -353,7 +358,6 @@ class CEParser {
         }
       }
     }
-    return [true, t, instance];
   }
 
   constructor(node) {
