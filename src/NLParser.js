@@ -1,6 +1,16 @@
 class NLParser {
 
-  parse(t) {
+  /*
+   * Submit natural language to be processed by node.
+   * This results in
+   *  - string representing what the node THINKS the input is trying to say.
+   *    (this could be returned as a confirm card
+   * This method does not update the conceptual model.
+   *
+   * Returns: str
+   */
+  parse(input) {
+    const t = input.replace(/'/g, '').replace(/\./g, '');
     const tokens = t.split(' ');
     const andFacts = t.split(/\band\b/);
 

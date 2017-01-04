@@ -1,5 +1,31 @@
 class QuestionParser {
 
+  /*
+   * Submit a who/what/where question to be processed by node.
+   * This may result in
+   *  - a response to the question returned
+   *  - error returned (i.e. invalid question)
+   * This method does not update the conceptual model.
+   *
+   * Returns: [bool, str] (bool = success, str = error or response)
+   */
+  parse(t) {
+    if (t.match(/^where (is|are)/i)) {
+      return this.whereIs(t);
+    } else if (t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)) {
+      return this.whatIsIn(t);
+    } else if (t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)) {
+      return this.whatIs(t);
+    } else if (t.match(/^(\bwho\b|\bwhat\b) does/i)) {
+      return this.whatDoes(t);
+    } else if (t.match(/^(\bwho\b|\bwhat\b)/i)) {
+      return this.whatRelationship(t);
+    } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
+      return this.listInstances(t);
+    }
+    return [false, null];
+  }
+
   whereIs(t) {
     const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');// .replace(/(\bthe\b|\ba\b)/g, '').trim();
     const instance = this.node.getInstanceByName(thing);

@@ -2,6 +2,33 @@ const CEConcept = require('./CEConcept.js');
 const CEInstance = require('./CEInstance.js');
 
 class CEParser {
+
+  /*
+   * Submit CE to be processed by node.
+   * This may result in
+   *  - new concepts or instances being created
+   *  - modifications to existing concepts or instances
+   *  - no action (i.e. invalid or dryRun true)
+   *
+   *  The dryRun argument is optional. If set to 'true', the method will behave
+   *  as normal, but will not actually modify the node's model.
+   *
+   *  Source is an optional identifier to tag stored information with an input source.
+   *
+   * Returns: [bool, str] (bool = success, str = error or parsed string)
+   */
+  parse(input, dryRun, source){
+    const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
+    if (t.match(/^conceptualise an?/i)) {
+      return this.newConcept(t, dryRun, source);
+    } else if (t.match(/^conceptualise the/i)) {
+      return this.modifyConcept(t, dryRun, source);
+    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+      return this.newInstance(t, dryRun, source);
+    }
+    return [false, null];
+  }
+
   newConcept(t, dryRun, source) {
     const conceptName = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/i)[1];
     const storedConcept = this.node.getConceptByName(conceptName);
@@ -164,18 +191,19 @@ class CEParser {
       relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
       relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
       synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) { // Editing an existing instance
       let conceptName;
       let instanceName;
-      let names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (names) {
-        conceptName = names[1];
-        instanceName = names[2].replace(/\\/g, '');
-        instance = this.node.getInstanceByName(instanceName);
-        concept = this.node.getConceptByName(conceptName);
-      }
-      if (!names || !concept || !instance) {
-        names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
+      if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)){
+        const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+        if (names) {
+          conceptName = names[1];
+          instanceName = names[2].replace(/\\/g, '');
+          instance = this.node.getInstanceByName(instanceName);
+          concept = this.node.getConceptByName(conceptName);
+        }
+      } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)){
+        const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
         const nameTokens = names[1].split(' ');
         for (let i = 0; i < this.node.concepts.length; i += 1) {
           if (names[1].toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) === 0) {
@@ -203,10 +231,6 @@ class CEParser {
       relationshipFactsMultiword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
       relationshipFactsSingleword = t.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
       synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    }
-
-    if (!concept || !instance) {
-      return [false, 'Unable to find instance type or name'];
     }
 
     let conceptFacts = [];

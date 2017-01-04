@@ -76,70 +76,8 @@ class CENode {
     }
     return null;
   }
-
-  /*
-   * Submit CE to be processed by node.
-   * This may result in
-   *  - new concepts or instances being created
-   *  - modifications to existing concepts or instances
-   *  - no action (i.e. invalid or duplicate CE)
-   *
-   *  The dryRun argument is optional. If set to 'true', the method will behave
-   *  as normal, but will not actually modify the node's model.
-   *
-   * Returns: [bool, str] (bool = success, str = error or parsed string)
-   */
-  parseCE(input, dryRun, source) {
-    const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
-    if (t.match(/^conceptualise an?/i)) {
-      return this.ceParser.newConcept(t, dryRun, source);
-    } else if (t.match(/^conceptualise the/i)) {
-      return this.ceParser.modifyConcept(t, dryRun, source);
-    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i) || t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
-      return this.ceParser.newInstance(t, dryRun, source);
-    }
-    return [false, null];
-  }
-
-  /*
-   * Submit a who/what/where question to be processed by node.
-   * This may result in
-   *  - a response to the question returned
-   *  - error returned (i.e. invalid question)
-   * This method does not update the conceptual model.
-   *
-   * Returns: [bool, str] (bool = success, str = error or response)
-   */
-  parseQuestion(t) {
-    if (t.match(/^where (is|are)/i)) {
-      return this.questionParser.whereIs(t);
-    } else if (t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)) {
-      return this.questionParser.whatIsIn(t);
-    } else if (t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)) {
-      return this.questionParser.whatIs(t);
-    } else if (t.match(/^(\bwho\b|\bwhat\b) does/i)) {
-      return this.questionParser.whatDoes(t);
-    } else if (t.match(/^(\bwho\b|\bwhat\b)/i)) {
-      return this.questionParser.whatRelationship(t);
-    } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
-      return this.questionParser.listInstances(t);
-    }
-    return [false, null];
-  }
-
-  /*
-   * Submit natural language to be processed by node.
-   * This results in
-   *  - string representing what the node THINKS the input is trying to say.
-   *    (this could be returned as a confirm card
-   * This method does not update the conceptual model.
-   *
-   * Returns: str
-   */
-  parseNL(input) {
-    return this.nlParser.parse(input.replace(/'/g, '').replace(/\./g, ''));
-  }
-
+  
+    
   /*
    * Get the current set of instances maintained by the node.
    *
@@ -227,7 +165,7 @@ class CENode {
    * Returns: {success: bool, type: str, data: str}
    */
   addCE(sentence, dryRun, source) {
-    const success = this.parseCE(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), dryRun, source);
+    const success = this.ceParser.parse(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), dryRun, source);
     return {
       success: success[0],
       type: 'gist',
@@ -243,7 +181,7 @@ class CENode {
    * Returns: {success: bool, type: str, data: str}
    */
   askQuestion(sentence) {
-    const success = this.parseQuestion(sentence);
+    const success = this.questionParser.parse(sentence);
     return {
       success: success[0],
       type: success[0] ? 'gist' : undefined,
@@ -258,7 +196,7 @@ class CENode {
    * Returns: {type: str, data: str}
    */
   addNL(sentence) {
-    const success = this.parseNL(sentence);
+    const success = this.nlParser.parse(sentence);
     return {
       type: success[0] ? 'confirm' : 'gist',
       data: success[1],
