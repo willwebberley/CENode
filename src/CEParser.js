@@ -17,13 +17,13 @@ class CEParser {
    *
    * Returns: [bool, str] (bool = success, str = error or parsed string)
    */
-  parse(input, dryRun, source){
+  parse(input, dryRun, source) {
     const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
     if (t.match(/^conceptualise an?/i)) {
       return this.newConcept(t, dryRun, source);
     } else if (t.match(/^conceptualise the/i)) {
       return this.modifyConcept(t, dryRun, source);
-    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)){
+    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
       return this.newInstance(t, dryRun, source);
     } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
       return this.modifyInstance(t, dryRun, source);
@@ -153,8 +153,6 @@ class CEParser {
   }
 
   newInstance(t, dryRun, source) {
-    let instance;
-    let concept;
     let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
     if (!names) {
       names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
@@ -162,8 +160,9 @@ class CEParser {
     }
     const conceptName = names[1];
     const instanceName = names[2].replace(/\\/g, '');
-    concept = this.node.getConceptByName(conceptName);
+    const concept = this.node.getConceptByName(conceptName);
     const currentInstance = this.node.getInstanceByName(instanceName);
+    const instance = new CEInstance(this.node, concept, instanceName, source);
     if (!concept) {
       return [false, `Instance type unknown: ${conceptName}`];
     }
@@ -171,7 +170,6 @@ class CEParser {
       return [true, 'There is already an instance of this type with this name.', currentInstance];
     }
 
-    instance = new CEInstance(this.node, concept, instanceName, source);
     instance.sentences.push(t);
 
     // Writepoint
@@ -188,32 +186,32 @@ class CEParser {
     const synonymFacts = t.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
 
     let conceptFacts = [];
-  if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
-  let relationshipFacts = [];
-  if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
+    if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
+    let relationshipFacts = [];
+    if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
-  this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
-  return [true, t, instance];
+    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+    return [true, t, instance];
   }
-  
+
   modifyInstance(t, dryRun, source) {
     let concept;
     let instance;
-    if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)){
+    if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
       // the person 'fred' eats the fruit orange
       const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
       if (names) {
         concept = this.node.getConceptByName(names[1]);
         instance = this.node.getInstanceByName(names[2].replace(/\\/g, ''));
       }
-    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)){
+    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
       const nameTokens = names[1].split(' ');
       for (let i = 0; i < this.node.concepts.length; i += 1) {
         if (names[1].toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) === 0) {
           concept = this.node.concepts[i];
           const instanceName = nameTokens[concept.name.split(' ').length].toLowerCase();
-          instance = concept[instanceName]
+          instance = concept[instanceName];
           break;
         }
       }
@@ -248,7 +246,7 @@ class CEParser {
     return [true, t, instance];
   }
 
-  parseInstanceFacts (t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source) {
+  parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source) {
     if (conceptFacts) {
       for (let i = 0; i < conceptFacts.length; i += 1) {
         if (conceptFacts[i]) {
@@ -330,23 +328,22 @@ class CEParser {
           if (relationshipLabel !== '' && relationshipTypeName !== '' && relationshipInstanceName !== '') {
             const relationshipType = this.node.getConceptByName(relationshipTypeName);
             let relationshipInstance = this.node.getInstanceByName(relationshipInstanceName);
-            if (!relationshipType) {
-              return [false, `Unknown relationship type: ${relationshipTypeName}`];
-            }
-            if (!relationshipInstance) {
-              relationshipInstance = new CEInstance(this.node, this.node.getConceptByName(relationshipTypeName), relationshipInstanceName, source);
+            if (relationshipType) {
+              if (!relationshipInstance) {
+                relationshipInstance = new CEInstance(this.node, this.node.getConceptByName(relationshipTypeName), relationshipInstanceName, source);
 
-            // Writepoint
-              if (!dryRun) {
-                relationshipInstance.sentences.push(t);
-                this.node.instances.push(relationshipInstance);
-                this.node.instanceDict[relationshipInstance.id] = relationshipInstance;
+                // Writepoint
+                if (!dryRun) {
+                  relationshipInstance.sentences.push(t);
+                  this.node.instances.push(relationshipInstance);
+                  this.node.instanceDict[relationshipInstance.id] = relationshipInstance;
+                }
               }
-            }
 
-          // Writepoint
-            if (!dryRun) {
-              instance.addRelationship(relationshipLabel, relationshipInstance, true, source);
+              // Writepoint
+              if (!dryRun) {
+                instance.addRelationship(relationshipLabel, relationshipInstance, true, source);
+              }
             }
           }
         }

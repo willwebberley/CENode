@@ -76,8 +76,8 @@ class CENode {
     }
     return null;
   }
-  
-    
+
+
   /*
    * Get the current set of instances maintained by the node.
    *
