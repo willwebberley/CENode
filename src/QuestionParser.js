@@ -174,8 +174,40 @@ class QuestionParser {
         }
         if (possibilities.length > 0) {
           return [true, `'${name}' ${possibilities.join(' and ')}.`];
-        }
-        return [true, "I don't know who or what that is."];
+        } else { // If nothing found, do fuzzy search
+					const searchReturn = this.fuzzySearch(t);
+					let fuzzyGist = 'I know about ';
+				  let fuzzyFound = false;	
+					for(const key in searchReturn) {
+						if (searchReturn[key].length > 1){
+							for (i = 0;i < searchReturn[key].length; i += 1){
+								if(i === 0){
+									if (!fuzzyFound) {
+										fuzzyGist += 'the ' + key + 's \'' + searchReturn[key][i] + '\'';
+									} else {
+										fuzzyGist += 'The ' + key + 's \'' + searchReturn[key][i] + '\'';
+									}
+								} else {
+									fuzzyGist += ', \'' + searchReturn[key][i] + '\'';
+								}
+								if(i === searchReturn[key].length - 1){
+									fuzzyGist += '. ';
+								}
+							}  
+						} else {
+							if (!fuzzyFound) {
+								fuzzyGist += 'the ' + key + ' \'' + searchReturn[key][0] + '\'. ';
+							} else {
+								fuzzyGist += 'The ' + key + ' \'' + searchReturn[key][0] + '\'. ';
+							}
+						}
+            fuzzyFound = true;
+					}
+					if (fuzzyFound){
+						return [true, fuzzyGist];
+					}
+				}
+        return [true, 'I don\'t know who or what that is.'];
       }
       return [true, concept.gist];
     }
@@ -216,7 +248,7 @@ class QuestionParser {
         return [true, `Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`];
       }
     } catch (err) {
-      return [false, "Sorry - I can't work out what you're asking."];
+      return [false, 'Sorry - I can\'t work out what you\'re asking.'];
     }
     return null;
   }
@@ -266,7 +298,7 @@ class QuestionParser {
         return [true, `Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`];
       }
     } catch (err) {
-      return [false, "Sorry - I can't work out what you're asking."];
+      return [false, 'Sorry - I can\'t work out what you\'re asking.'];
     }
     return null;
   }
@@ -294,6 +326,52 @@ class QuestionParser {
       names.push(ins[i].name);
     }
     return [true, `${s} ${names.join(', ')}`];
+  }
+
+  /*
+   *
+   * Search the knowledge base for an instance name similar to the one asked about.
+   */
+	fuzzySearch(sentence) {
+    const searchFor = sentence.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9_ ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
+    const instances = node.get_instances();
+    let searchResultString = '';
+	  let multipleSearch;	
+
+    if(searchFor.indexOf(' ')) {
+      // if theres spaces then split
+      multipleSearch = searchFor.split(' ');
+    }
+
+    if(multipleSearch){
+      // loop through to create return string
+      const instancesFiltered = []
+      for(x = 0;x < multipleSearch.length; x += 1){
+        const instancesFilteredTemp = instances.filter(input => {
+          if(input.name.toUpperCase().includes(multipleSearch[x].toUpperCase())) {
+            return input
+          }
+        });
+        instancesFiltered = instancesFiltered.concat(instancesFilteredTemp);
+      }
+    } else {
+      //single search term
+      const instancesFiltered = instances.filter(input => {
+        if(input.name.toUpperCase().includes(searchFor.toUpperCase())) {
+          return input
+        }
+      });
+    }
+
+    const instancesSummary = instancesFiltered.reduce((prev,current) => {
+        if(!prev[current.type.name]) { 
+          prev[current.type.name] = []
+        }
+        prev[current.type.name].push(current.name);
+        return prev;
+    }, {});
+
+    return instancesSummary
   }
 
   constructor(node) {

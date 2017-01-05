@@ -113,7 +113,7 @@ class CEConcept {
     for (let i = 0; i < this.valueIds.length; i += 1) {
       const value = {};
       value.label = this.valueIds[i].label;
-      if (this.valueIds[i].typeId === 0) {
+      if (this.valueIds[i].conceptId === 0) {
         value.concept = this.valueIds[i].typeName;
       } else {
         value.concept = this.node.getConceptById(this.valueIds[i].type);

@@ -1,12 +1,13 @@
 class CEInstance {
 
   constructor(node, type, name, source) {
+    this.node = node;
     this.name = name;
     this.source = source;
     this.id = node.newInstanceId();
     this.concept = type;
-    this.node = node;
-    this.typeId = type.id;
+    this.conceptId = type.id;
+    this.subConcepts = [];
     this.sentences = [];
     this.valueIds = [];
     this.relationshipIds = [];
@@ -56,10 +57,10 @@ class CEInstance {
       const value = {};
       value.label = this.valueIds[i].label;
       value.source = this.valueIds[i].source;
-      if (this.valueIds[i].typeId === 0) {
+      if (this.valueIds[i].conceptId === 0) {
         value.instance = this.valueIds[i].typeName;
       } else {
-        value.instance = this.node.getInstanceById(this.valueIds[i].typeId);
+        value.instance = this.node.getInstanceById(this.valueIds[i].conceptId);
       }
       vals.push(value);
     }
@@ -90,7 +91,7 @@ class CEInstance {
       const value = {};
       value.source = source;
       value.label = label;
-      value.typeId = typeof valueInstance === 'object' ? valueInstance.id : 0;
+      value.conceptId = typeof valueInstance === 'object' ? valueInstance.id : 0;
       value.typeName = typeof valueInstance === 'object' ? valueInstance.name : valueInstance;
       this.valueIds.push(value);
       const valueNameField = label.toLowerCase().replace(/ /g, '_');
@@ -98,7 +99,7 @@ class CEInstance {
       if (this.reservedFields.indexOf(valueNameField) === -1) {
         Object.defineProperty(this, valueNameField, {
           get() {
-            return value.typeId === 0 ? value.typeName : this.node.getInstanceById(value.typeId);
+            return value.conceptId === 0 ? value.typeName : this.node.getInstanceById(value.conceptId);
           },
           configurable: true,
         });
@@ -109,7 +110,7 @@ class CEInstance {
               const instances = [];
               for (let i = 0; i < this.valueIds.length; i += 1) {
                 if (this.valueIds[i].label.toLowerCase().replace(/ /g, '_') === valueNameField) {
-                  instances.push(this.valueIds[i].typeId === 0 ? this.valueIds[i].typeName : this.node.getInstanceById(this.valueIds[i].typeId));
+                  instances.push(this.valueIds[i].conceptId === 0 ? this.valueIds[i].typeName : this.node.getInstanceById(this.valueIds[i].conceptId));
                 }
               }
               return instances;
@@ -207,10 +208,10 @@ class CEInstance {
     const facts = [];
     for (let i = 0; i < this.valueIds.length; i += 1) {
       const value = this.valueIds[i];
-      if (value.typeId === 0) {
+      if (value.conceptId === 0) {
         facts.push(`has '${value.typeName.replace(/'/g, "\\'")}' as ${value.label}`);
       } else {
-        const valueInstance = this.node.getInstanceById(value.typeId);
+        const valueInstance = this.node.getInstanceById(value.conceptId);
         const valueConcept = valueInstance.type;
         facts.push(`has the ${valueConcept.name} '${valueInstance.name}' as ${value.label}`);
       }
@@ -237,10 +238,10 @@ class CEInstance {
       factFound = true;
       const value = this.valueIds[i];
       let fact = '';
-      if (value.typeId === 0) {
+      if (value.conceptId === 0) {
         fact = `has '${value.typeName.replace(/'/g, "\\'")}' as ${value.label}`;
       } else {
-        const valueInstance = this.node.getInstanceById(value.typeId);
+        const valueInstance = this.node.getInstanceById(value.conceptId);
         const valueConcept = valueInstance.type;
         fact = `has the ${valueConcept.name} '${valueInstance.name}' as ${value.label}`;
       }

@@ -192,7 +192,7 @@ class CEParser {
   let relationshipFacts = [];
   if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
-  this.parseInstanceFacts(instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+  this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
   return [true, t, instance];
   }
   
@@ -236,17 +236,19 @@ class CEParser {
     const relationshipFactsMultiword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
     const relationshipFactsSingleword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
     const synonymFacts = test.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
+    const subConceptFacts = test.match(/is a ([a-zA-Z0-9 ]*) (?!\band\b|)/g);
+    console.log(subConceptFacts);
 
     let conceptFacts = [];
     if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
     let relationshipFacts = [];
     if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
-    this.parseInstanceFacts(instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
     return [true, t, instance];
   }
 
-  parseInstanceFacts (instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source) {
+  parseInstanceFacts (t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source) {
     if (conceptFacts) {
       for (let i = 0; i < conceptFacts.length; i += 1) {
         if (conceptFacts[i]) {
