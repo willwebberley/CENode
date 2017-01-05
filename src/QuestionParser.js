@@ -333,7 +333,7 @@ class QuestionParser {
    */
   fuzzySearch(sentence) {
     const searchFor = sentence.match(/^(?:\bwho\b|\bwhat\b) (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9_ ]*)/i)[1].replace(/\?/g, '').replace(/'/g, '');
-    const instances = this.node.get_instances();
+    const instances = this.node.getInstances();
     let multipleSearch;
     let instancesFiltered = [];
 
