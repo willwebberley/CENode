@@ -217,11 +217,9 @@ class CEParser {
         }
       }
     }
-
     if (!concept || !instance) {
       return [false, `Unknown concept/instance combination in: ${t}`];
     }
-
     // Writepoint
     if (!dryRun) {
       instance.sentences.push(t);
@@ -229,26 +227,31 @@ class CEParser {
 
     const test = t.replace(`'${instance.name}'`,instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
     const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
-    console.log(facts)
     for (const fact of facts) {
+      console.log(fact);
       this.processFact(instance, fact); 
     } 
 
-    const conceptFactsMultiword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-    const conceptFactsSingleword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
-    const valueFacts = test.match(/(?:\bthat\b|\band\b|) has '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
-    const relationshipFactsMultiword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    const relationshipFactsSingleword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
-    const synonymFacts = test.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    const subConceptFacts = test.match(/(?:\bthat\b|\band\b|is) an? ((.(?!\band\b))*)/g);
-
-    let conceptFacts = [];
-    if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
-    let relationshipFacts = [];
-    if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
-
-    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, subConceptFacts, dryRun, source);
     return [true, t, instance];
+  }
+
+  processFact(instance, fact) {
+    const input = fact.trim().replace(/\+/g, 'and');
+    if (input.match(/([^has])([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g)) {
+      console.log('REL');
+    }
+    if (input.match(/has ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g)){
+      console.log('RAW VAL');
+    }
+    if (input.match(/has the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g)){
+      console.log('CONCEPT VAL');
+    }
+    if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)){
+      console.log('SUBCONCEPT');
+    }
+    if (input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/)){
+      console.log('SYN');
+    }
   }
 
   parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, subConceptFacts, dryRun, source) {
