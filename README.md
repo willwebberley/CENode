@@ -64,7 +64,7 @@ const node = new CENode();
 Alternatively, if you want to take advantage of the CE core model, then this can also be imported and included along with any of your own models you may have.
 ```javascript
 const CENode = require('./path/to/CENode/src/CENode.js');
-const CEModels = require('./path/to/CENode/models/index.js');
+const CEModels = require('./path/to/CENode/models');
 
 const node = new CENode(CEModels.core, myCustomModel, ...);
 ```
@@ -95,6 +95,6 @@ Please see the file `docs/API.md` for more information.
 
 Please see the file `docs/documentation.pdf` for an overview of the CE language, CECard protocol, and CENode motivation and behaviour.
 
-## License
+## Licence
 
-CENode is released under the Apache License v2. See `LICENSE` for further information.
+CENode is released under the Apache Licence v2. See `LICENCE` for further information.
