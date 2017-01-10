@@ -79,6 +79,14 @@ $ node /path/to/CENode/src/CEServer.js
 
 Please see the documentation for information on how to configure and use the server.
 
+## Testing
+
+To run the tests:
+
+```bash
+$ npm test
+```
+
 ## API reference
 
 Please see the file `docs/API.md` for more information.
