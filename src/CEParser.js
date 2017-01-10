@@ -190,7 +190,7 @@ class CEParser {
     let relationshipFacts = [];
     if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
-    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, null, dryRun, source);
     return [true, t, instance];
   }
 
@@ -226,7 +226,7 @@ class CEParser {
       instance.sentences.push(t);
     }
 
-    const test = t.toLowerCase().replace(`the ${concept.name.toLowerCase()} ${instance.name.toLowerCase()}`, '');
+    const test = t.replace(`the ${concept.name} ${instance.name}`.trim(), '');
 
     const conceptFactsMultiword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
     const conceptFactsSingleword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
@@ -234,19 +234,18 @@ class CEParser {
     const relationshipFactsMultiword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/g);
     const relationshipFactsSingleword = test.match(/(?:\bthat\b|\band\b|) (?!\bhas\b)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*)/g);
     const synonymFacts = test.match(/is expressed by '([^'\\]*(?:\\.[^'\\]*)*)'/g);
-    const subConceptFacts = test.match(/is a ([a-zA-Z0-9 ]*) (?!\band\b|)/g);
-    console.log(subConceptFacts);
+    const subConceptFacts = test.match(/(?:\bthat\b|\band\b|is) an? ((.(?!\band\b))*)/g);
 
     let conceptFacts = [];
     if (!conceptFactsMultiword) { conceptFacts = conceptFactsSingleword; } else { conceptFacts = conceptFactsMultiword.concat(conceptFactsSingleword); }
     let relationshipFacts = [];
     if (!relationshipFactsMultiword) { relationshipFacts = relationshipFactsSingleword; } else { relationshipFacts = relationshipFactsMultiword.concat(relationshipFactsSingleword); }
 
-    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source);
+    this.parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, subConceptFacts, dryRun, source);
     return [true, t, instance];
   }
 
-  parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, dryRun, source) {
+  parseInstanceFacts(t, instance, conceptFacts, valueFacts, relationshipFacts, synonymFacts, subConceptFacts, dryRun, source) {
     if (conceptFacts) {
       for (let i = 0; i < conceptFacts.length; i += 1) {
         if (conceptFacts[i]) {
@@ -358,6 +357,16 @@ class CEParser {
           if (!dryRun) {
             instance.addSynonym(factsInfo[2]);
           }
+        }
+      }
+    }
+
+    if (subConceptFacts) {
+      for (let fact of subConceptFacts) {
+        fact = fact.replace(/\band\b/g, '').replace(/is an?/g, '').replace(/\ba\b/g, '').trim();
+        const concept = this.node.getConceptByName(fact);
+        if (concept && !dryRun) {
+          instance.addSubConcept(concept);
         }
       }
     }

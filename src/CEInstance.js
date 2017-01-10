@@ -179,6 +179,19 @@ class CEInstance {
     });
   }
 
+  addSubConcept(concept) {
+    let add = true;
+    for (const existingConcept of this.subConcepts){
+      if (existingConcept.id === concept.id || concept.id === this.concept.id){
+        add = false;
+        break;
+      }
+    }
+    if (add) {
+      this.subConcepts.push(concept);
+    }
+  }
+
   property(propertyName, source) {
     return this.properties(propertyName, source, true);
   }
