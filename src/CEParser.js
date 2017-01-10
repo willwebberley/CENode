@@ -204,7 +204,8 @@ class CEParser {
         concept = this.node.getConceptByName(names[1]);
         instance = this.node.getInstanceByName(names[2].replace(/\\/g, ''));
       }
-    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+    } 
+    if (!instance && t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
       const nameTokens = names[1].split(' ');
       for (let i = 0; i < this.node.concepts.length; i += 1) {
@@ -226,7 +227,12 @@ class CEParser {
       instance.sentences.push(t);
     }
 
-    const test = t.replace(`the ${concept.name} ${instance.name}`.trim(), '');
+    const test = t.replace(`'${instance.name}'`,instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
+    const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    console.log(facts)
+    for (const fact of facts) {
+      this.processFact(instance, fact); 
+    } 
 
     const conceptFactsMultiword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)' as ((.(?!\band\b))*)/g);
     const conceptFactsSingleword = test.match(/(?:\bthat\b|\band\b|) has the ([a-zA-Z0-9 ]*) as ((.(?!\band\b))*)/g);
