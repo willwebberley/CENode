@@ -1,6 +1,9 @@
 class CEInstance {
 
   constructor(node, type, name, source) {
+    if (!type) {
+      return;
+    }
     this.node = node;
     this.name = name;
     this.source = source;
