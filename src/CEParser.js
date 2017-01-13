@@ -247,7 +247,9 @@ class CEParser {
       console.log('CONCEPT VAL');
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)){
-      console.log('SUBCONCEPT');
+      const re = /(?:is| )?an? ([a-zA-Z0-9 ]*)/g;
+      const match = re.exec(input);
+      const subconcept = match && match[1] && match[1].trim();
     }
     if (input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/)){
       const match = input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/);
