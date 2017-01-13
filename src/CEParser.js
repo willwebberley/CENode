@@ -243,8 +243,12 @@ class CEParser {
     if (input.match(/has ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g)){
       console.log('RAW VAL');
     }
-    if (input.match(/has the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g)){
-      console.log('CONCEPT VAL');
+    if (input.match(/has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g)){
+      const re = /has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g;
+      const match = re.exec(input);
+      const type = match[1];
+      const value = match[2];
+      const label = match[3];
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)){
       const re = /(?:is| )?an? ([a-zA-Z0-9 ]*)/g;
