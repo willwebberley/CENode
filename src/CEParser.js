@@ -250,7 +250,8 @@ class CEParser {
       console.log('SUBCONCEPT');
     }
     if (input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/)){
-      console.log('SYN');
+      const match = input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/);
+      const synonym = match && match[1] && match[1].replace(/'/g, '').trim();
     }
   }
 
