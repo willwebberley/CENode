@@ -166,6 +166,9 @@ class CEInstance {
   }
 
   addSynonym(synonym) {
+    if (!synonym || !synonym.length){
+      return null;
+    }
     for (let i = 0; i < this.synonyms.length; i += 1) {
       if (this.synonyms[i].toLowerCase() === synonym.toLowerCase()) {
         return;
@@ -180,6 +183,9 @@ class CEInstance {
   }
 
   addSubConcept(concept) {
+    if (!concept){
+      return;
+    }
     let add = true;
     for (const existingConcept of this.subConcepts){
       if (existingConcept.id === concept.id || concept.id === this.concept.id){

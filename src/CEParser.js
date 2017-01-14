@@ -237,11 +237,14 @@ class CEParser {
 
   processFact(instance, fact) {
     const input = fact.trim().replace(/\+/g, 'and');
-    if (input.match(/([^has])([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g)) {
-      console.log('REL');
+    if (input.match(/(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g)) {
+      const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g;
+      const match = re.exec(input);
+      const label = match[1];
+      const relConcept = match[2];
+      const relInstance = match[3].replace(/'/g, '');
     }
     if (input.match(/has ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g)){
-      console.log('RAW VAL');
       const re = /has ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g;
       const match = re.exec(input);
       const value = match[1];
@@ -250,18 +253,19 @@ class CEParser {
     if (input.match(/has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g)){
       const re = /has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g;
       const match = re.exec(input);
-      const type = match[1];
-      const value = match[2];
+      const valConcept = match[1];
+      const valInstance = match[2].replace(/'/g, '');
       const label = match[3];
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)){
       const re = /(?:is| )?an? ([a-zA-Z0-9 ]*)/g;
       const match = re.exec(input);
-      const subconcept = match && match[1] && match[1].trim();
+      instance.addSubConcept(this.node.getConceptByName(match && match[1] && match[1].trim()));
     }
     if (input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/)){
       const match = input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/);
       const synonym = match && match[1] && match[1].replace(/'/g, '').trim();
+      instance.addSynonym(synonym);
     }
   }
 
