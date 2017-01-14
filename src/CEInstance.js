@@ -90,6 +90,9 @@ class CEInstance {
   }
 
   addValue(label, valueInstance, propagate, source) {
+    if (!(label && label.length && valueInstance)){
+      return null;
+    }
     if (this.getPossibleProperties().values.indexOf(label.toLowerCase()) > -1) {
       const value = {};
       value.source = source;

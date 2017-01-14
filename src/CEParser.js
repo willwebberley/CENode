@@ -228,14 +228,13 @@ class CEParser {
     const test = t.replace(`'${instance.name}'`,instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
     const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     for (const fact of facts) {
-      console.log(fact);
-      this.processFact(instance, fact); 
+      this.processFact(instance, fact, source); 
     } 
 
     return [true, t, instance];
   }
 
-  processFact(instance, fact) {
+  processFact(instance, fact, source) {
     const input = fact.trim().replace(/\+/g, 'and');
     if (input.match(/(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g)) {
       const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g;
@@ -249,13 +248,22 @@ class CEParser {
       const match = re.exec(input);
       const value = match[1];
       const label = match[2];
+      instance.addValue(label, value, true, source);
     }
     if (input.match(/has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g)){
       const re = /has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g;
       const match = re.exec(input);
-      const valConcept = match[1];
-      const valInstance = match[2].replace(/'/g, '');
+      const valConceptName = match[1];
+      const valInstanceName = match[2].replace(/'/g, '');
       const label = match[3];
+      const valConcept = this.node.getConceptByName(valConceptName);
+      let valInstance = this.node.getInstanceByName(valInstanceName);
+      if (!valInstance) {
+        valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
+        this.node.instances.push(valInstance);
+        this.node.instanceDict[valInstance.id] = valInstance;
+      }
+      instance.addValue(label, valInstance, true, source);
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)){
       const re = /(?:is| )?an? ([a-zA-Z0-9 ]*)/g;
