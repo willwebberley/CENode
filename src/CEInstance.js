@@ -256,7 +256,12 @@ class CEInstance {
     const concept = this.concept;
     if (!concept) { return ''; }
     let gist = `${this.name} is`;
-    if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}.`; }
+    if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}`; }
+    for (let i = 0; i < this.subConcepts.length; i += 1) {
+      gist += ` and a ${this.subConcepts[i].name}`; 
+    }
+    gist += '.';
+
     const facts = {};
     let factFound = false;
     for (let i = 0; i < this.valueIds.length; i += 1) {
@@ -288,7 +293,7 @@ class CEInstance {
     }
     if (factFound) {
       gist += ` ${this.name}`;
-      for (const fact of facts) {
+      for (const fact in facts) {
         gist += ` ${fact}`;
         if (facts[fact] > 1) {
           gist += ` (${facts[fact]} times)`;

@@ -227,6 +227,7 @@ class CEParser {
 
     const test = t.replace(`'${instance.name}'`,instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
     const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    console.log(facts)
     for (const fact of facts) {
       this.processFact(instance, fact, source); 
     } 
