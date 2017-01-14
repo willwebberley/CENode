@@ -240,8 +240,16 @@ class CEParser {
       const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g;
       const match = re.exec(input);
       const label = match[1];
-      const relConcept = match[2];
-      const relInstance = match[3].replace(/'/g, '');
+      const relConceptName = match[2];
+      const relInstanceName = match[3].replace(/'/g, '');
+      const relConcept = this.node.getConceptByName(relConceptName);
+      let relInstance = this.node.getInstanceByName(relInstanceName);
+      if (!relInstance) {
+        relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
+        this.node.instances.push(relInstance);
+        this.node.instanceDict[relInstance.id] = relInstance;
+      }
+      instance.addRelationship(label, relInstance, true, source);
     }
     if (input.match(/has ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g)){
       const re = /has ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/g;
