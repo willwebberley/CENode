@@ -1,13 +1,13 @@
 const CEConcept = require('./CEConcept.js');
 const CEInstance = require('./CEInstance.js');
 
-var quotes = {
-      escape: function(string) {
-                return string.replace(/'/g, "\\'");
-                    },
-          unescape: function(string) {
-            return string.replace(/\\'/g, "'").replace(/^'/, '').replace(/'$/,'');
-                        }
+const quotes = {
+  escape(string) {
+    return string.replace(/'/g, "\\'");
+  },
+  unescape(string) {
+    return string.replace(/\\'/g, "'").replace(/^'/, '').replace(/'$/,'');
+  }
 };
 
 class CEParser {
@@ -46,8 +46,6 @@ class CEParser {
     }
     // otherwise create a new one and add it to list
     concept = new CEConcept(this.node, conceptName, source);
-    this.node.concepts.push(concept);
-    this.node.conceptDict[concept.id] = concept;
 
     const facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b)/g);
     for (let i = 0; i < facts.length; i += 1) {
@@ -151,10 +149,7 @@ class CEParser {
     if (currentInstance && currentInstance.type.id === concept.id) {
       return [true, 'There is already an instance of this type with this name.', currentInstance];
     }
-
     instance.sentences.push(t);
-    this.node.instances.push(instance);
-    this.node.instanceDict[instance.id] = instance;
 
     const test = t.replace(`'${instance.name}'`, instance.name).replace(`there is a ${concept.name} named ${instance.name} that`.trim(), '');
     const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
@@ -214,8 +209,6 @@ class CEParser {
       let relInstance = this.node.getInstanceByName(relInstanceName);
       if (!relInstance) {
         relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
-        this.node.instances.push(relInstance);
-        this.node.instanceDict[relInstance.id] = relInstance;
       }
       instance.addRelationship(label, relInstance, true, source);
     }
@@ -236,8 +229,6 @@ class CEParser {
       let valInstance = this.node.getInstanceByName(valInstanceName);
       if (!valInstance) {
         valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
-        this.node.instances.push(valInstance);
-        this.node.instanceDict[valInstance.id] = valInstance;
       }
       instance.addValue(label, valInstance, true, source);
     }

@@ -9,6 +9,8 @@ class CEConcept {
     this.valueIds = [];
     this.relationshipIds = [];
     this.synonyms = [];
+    node.concepts.push(this);
+    node.conceptDict[this.id] = this;
 
     const concept = this;
     Object.defineProperty(node.concepts, name.toLowerCase().replace(/ /g, '_'), {

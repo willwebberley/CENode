@@ -4,6 +4,7 @@ class CEInstance {
     if (!type) {
       return;
     }
+    
     this.node = node;
     this.name = name;
     this.source = source;
@@ -16,6 +17,8 @@ class CEInstance {
     this.relationshipIds = [];
     this.synonyms = [];
     this.reservedFields = ['values', 'relationships', 'synonyms', 'addValue', 'addRelationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
+    node.instances.push(this);
+    node.instanceDict[this.id] = this;
 
     const instance = this;
     Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {
