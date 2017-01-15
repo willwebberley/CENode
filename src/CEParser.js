@@ -38,98 +38,75 @@ class CEParser {
   }
 
   newConcept(t, source) {
-    const conceptName = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~/i)[1];
+    const match = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~ ([A-Z0-9]+)/i);
+    const conceptName = match[1];
+    const conceptVariable = match[2];
     const storedConcept = this.node.getConceptByName(conceptName);
     let concept = null;
-    if (storedConcept) { // if exists, simply modify existing concept
+    if (storedConcept) { 
       return [false, 'This concept already exists.'];
     }
-    // otherwise create a new one and add it to list
     concept = new CEConcept(this.node, conceptName, source);
 
-    const facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b)/g);
-    for (let i = 0; i < facts.length; i += 1) {
-      const fact = facts[i].trim();
-
-      // "has the type X as ~ label ~"
-      if (fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
-        const factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
-        let valueType = this.node.getConceptByName(factsInfo[1]);
-
-        if (factsInfo[1] === 'value') { valueType = 0; } else if (!valueType) {
-          return [false, `A property type is unknown: ${factsInfo[1]}`];
-        }
-
-        concept.addValue(factsInfo[3], valueType, source);
-      }
-
-      // "is a parentConcept"
-      if (fact.match(/^an? ([a-zA-Z0-9 ]*)/)) {
-        const parentName = fact.match(/^an? ([a-zA-Z0-9 ]*)/)[1];
-        const parentConcept = this.node.getConceptByName(parentName);
-        if (!parentConcept) {
-          return [false, `Parent concept is unknown: ${parentName}`];
-        }
-        concept.addParent(parentConcept);
-      }
+    const remainder = t.replace(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~ ([A-Z0-9]+) that/, '');
+    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    for (const fact of facts) {
+      this.processConceptFact(concept, fact, source); 
     }
     return [true, t, concept];
   }
 
   modifyConcept(t, source) {
-    const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z])/i);
+    const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/i);
     const concept = this.node.getConceptByName(conceptInfo[1]);
     if (!concept) {
       return [false, `Concept ${conceptInfo[1]} not known.`];
     }
 
-    const facts = t.split(/(\bthat\b|\band\b) (\bhas\b|\bis\b|)/g);
-    for (let i = 0; i < facts.length; i += 1) {
-      const fact = facts[i].trim();
-
-      if (fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/)) {
-        const factsInfo = fact.match(/~ is expressed by ~ '([a-zA-Z0-9 ]*)'/);
-        concept.addSynonym(factsInfo[1]);
-      }
-
-      // "concept C ~ label ~ the target T"  (e.g. the teacher T ~ teaches ~ the student S)
-      if (fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)) {
-        const factsInfo = fact.match(/^([a-zA-Z0-9 ]*) ([A-Z]) ~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-        const target = this.node.getConceptByName(factsInfo[4]);
-        if (!target) {
-          return [false, `The target of one of your input relationships is of an unknown type: ${factsInfo[4]}`];
-        }
-
-        concept.addRelationship(factsInfo[3], target, source);
-      }
-
-      // "~ label ~ the target T" (e.g. and ~ loves ~ the person P)
-      if (fact.match(/^~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/)) {
-        const factsInfo = fact.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z])/);
-        const target = this.node.getConceptByName(factsInfo[2]);
-        if (!target) {
-          return [false, `The target of one of your input relationships is of an unknown type: ${factsInfo[2]}`];
-        }
-
-        concept.addRelationship(factsInfo[1], target, source);
-      }
-
-      // "has the type X as ~ label ~" (e.g. and has the room R as ~ location ~)
-      if (fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/)) {
-        const factsInfo = fact.match(/^the ([a-zA-Z0-9 ]*) ([A-Z]) as ~ ([a-zA-Z0-9 ]*) ~/);
-        let type = this.node.getConceptByName(factsInfo[1]);
-        if (factsInfo[1] === 'value') { type = 0; } else if (!type) {
-          return [false, `There is an invalid value in your sentence: ${factsInfo[1]}`];
-        }
-
-        concept.addValue(factsInfo[3], type, source);
-      } else if (fact.match(/^an? ([a-zA-Z0-9 ]*)/)) { // "is a parentConcept" (e.g. and is a entity)
-        const parentInfo = fact.match(/^an? ([a-zA-Z0-9 ]*)/);
-
-        concept.addParent(this.node.getConceptByName(parentInfo[1]));
-      }
+    const remainder = t.replace(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/i, '');
+    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    for (const fact of facts) {
+      this.processConceptFact(concept, fact, source); 
     }
     return [true, t, concept];
+  }
+
+  processConceptFact(concept, fact, source) {
+    const input = fact.trim().replace(/\+/g, 'and');
+    if (input.match(/has the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) as ~ ([a-zA-Z0-9 ]*) ~/g)) {
+      const re = /has the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) as ~ ([a-zA-Z0-9 ]*) ~/g;
+      const match = re.exec(input);
+      const valConceptName = match[1];
+      const valConceptVar = match[2];
+      const label = match[3];
+      const valConcept = valConceptName === 'value' ? 0 : this.node.getConceptByName(valConceptName);
+      concept.addValue(label, valConcept, source);
+    }
+    if (input.match(/^is an? ([a-zA-Z0-9 ]*)/)) {
+      const re = /^is an? ([a-zA-Z0-9 ]*)/;
+      const match = re.exec(input);
+      const parentConceptName = match[1];
+      const parentConcept = this.node.getConceptByName(parentConceptName);
+      if (parentConcept) {
+        concept.addParent(parentConcept);
+      }
+    }
+    if (input.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/)){
+      const re = /~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/;
+      const match = re.exec(input);
+      const label = match[1];
+      const relConceptName = match[2];
+      const relConcept = this.node.getConceptByName(relConceptName);
+      if (relConcept) {
+        concept.addRelationship(label, relConcept, source);
+      }
+    }
+    if (input.match(/~ is expressed by ~ ([a-zA-Z0-9 ]*)/)) {
+      const re = /~ is expressed by ~ ([a-zA-Z0-9 ]*)/;
+      const match = re.exec(input);
+      const synonym = match[1];
+      concept.addSynonym(synonym);
+    }
   }
 
   newInstance(t, source) {
@@ -151,12 +128,11 @@ class CEParser {
     }
     instance.sentences.push(t);
 
-    const test = t.replace(`'${instance.name}'`, instance.name).replace(`there is a ${concept.name} named ${instance.name} that`.trim(), '');
-    const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') that/, '');
+    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     for (const fact of facts) {
-      this.processFact(instance, fact, source); 
+      this.processInstanceFact(instance, fact, source); 
     }
-    
     return [true, t, instance];
   }
 
@@ -164,7 +140,6 @@ class CEParser {
     let concept;
     let instance;
     if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
-      // the person 'fred' eats the fruit orange
       const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
       if (names) {
         concept = this.node.getConceptByName(names[1]);
@@ -188,16 +163,15 @@ class CEParser {
     }
     instance.sentences.push(t);
 
-    const test = t.replace(`'${instance.name}'`,instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
-    const facts = test.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    const remainder = t.replace(`'${instance.name}'`,instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
+    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     for (const fact of facts) {
-      this.processFact(instance, fact, source); 
+      this.processInstanceFact(instance, fact, source); 
     } 
-
     return [true, t, instance];
   }
 
-  processFact(instance, fact, source) {
+  processInstanceFact(instance, fact, source) {
     const input = fact.trim().replace(/\+/g, 'and');
     if (input.match(/(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g)) {
       const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g;
