@@ -54,7 +54,7 @@ class CEConcept {
     const parents = [];
     const stack = [];
     for (let i = 0; i < this.parentIds.length; i += 1) {
-      stack.push(this.parentIds[i]);
+      stack.push(this.parents[i]);
     }
     while (stack.length > 0) {
       const current = stack.pop();

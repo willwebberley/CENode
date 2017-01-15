@@ -160,12 +160,11 @@ class CENode {
    * Attempt to parse CE and add data to the node.
    * Indicates whether CE was successfully parsed.
    *
-   * dryRun is an optional argument to perform a dry-run.
    *
    * Returns: {success: bool, type: str, data: str}
    */
-  addCE(sentence, dryRun, source) {
-    const success = this.ceParser.parse(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), dryRun, source);
+  addCE(sentence, source) {
+    const success = this.ceParser.parse(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), source);
     return {
       success: success[0],
       type: 'gist',
