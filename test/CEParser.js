@@ -92,6 +92,73 @@ describe('CEParser', function() {
     });
   });
 
-});
+  describe('Specific Examples', function() {
+    beforeEach(function() {
+      node = new CENode();
+    });
 
+    it('there is a person named Fred.', function() {
+      node.addCE('conceptualise a ~ person ~ P');
+      node.addCE('there is a person named Fred');
+      expect(node.instances.fred.name).to.be('Fred');
+    });
+
+    it('the person Fred is married to the person Jane.', function() {
+      node.addCE('conceptualise a ~ person ~ P that ~ is married to ~ the person Q');
+      node.addCE('there is a person named Fred');
+      node.addCE('the person Fred is married to the person Jane.');
+      expect(node.instances.fred.is_married_to.name).to.be('Jane');
+    });
+
+    it('the person Fred works for the company IBM.', function() {
+      node.addCE('conceptualise a ~ company ~ C');
+      node.addCE('conceptualise a ~ person ~ P that ~ works for ~ the company C');
+      node.addCE('there is a person named Fred');
+      node.addCE('the person Fred works for the company IBM.');
+      expect(node.instances.fred.works_for.name).to.be('IBM');
+    });
+
+    it('the person Fred works for the company IBM and is married to the person Jane and has 53 as age.', function() {
+      node.addCE('conceptualise a ~ company ~ C');
+      node.addCE('conceptualise a ~ person ~ P that ~ works for ~ the company C and ~ is married to ~ the person Q and has the value V as ~ age ~');
+      node.addCE('there is a person named Fred');
+      node.addCE('the person Fred works for the company IBM and is married to the person Jane and has 53 as age.');
+      expect(node.instances.fred.works_for.name).to.be('IBM');
+      expect(node.instances.fred.is_married_to.name).to.be('Jane');
+      expect(node.instances.fred.age).to.be('53');
+    });
+
+    it('the person Jane is a barrister and a londoner.', function() {
+      node.addCE('conceptualise a ~ barrister ~ B');
+      node.addCE('conceptualise a ~ londoner ~ L');
+      node.addCE('conceptualise a ~ person ~ P');
+      node.addCE('there is a person named Jane');
+      node.addCE('the person Jane is a barrister and a londoner.');
+      expect(node.instances.jane.subConcepts.length).to.be(2);
+      expect(node.instances.jane.subConcepts[0].name).to.be('barrister');
+      expect(node.instances.jane.subConcepts[1].name).to.be('londoner');
+    });
+
+    it('conceptualise a ~ person ~ P.', function() {
+      node.addCE('conceptualise a ~ person ~ P.');
+      expect(node.concepts.person.name).to.be('person');
+    });
+
+    it('conceptualise a ~ person ~ P1 that ~ is married to ~ the person P2.', function() {
+      node.addCE('conceptualise a ~ person ~ P1 that ~ is married to ~ the person P2.');
+      expect(node.concepts.person.is_married_to.name).to.be('person');
+    });
+
+    it('conceptualise a ~ farmer ~ F that is a person and is a land owner.', function() {
+      node.addCE('conceptualise a ~ person ~ p');
+      node.addCE('conceptualise a ~ land owner ~ L');
+      node.addCE('conceptualise a ~ farmer ~ F that is a person and is a land owner.');
+      expect(node.concepts.farmer.parents.length).to.be(2);
+      expect(node.concepts.farmer.parents[0].name).to.be('person');
+      expect(node.concepts.farmer.parents[1].name).to.be('land owner');
+    });
+  });
+
+
+});
 
