@@ -57,14 +57,21 @@ class CEParser {
   }
 
   modifyConcept(t, source) {
-    const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/i);
-    const concept = this.node.getConceptByName(conceptInfo[1]);
+    const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/);
+    console.log(conceptInfo);
+    const conceptName = conceptInfo[1];
+    const conceptVar = conceptInfo[2];
+    const concept = this.node.getConceptByName(conceptName);
     if (!concept) {
       return [false, `Concept ${conceptInfo[1]} not known.`];
     }
 
-    const remainder = t.replace(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/i, '');
+    const remainderRegex = new RegExp('^conceptualise the ' + conceptName + ' ' + conceptVar, 'i');
+    //const remainder = t.replace(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/, '');
+    const remainder = t.replace(remainderRegex, '');
+    console.log(remainder)
     const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+      console.log('---')
     for (const fact of facts) {
       this.processConceptFact(concept, fact, source); 
     }
