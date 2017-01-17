@@ -44,11 +44,11 @@ class CardHandler {
 
       'tell card': (card) => {
         // Add the CE sentence to the node
-        const data = this.node.addCE(card.content, card.from && card.from.name);
+        const data = this.node.addCE(card.content, card.is_from && card.is_from.name);
 
-        if (!data.success && card.from) {
+        if (!data.success && card.is_from) {
           // If unsuccessful, write an error back
-          return this.node.addSentence(`there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.from.type.name} '${card.from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry. Your input was not understood.' as content and is in reply to the card '${card.name}'.`);
+          return this.node.addSentence(`there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry. Your input was not understood.' as content and is in reply to the card '${card.name}'.`);
         }
 
         if (data.success === true) {
@@ -63,21 +63,21 @@ class CardHandler {
           }
         }
 
-        if (card.from) {
+        if (card.is_from) {
           // Check feedback policies to see if input 'tell card' requires a response
           const feedbackPolicies = this.node.getInstances('feedback policy');
           for (let j = 0; j < feedbackPolicies.length; j += 1) {
             const target = feedbackPolicies[j].target;
             const enabled = feedbackPolicies[j].enabled;
             const ack = feedbackPolicies[j].acknowledgement;
-            if (target.name.toLowerCase() === card.from.name.toLowerCase() && enabled === 'true') {
+            if (target.name.toLowerCase() === card.is_from.name.toLowerCase() && enabled === 'true') {
               let c;
               if (ack === 'basic') { c = 'OK.'; } else if (data.type === 'tell') {
                 c = `OK. I added this to my knowledge base: ${data.data}`;
               } else if (data.type === 'ask' || data.type === 'confirm' || data.type === 'gist') {
                 c = data.data;
               }
-              return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.from.type.name} '${card.from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${c.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
+              return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${c.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
             }
           }
         }
