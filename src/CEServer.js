@@ -3,7 +3,6 @@ const CEModels = require('../models/index.js');
 
 const POST_SENTENCES_ENDPOINT = '/sentences';
 const GET_CARDS_ENDPOINT = '/cards';
-
 const node = new CENode(CEModels.core, CEModels.server);
 node.attachAgent();
 
