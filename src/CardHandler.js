@@ -7,7 +7,7 @@ class CardHandler {
 
       'ask card': (card) => {
         // Get the relevant information from the node
-        const data = this.node.askQuestion(content);
+        const data = this.node.askQuestion(card.content);
         const askPolicies = this.node.getInstances('ask policy');
         for (let j = 0; j < askPolicies.length; j += 1) {
           if (askPolicies[j].enabled === 'true') {
@@ -16,27 +16,30 @@ class CardHandler {
             this.agent.unsentAskCards[targetName].push(card);
           }
         }
-        // Prepare the response 'tell card' to the input 'ask card' and add this back to the local model
-        const froms = card.is_froms;
-        let urls;
-        let c;
-        if (data.data) {
-          urls = data.data.match(/(https?:\/\/[a-zA-Z0-9./\-+_&=?!%]*)/gi);
-          c = `there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content`;
-        } else {
-          c = `there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content`;
-        }
-
-        for (let j = 0; j < froms.length; j += 1) {
-          c += ` and is to the ${froms[j].type.name} '${froms[j].name}'`;
-        }
-        if (urls) {
-          for (let j = 0; j < urls.length; j += 1) {
-            c += ` and has '${urls[j]}' as linked content`;
+  
+        if (card.is_from) {
+          // Prepare the response 'tell card' and add this back to the node
+          const froms = card.is_froms;
+          let urls;
+          let c;
+          if (data.data) {
+            urls = data.data.match(/(https?:\/\/[a-zA-Z0-9./\-+_&=?!%]*)/gi);
+            c = `there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content`;
+          } else {
+            c = `there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content`;
           }
+
+          for (let j = 0; j < froms.length; j += 1) {
+            c += ` and is to the ${froms[j].type.name} '${froms[j].name}'`;
+          }
+          if (urls) {
+            for (let j = 0; j < urls.length; j += 1) {
+              c += ` and has '${urls[j]}' as linked content`;
+            }
+          }
+          c += ` and is in reply to the card '${card.name}'`;
+          return this.node.addSentence(c);
         }
-        c += ` and is in reply to the card '${card.name}'`;
-        return this.node.addSentence(c);
       },
 
       'tell card': (card) => {
@@ -104,7 +107,6 @@ class CardHandler {
   }
 
   handle(card) {
-    const from = card.is_from;
     const tos = card.is_tos;
     const content = card.content;
     let sentToThisAgent = false;

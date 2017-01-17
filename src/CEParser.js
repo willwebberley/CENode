@@ -113,7 +113,6 @@ class CEParser {
   }
 
   newInstance(t, source) {
-    console.log('NEW', t);
     let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
     if (!names) {
       names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
