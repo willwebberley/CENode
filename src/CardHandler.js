@@ -12,8 +12,8 @@ class CardHandler {
         for (let j = 0; j < askPolicies.length; j += 1) {
           if (askPolicies[j].enabled === 'true') {
             const targetName = askPolicies[j].target.name;
-            if (!(targetName in this.agent.unsentAskCards)) { this.agent.unsentAskCards[targetName] = []; }
-            this.agent.unsentAskCards[targetName].push(card);
+            if (!(targetName in this.agent.policyHandler.unsentAskCards)) { this.agent.policyHandler.unsentAskCards[targetName] = []; }
+            this.agent.policyHandler.unsentAskCards[targetName].push(card);
           }
         }
  
@@ -57,8 +57,8 @@ class CardHandler {
           for (let j = 0; j < tellPolicies.length; j += 1) {
             if (tellPolicies[j].enabled === 'true') {
               const targetName = tellPolicies[j].target.name;
-              if (!(targetName in this.agent.unsentTellCards)) { this.agent.unsentTellCards[targetName] = []; }
-              this.agent.unsentTellCards[targetName].push(card);
+              if (!(targetName in this.agent.policyHandler.unsentTellCards)) { this.agent.policyHandler.unsentTellCards[targetName] = []; }
+              this.agent.policyHandler.unsentTellCards[targetName].push(card);
             }
           }
         }

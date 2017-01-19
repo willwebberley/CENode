@@ -71,7 +71,7 @@ require('http').createServer((request, response) => {
       let s = '<html><head><title>CENode Management</title></head><body><h1>CENode Server Admin Interface</h1>';
       s += '<div style="width:48%;float:left;"><h2>Conceptual model</h2>';
       s += '<p>Add CE sentences to the node:</p><form action="/ui/sentences" enctype="application/x-www-form-urlencoded" method="POST"><textarea name="sentence" style="width:95%;height:100px;"></textarea><br /><br /><input type="submit" /></form></div>';
-      s += `<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent-name"><input type="text" name="name" value="${node.agent.getName()}" /><input type="submit" /></form>`;
+      s += `<div style="width:48%;float:left;"><h2>Node settings</h2><p>Update local agent name:</p><form method="POST" action="/agent-name"><input type="text" name="name" value="${node.agent.name}" /><input type="submit" /></form>`;
       s += '<p>Other options:</p><button onclick="window.location=\'/reset\';">Empty model</button>';
       s += '</div><div style="clear:both;"></div>';
       s += '<div style="display:inline-block;width:45%;float:left;"><h2>Concepts</h2>';

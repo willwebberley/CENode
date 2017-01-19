@@ -36,7 +36,7 @@ class CENode {
       return null;
     }
     this.lastCardId += 1;
-    return this.agent.getName() + this.lastCardId;
+    return this.agent.name + this.lastCardId;
   }
 
   getConceptById(id) {
