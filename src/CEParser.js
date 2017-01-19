@@ -140,7 +140,6 @@ class CEParser {
   }
 
   modifyInstance(t, source) {
-    console.log('MOD',t);
     let concept;
     let instance;
     if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
@@ -177,7 +176,6 @@ class CEParser {
 
   processInstanceFact(instance, fact, source) {
     const input = fact.trim().replace(/\+/g, 'and');
-    console.log('INP:',input)
     if (input.match(/(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/g)) {
       const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/g;
       const match = re.exec(input);

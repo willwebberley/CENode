@@ -92,8 +92,7 @@ class CardHandler {
           data = this.node.askQuestion(card.content);
           // If question was success replicate as ask card ('autoask')
           if (data.success) {
-            const tet = `there is an ask card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`;
-            return this.node.addSentence(tet);
+            return this.node.addSentence(`there is an ask card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
           } else { 
             // If question not understood then place the response to the NL card in a new response
             data = this.node.addNL(card.content);
