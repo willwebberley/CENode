@@ -29,11 +29,15 @@ const net = {
   },
 };
 
+
 class PolicyHandler {
 
   constructor(agent) {
     this.agent = agent;
     this.node = agent.node;
+    this.unsentTellCards = [];
+    this.unsentAskCards = [];
+    this.lastSuccessfulRequest = 0;
     this.handlers = {
 
       'tell policy': (policy) => {
@@ -98,10 +102,10 @@ class PolicyHandler {
                   // Make sure an agent is not already a sender
                   inCard = false;
                   for (let k = 0; k < froms.length; k += 1) {
-                    if (froms[k].id === this.getInstance().id) { inCard = true; break; }
+                    if (froms[k].id === this.agent.getInstance().id) { inCard = true; break; }
                   }
                   if (!inCard) {
-                    card.addRelationship('is from', this.getInstance());
+                    card.addRelationship('is from', this.agent.getInstance());
                   }
                   data += `${card.ce}\n`;
                 }
@@ -180,7 +184,6 @@ class PolicyHandler {
   }
 
   handle(policy) {
-    
     this.handlers[policy.type.name](policy);
   }
 }

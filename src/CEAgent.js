@@ -8,12 +8,11 @@ class CEAgent {
     if (!node) {
       throw new Error('CEAgents must be instantiated with a CENode object');
     }
-    this.lastSuccessfulRequest = 0;
     this.node = node;
     this.handledCards = [];
-    this.setName(DEFAULT_NAME);
     this.cardHandler = new CardHandler(this);
     this.policyHandler = new PolicyHandler(this);
+    this.setName(DEFAULT_NAME);
     this.pollCards();
     this.enactPolicies();
   }
