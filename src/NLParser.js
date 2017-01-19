@@ -121,8 +121,8 @@ class NLParser {
             newInstanceName += `${tokens[j]} `;
           }
         }
-        if (newInstanceName !== '') {
-          return [true, `there is a ${this.node.concepts[i].name} named '${this.node.newInstanceName.trim()}'`];
+        if (newInstanceName && newInstanceName.length) {
+          return [true, `there is a ${this.node.concepts[i].name} named '${newInstanceName.trim()}'`];
         }
         return [true, `there is a ${this.node.concepts[i].name} named '${this.node.concepts[i].name} ${this.node.instances.length}${1}'`];
       }

@@ -16,7 +16,7 @@ class CardHandler {
             this.agent.unsentAskCards[targetName].push(card);
           }
         }
-  
+ 
         if (card.is_from) {
           // Prepare the response 'tell card' and add this back to the node
           const froms = card.is_froms;
@@ -84,24 +84,22 @@ class CardHandler {
       },
 
       'nl card': (card) => {
-        let newCard = null;
-        // Firstly, check if card content is valid CE, but without writing to model:
-        let data = this.node.addCE(content, true, from.name);
-        // If valid CE, then replicate the nl card as a tell card and re-add to model (i.e. 'autoconfirm')
-        if (data.success === true) {
-          newCard = `there is a tell card named 'msg_{uid}' that is from the ${from.type.name} '${from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${content.replace(/'/g, "\\'")}' as content.`;
-        } else { // If invalid CE, then try responding to a question
-          data = this.node.askQuestion(content);
-          // If question was success, replicate the nl card as an ask card and re-add to model (i.e. 'autoask')
-          if (data.success === true) {
-            newCard = `there is an ask card named 'msg_{uid}' that is from the ${from.type.name} '${from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${content.replace(/'/g, "\\'")}' as content.`;
-          } else { // If question not understood then place the response to the NL card in a new response
-            data = this.node.addNL(content);
-            newCard = `there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${from.type.name} '${from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`;
+        let data = this.node.addCE(card.content, card.is_from && card.is_from.name);
+        // If valid CE, then replicate the nl card as a tell card ('autoconfirm')
+        if (data.success) {
+          return this.node.addSentence(`there is a tell card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
+        } else {
+          data = this.node.askQuestion(card.content);
+          // If question was success replicate as ask card ('autoask')
+          if (data.success) {
+            const tet = `there is an ask card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`;
+            return this.node.addSentence(tet);
+          } else { 
+            // If question not understood then place the response to the NL card in a new response
+            data = this.node.addNL(card.content);
+            return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
           }
         }
-        this.node.addSentence(newCard);
-        return newCard;
       }
     };
   }

@@ -115,7 +115,7 @@ class CEParser {
   newInstance(t, source) {
     let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
     if (!names) {
-      names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9]*)/i);
+      names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9_]*)/i);
       if (!names) { return [false, 'Unable to determine name of instance.']; }
     }
     const conceptName = names[1];
@@ -131,7 +131,7 @@ class CEParser {
     }
     instance.sentences.push(t);
 
-    const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') that/, '');
+    const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') that/, '');
     const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     for (const fact of facts) {
       this.processInstanceFact(instance, fact, source); 
@@ -177,8 +177,9 @@ class CEParser {
 
   processInstanceFact(instance, fact, source) {
     const input = fact.trim().replace(/\+/g, 'and');
-    if (input.match(/(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g)) {
-      const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9' ]*)/g;
+    console.log('INP:',input)
+    if (input.match(/(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/g)) {
+      const re = /(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/g;
       const match = re.exec(input);
       const label = match[1];
       const relConceptName = match[2];
@@ -197,7 +198,7 @@ class CEParser {
       const label = match[2];
       instance.addValue(label, value, true, source);
     }
-    if (input.match(/has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g)){
+    if (input.match(/has the ([a-za-z0-9 ]*) ([a-za-z0-9_]*|'[a-za-z0-9_ ]*') as ([a-za-z0-9 ]*)/g)){
       const re = /has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/g;
       const match = re.exec(input);
       const valConceptName = match[1];
