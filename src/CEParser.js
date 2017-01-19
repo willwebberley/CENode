@@ -133,6 +133,7 @@ class CEParser {
 
     const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') that/, '');
     const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    console.log(facts);
     for (const fact of facts) {
       this.processInstanceFact(instance, fact, source); 
     }
