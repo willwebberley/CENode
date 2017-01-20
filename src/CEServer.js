@@ -33,7 +33,7 @@ function getCards(node, request, response, ignoresInput) {
       if (!agents || agents.length === 0) {
         s += `${cards[i].ce}\n`;
       } else {
-        const tos = cards[i].isTos;
+        const tos = cards[i].is_tos;
         if (tos) {
           for (let j = 0; j < tos.length; j += 1) {
             for (let k = 0; k < agents.length; k += 1) {
