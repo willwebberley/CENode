@@ -196,8 +196,8 @@ class CEParser {
       const label = match[2];
       instance.addValue(label, value, true, source);
     }
-    if (input.match(/^has the ([a-za-z0-9 ]*) ([a-za-z0-9_]*|'[a-za-z0-9_ ]*') as ([a-za-z0-9 ]*)/)){
-      const re = /^has the ([a-za-z0-9 ]*) ([a-za-z0-9]*|'[a-za-z0-9 ]*') as ([a-za-z0-9 ]*)/;
+    if (input.match(/^has the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') as ([a-zA-Z0-9 ]*)/)){
+      const re = /^has the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/;
       const match = re.exec(input);
       const valConceptName = match[1];
       const valInstanceName = match[2].replace(/'/g, '');

@@ -10,6 +10,9 @@ const net = {
       if (typeof window !== 'undefined' && window.document) {
         net.makeRequestClient(method, nodeURL, path, data, callback);
       }
+      else {
+        net.makeRequestNode(method, nodeURL, path, data, callback);
+      }
     } catch (err) { /* Continue even if network error */ }
   },
   makeRequestClient(method, nodeURL, path, data, callback) {
@@ -27,6 +30,35 @@ const net = {
       xhr.send();
     }
   },
+  makeRequestNode(method, nodeURL, path, data, callback){
+    const h = require('http');
+    const portMatch = nodeURL.match(/.*:([0-9]*)/);
+    let url = nodeURL;
+    if (portMatch) {
+      url = nodeURL.replace(/:[0-9]*/, '');
+    }
+
+    const options = {
+      hostname: url,
+      path: path,
+      port: portMatch ? parseInt(portMatch[1]) : 80,
+      method: 'POST'
+    };
+    if (method === 'POST') {
+      const request = require('http').request(options, res => {
+        let response = '';
+        res.on('data', chunk => response = response + chunk);
+        res.on('end', () => {
+          if (callback) {
+            callback(response);
+          }  
+        });
+      });
+      request.on('error', (err) => {/* continue anyway */});
+      request.write(data);
+      request.end();
+    }
+  }
 };
 
 
@@ -129,7 +161,8 @@ class PolicyHandler {
         for (let j = 0; j < allCards.length; j += 1) {
           data = `${data + allCards[j].name}\n`;
         }
-        net.makeRequest('POST', target.address, `${GET_CARDS_ENDPOINT}?agent=${name}`, data, (resp) => {
+        net.makeRequest('POST', target.address, `${GET_CARDS_ENDPOINT}?agent=${this.agent.name}`, data, (resp) => {
+          console.log(resp)
           this.lastSuccessfulRequest = new Date().getTime();
           const cards = resp.split('\n');
           this.node.addSentences(cards);
