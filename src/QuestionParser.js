@@ -27,7 +27,7 @@ class QuestionParser {
   }
 
   whereIs(t) {
-    const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');// .replace(/(\bthe\b|\ba\b)/g, '').trim();
+    const thing = t.match(/^where (?:is|are)(?: \ban?\b | \bthe\b | )([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '');
     const instance = this.node.getInstanceByName(thing);
     let message;
     if (!instance) {
@@ -38,11 +38,11 @@ class QuestionParser {
     const locatableIds = [];
     const places = {};
     let placeFound = false;
-    for (let i = 0; i < locatableInstances.length; i += 1) { locatableIds.push(locatableInstances[i].id); }
+    for (const locatableInstance of locatableInstances) { locatableIds.push(locatableInstance.id); }
 
-    for (let i = 0; i < instance.values.length; i += 1) {
-      if (locatableIds.indexOf(instance.values[i].instance.id) > -1) {
-        const place = `has ${instance.values[i].instance.name} as ${instance.values[i].label}`;
+    for (const value of instance.values) {
+      if (locatableIds.indexOf(value.instance.id) > -1) {
+        const place = `has ${value.instance.name} as ${value.label}`;
         if (!(place in places)) {
           places[place] = 0;
         }
@@ -50,9 +50,9 @@ class QuestionParser {
         placeFound = true;
       }
     }
-    for (let i = 0; i < instance.relationships.length; i += 1) {
-      if (locatableIds.indexOf(instance.relationships[i].instance.id) > -1) {
-        const place = `${instance.relationships[i].label} ${instance.relationships[i].instance.name}`;
+    for (const relationship of instance.relationships) {
+      if (locatableIds.indexOf(relationship.instance.id) > -1) {
+        const place = `${relationship.label} ${relationship.instance.name}`;
         if (!(place in places)) {
           places[place] = 0;
         }
@@ -81,9 +81,9 @@ class QuestionParser {
     const thing = t.match(/^(?:\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)([a-zA-Z0-9 ]*)/i)[1].replace(/\?/g, '').replace(/\bthe\b/g, '').replace(/'/g, '');
     let instance = null;
     const locatableInstances = this.node.getInstances('location', true);
-    for (let i = 0; i < locatableInstances.length; i += 1) {
-      if (thing.toLowerCase().indexOf(locatableInstances[i].name.toLowerCase()) > -1) {
-        instance = locatableInstances[i]; break;
+    for (const locatableInstance of locatableInstances) {
+      if (thing.toLowerCase().indexOf(locatableInstance.name.toLowerCase()) > -1) {
+        instance = locatableInstance; break;
       }
     }
     if (!instance) {
@@ -91,31 +91,25 @@ class QuestionParser {
     }
     const things = {};
     let thingFound = false;
-    for (let i = 0; i < this.node.instances.length; i += 1) {
-      const vals = this.node.instances[i].values;
-      const rels = this.node.instances[i].relationships;
-      if (vals) {
-        for (let j = 0; j < vals.length; j += 1) {
-          if (vals[j].instance.id === instance.id) {
-            const thing2 = `the ${this.node.instances[i].type.name} ${this.node.instances[i].name} has the ${instance.type.name} ${instance.name} as ${vals[j].label}`;
-            if (!(thing2 in things)) {
-              things[thing2] = 0;
-            }
-            things[thing2] += 1;
-            thingFound = true;
+    for (const checkInstance of this.node.instances) {
+      for (const value of checkInstance.values) {
+        if (value.instance.id === instance.id) {
+          const thing2 = `the ${checkInstance.type.name} ${checkInstance.name} has the ${instance.type.name} ${instance.name} as ${value.label}`;
+          if (!(thing2 in things)) {
+            things[thing2] = 0;
           }
+          things[thing2] += 1;
+          thingFound = true;
         }
       }
-      if (rels) {
-        for (let j = 0; j < rels.length; j += 1) {
-          if (rels[j].instance.id === instance.id) {
-            const thing2 = `the ${this.node.instances[i].type.name} ${this.node.instances[i].name} ${rels[j].label} the ${instance.type.name} ${instance.name}`;
-            if (!(thing2 in things)) {
-              things[thing2] = 0;
-            }
-            things[thing2] += 1;
-            thingFound = true;
+      for (const relationship of checkInstance.relationships) {
+        if (relationship.instance.id === instance.id) {
+          const thing2 = `the ${checkInstance.type.name} ${checkInstance.name} ${relationship.label} the ${instance.type.name} ${instance.name}`;
+          if (!(thing2 in things)) {
+            things[thing2] = 0;
           }
+          things[thing2] += 1;
+          thingFound = true;
         }
       }
     }
@@ -124,7 +118,7 @@ class QuestionParser {
     }
 
     let message = '';
-    for (const thing2 of things) {
+    for (const thing2 in things) {
       message += ` ${thing2}`;
       if (things[thing] > 1) {
         message += ` (${things[thing2]} times)`;
@@ -154,21 +148,23 @@ class QuestionParser {
       const concept = this.node.getConceptByName(name);
       if (!concept) {
         const possibilities = [];
-        for (let i = 0; i < this.node.concepts.length; i += 1) {
-          for (let j = 0; j < this.node.concepts[i].values.length; j += 1) {
-            const v = this.node.concepts[i].values[j];
+        for (const checkConcept of this.node.concepts) {
+
+          for (const checkValue of checkConcept.values) {
+            const v = checkValue;
             if (v.label.toLowerCase() === name.toLowerCase()) {
-              if (v.type === 0) {
-                possibilities.push(`is a possible value of a type of ${this.node.concepts[i].name} (e.g. "the ${this.node.concepts[i].name} '${this.node.concepts[i].name.toUpperCase()} NAME' has 'VALUE' as ${name}")`);
+              if (!v.concept) {
+                possibilities.push(`is a possible value of a type of ${checkConcept.name} (e.g. "the ${checkConcept.name} '${checkConcept.name.toUpperCase()} NAME' has 'VALUE' as ${name}")`);
               } else {
-                possibilities.push(`is a possible ${v.concept.name} type of a type of ${this.node.concepts[i].name} (e.g. "the ${this.node.concepts[i].name} '${this.node.concepts[i].name.toUpperCase()} NAME' has the ${v.concept.name} '${v.concept.name.toUpperCase()} NAME' as ${name}")`);
+                possibilities.push(`is a possible ${v.concept.name} type of a type of ${checkConcept.name} (e.g. "the ${checkConcept.name} '${checkConcept.name.toUpperCase()} NAME' has the ${v.concept.name} '${v.concept.name.toUpperCase()} NAME' as ${name}")`);
               }
             }
           }
-          for (let j = 0; j < this.node.concepts[i].relationships.length; j += 1) {
-            const r = this.node.concepts[i].relationships[j];
+
+          for (const checkRelationship of checkConcept.relationships) {
+            const r = checkRelationship;
             if (r.label.toLowerCase() === name.toLowerCase()) {
-              possibilities.push(`describes the relationship between a type of ${this.node.concepts[i].name} and a type of ${r.concept.name} (e.g. "the ${this.node.concepts[i].name} '${this.node.concepts[i].name.toUpperCase()} NAME' ${name} the ${r.concept.name} '${r.concept.name.toUpperCase()} NAME'")`);
+              possibilities.push(`describes the relationship between a type of ${checkConcept.name} and a type of ${r.concept.name} (e.g. "the ${checkConcept.name} '${checkConcept.name.toUpperCase()} NAME' ${name} the ${r.concept.name} '${r.concept.name.toUpperCase()} NAME'")`);
             }
           }
         }

@@ -8,10 +8,9 @@ class CardHandler {
       'ask card': (card) => {
         // Get the relevant information from the node
         const data = this.node.askQuestion(card.content);
-        const askPolicies = this.node.getInstances('ask policy');
-        for (let j = 0; j < askPolicies.length; j += 1) {
-          if (askPolicies[j].enabled === 'true') {
-            const targetName = askPolicies[j].target.name;
+        for (const policy of this.node.getInstances('ask policy')) {
+          if (policy.enabled === 'true' && policy.target && policy.target.name) {
+            const targetName = policy.target.name;
             if (!(targetName in this.agent.policyHandler.unsentAskCards)) { this.agent.policyHandler.unsentAskCards[targetName] = []; }
             this.agent.policyHandler.unsentAskCards[targetName].push(card);
           }
@@ -19,7 +18,6 @@ class CardHandler {
  
         if (card.is_from) {
           // Prepare the response 'tell card' and add this back to the node
-          const froms = card.is_froms;
           let urls;
           let c;
           if (data.data) {
@@ -29,12 +27,12 @@ class CardHandler {
             c = `there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content`;
           }
 
-          for (let j = 0; j < froms.length; j += 1) {
-            c += ` and is to the ${froms[j].type.name} '${froms[j].name}'`;
+          for (const from of card.is_froms) {
+            c += ` and is to the ${from.type.name} '${from.name}'`;
           }
           if (urls) {
-            for (let j = 0; j < urls.length; j += 1) {
-              c += ` and has '${urls[j]}' as linked content`;
+            for (const url of urls) {
+              c += ` and has '${url}' as linked content`;
             }
           }
           c += ` and is in reply to the card '${card.name}'`;
@@ -53,10 +51,9 @@ class CardHandler {
 
         if (data.success === true) {
           // Add sentence to any active tell policy queues
-          const tellPolicies = this.node.getInstances('tell policy');
-          for (let j = 0; j < tellPolicies.length; j += 1) {
-            if (tellPolicies[j].enabled === 'true') {
-              const targetName = tellPolicies[j].target.name;
+          for (const policy of this.node.getInstances('tell policy')) {
+            if (policy.enabled === 'true' && policy.target && policy.target.name) {
+              const targetName = policy.target.name;
               if (!(targetName in this.agent.policyHandler.unsentTellCards)) { this.agent.policyHandler.unsentTellCards[targetName] = []; }
               this.agent.policyHandler.unsentTellCards[targetName].push(card);
             }
@@ -65,19 +62,18 @@ class CardHandler {
 
         if (card.is_from) {
           // Check feedback policies to see if input 'tell card' requires a response
-          const feedbackPolicies = this.node.getInstances('feedback policy');
-          for (let j = 0; j < feedbackPolicies.length; j += 1) {
-            const target = feedbackPolicies[j].target;
-            const enabled = feedbackPolicies[j].enabled;
-            const ack = feedbackPolicies[j].acknowledgement;
-            if (target.name.toLowerCase() === card.is_from.name.toLowerCase() && enabled === 'true') {
-              let c;
-              if (ack === 'basic') { c = 'OK.'; } else if (data.type === 'tell') {
-                c = `OK. I added this to my knowledge base: ${data.data}`;
-              } else if (data.type === 'ask' || data.type === 'confirm' || data.type === 'gist') {
-                c = data.data;
+          for (const policy of this.node.getInstances('feedback policy')) {
+            if (policy.enabled === 'true' && policy.target && policy.target.name){
+              const ack = policy.acknowledgement;
+              if (policy.target.name.toLowerCase() === card.is_from.name.toLowerCase()) {
+                let c;
+                if (ack === 'basic') { c = 'OK.'; } else if (data.type === 'tell') {
+                  c = `OK. I added this to my knowledge base: ${data.data}`;
+                } else if (data.type === 'ask' || data.type === 'confirm' || data.type === 'gist') {
+                  c = data.data;
+                }
+                return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${c.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
               }
-              return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${c.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
             }
           }
         }
@@ -104,25 +100,16 @@ class CardHandler {
   }
 
   handle(card) {
-    const tos = card.is_tos;
-    const content = card.content;
-    let sentToThisAgent = false;
-
-    if (!tos || !content) {
-      return null;
-    }
-
-    // Determine whether or not to read or ignore this card:
-    if (this.agent.handledCards.indexOf(card.name) > -1) { return null; }
-    this.agent.handledCards.push(card.name);
-    for (let i = 0; i < tos.length; i += 1) {
-      if (tos[i].name.toLowerCase() === this.agent.name.toLowerCase()) {
-        sentToThisAgent = true;
-        break;
+    if (card.is_tos && card.content && this.agent.handledCards.indexOf(card.name) === -1) {
+      // Determine whether or not to read or ignore this card:
+      for (const to of card.is_tos) {
+        if (to.name.toLowerCase() === this.agent.name.toLowerCase()) {
+          this.handlers[card.type.name](card);
+          this.agent.handledCards.push(card.name);
+          break;
+        }
       }
     }
-    if (!sentToThisAgent) { return null; }
-    this.handlers[card.type.name](card);
   }
 }
 
