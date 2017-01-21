@@ -17,6 +17,7 @@ function postSentences(node, request, response) {
 }
 
 function getCards(node, request, response, ignoresInput) {
+  console.log(request);
   const url = decodeURIComponent(request.url);
   const agentRegex = url.match(/agent=(.*)/);
   const ignores = ignoresInput || [];

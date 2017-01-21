@@ -16,8 +16,9 @@ const net = {
     } catch (err) { /* Continue even if network error */ }
   },
   makeRequestClient(method, nodeURL, path, data, callback) {
+    const url = nodeURL.indexOf('http://') == -1 ? `http://${nodeURL}` : nodeURL;
     const xhr = new XMLHttpRequest();
-    xhr.open(method, nodeURL + path);
+    xhr.open(method, url + path);
     xhr.onreadystatechange = () => {
       if (xhr.readyState === 4 && (xhr.status === 200 || xhr.status === 302) && callback) {
         callback(xhr.responseText);
@@ -138,49 +139,49 @@ class PolicyHandler {
 
       'listen policy': (policy) => {
         // Make request to target to get cards addressed to THIS agent
-        // Build ignore list of already-processed cards:
-        let data = '';
-        for (const card of this.node.getInstances('card', true)) {
-          data = `${data + card.name}\n`;
+        if (policy.target && policy.target.address) {
+          // Build ignore list of already-processed cards:
+          let data = '';
+          for (const card of this.node.getInstances('card', true)) {
+            data = `${data + card.name}\n`;
+          }
+          net.makeRequest('POST', policy.target.address, `${GET_CARDS_ENDPOINT}?agent=${this.agent.name}`, data, (res) => {
+            this.lastSuccessfulRequest = new Date().getTime();
+            this.node.addSentences(res.split('\n'));
+          });
         }
-        net.makeRequest('POST', policy.target.address, `${GET_CARDS_ENDPOINT}?agent=${this.agent.name}`, data, (res) => {
-          this.lastSuccessfulRequest = new Date().getTime();
-          this.node.addSentences(res.split('\n'));
-        });
       },
 
       'forwardall policy': (policy) => {
-         // Forward any cards sent to THIS agent to every other known agent
-        if (policy.enabled === 'true') {
-          const agents = policy.all_agents === 'true' ? this.node.getInstances('agent') : policy.targets;
-          const cards = this.node.getInstances('tell card');
-          if (policy.start_time) {
-            const startTime = policy.start_time;
-            for (const card of cards) {
-              let toAgent = false;
-              const tos = card.is_tos;
-              const from = card.is_froms[0];
-              const cardTimestamp = card.timestamp.name;
-              if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
-                for (const to of tos) {
-                  if (to.name === this.agent.name) { // If card sent to THIS agent
-                    toAgent = true;
-                    break;
-                  }
+        // Forward any cards sent to THIS agent to every other known agent
+        const agents = policy.all_agents === 'true' ? this.node.getInstances('agent') : policy.targets;
+        const cards = this.node.getInstances('tell card');
+        if (policy.start_time) {
+          const startTime = policy.start_time;
+          for (const card of cards) {
+            let toAgent = false;
+            const tos = card.is_tos;
+            const from = card.is_froms[0];
+            const cardTimestamp = card.timestamp.name;
+            if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
+              for (const to of tos) {
+                if (to.name === this.agent.name) { // If card sent to THIS agent
+                  toAgent = true;
+                  break;
                 }
-                if (toAgent) {
-                  // Add each other agent as a recipient (if they aren't already)
-                  for (const agent of agents) {
-                    let agentIsRecipient = false;
-                    for (const to of tos) {
-                      if (to.name.toLowerCase() === agent.name.toLowerCase()) {
-                        agentIsRecipient = true;
-                        break;
-                      }
+              }
+              if (toAgent) {
+                // Add each other agent as a recipient (if they aren't already)
+                for (const agent of agents) {
+                  let agentIsRecipient = false;
+                  for (const to of tos) {
+                    if (to.name.toLowerCase() === agent.name.toLowerCase()) {
+                      agentIsRecipient = true;
+                      break;
                     }
-                    if (!agentIsRecipient && agent.name.toLowerCase() !== this.agent.name.toLowerCase() && agent.name.toLowerCase() !== from.name.toLowerCase()) {
-                      card.addRelationship('is to', agent);
-                    }
+                  }
+                  if (!agentIsRecipient && agent.name.toLowerCase() !== this.agent.name.toLowerCase() && agent.name.toLowerCase() !== from.name.toLowerCase()) {
+                    card.addRelationship('is to', agent);
                   }
                 }
               }
@@ -192,7 +193,9 @@ class PolicyHandler {
   }
 
   handle(policy) {
-    this.handlers[policy.type.name](policy);
+    if (policy.enabled === 'true') {
+      this.handlers[policy.type.name](policy);
+    }
   }
 }
 
