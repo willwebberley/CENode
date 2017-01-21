@@ -1,6 +1,7 @@
 const http = require('http');
 const CENode = require('./CENode.js');
 const CEModels = require('../models/index.js');
+
 const POST_SENTENCES_ENDPOINT = '/sentences';
 const GET_CARDS_ENDPOINT = '/cards';
 
@@ -17,7 +18,6 @@ function postSentences(node, request, response) {
 }
 
 function getCards(node, request, response, ignoresInput) {
-  console.log(request);
   const url = decodeURIComponent(request.url);
   const agentRegex = url.match(/agent=(.*)/);
   const ignores = ignoresInput || [];

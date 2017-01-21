@@ -149,7 +149,6 @@ class QuestionParser {
       if (!concept) {
         const possibilities = [];
         for (const checkConcept of this.node.concepts) {
-
           for (const checkValue of checkConcept.values) {
             const v = checkValue;
             if (v.label.toLowerCase() === name.toLowerCase()) {

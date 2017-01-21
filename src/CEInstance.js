@@ -4,7 +4,7 @@ class CEInstance {
     if (!type) {
       return;
     }
-    
+
     this.node = node;
     this.name = name;
     this.source = source;
@@ -18,7 +18,7 @@ class CEInstance {
     this.synonyms = [];
     this.reservedFields = ['values', 'relationships', 'synonyms', 'addValue', 'addRelationship', 'name', 'concept', 'id', 'instance', 'sentences', 'ce', 'gist'];
     node.instances.push(this);
-    node.instanceDict[this.id] = this;
+    this.node.instanceDict[this.id] = this;
 
     const instance = this;
     Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {
@@ -93,7 +93,7 @@ class CEInstance {
   }
 
   addValue(label, valueInstance, propagate, source) {
-    if (!(label && label.length && valueInstance)){
+    if (!(label && label.length && valueInstance)) {
       return null;
     }
     if (this.getPossibleProperties().values.indexOf(label.toLowerCase()) > -1) {
@@ -131,6 +131,7 @@ class CEInstance {
         this.node.ruleEngine.enactRules(this, 'value', valueInstance, source);
       }
     }
+    return null;
   }
 
   addRelationship(label, relationshipInstance, propagate, source) {
@@ -169,15 +170,16 @@ class CEInstance {
         this.node.ruleEngine.enactRules(this, 'relationship', relationshipInstance, source);
       }
     }
+    return null;
   }
 
   addSynonym(synonym) {
-    if (!synonym || !synonym.length){
+    if (!synonym || !synonym.length) {
       return null;
     }
     for (let i = 0; i < this.synonyms.length; i += 1) {
       if (this.synonyms[i].toLowerCase() === synonym.toLowerCase()) {
-        return;
+        return null;
       }
     }
     this.synonyms.push(synonym);
@@ -186,15 +188,16 @@ class CEInstance {
         return this;
       },
     });
+    return null;
   }
 
   addSubConcept(concept) {
-    if (!concept){
+    if (!concept) {
       return;
     }
     let add = true;
-    for (const existingConcept of this.subConcepts){
-      if (existingConcept.id === concept.id || concept.id === this.concept.id){
+    for (const existingConcept of this.subConcepts) {
+      if (existingConcept.id === concept.id || concept.id === this.concept.id) {
         add = false;
         break;
       }
@@ -264,7 +267,7 @@ class CEInstance {
     let gist = `${this.name} is`;
     if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}`; }
     for (let i = 0; i < this.subConcepts.length; i += 1) {
-      gist += ` and a ${this.subConcepts[i].name}`; 
+      gist += ` and a ${this.subConcepts[i].name}`;
     }
     gist += '.';
 

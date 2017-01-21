@@ -1,5 +1,6 @@
 const CardHandler = require('./CardHandler.js');
 const PolicyHandler = require('./PolicyHandler.js');
+
 const DEFAULT_NAME = 'Moira';
 
 class CEAgent {
@@ -48,7 +49,7 @@ class CEAgent {
     if (setTimeout) {
       setTimeout(() => {
         const policies = this.node.getInstances('policy', true);
-        for (const policy of policies){
+        for (const policy of policies) {
           this.policyHandler.handle(policy);
         }
         this.enactPolicies();

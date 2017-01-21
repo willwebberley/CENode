@@ -9,14 +9,13 @@ const net = {
     try {
       if (typeof window !== 'undefined' && window.document) {
         net.makeRequestClient(method, nodeURL, path, data, callback);
-      }
-      else {
+      } else {
         net.makeRequestNode(method, nodeURL, path, data, callback);
       }
     } catch (err) { /* Continue even if network error */ }
   },
   makeRequestClient(method, nodeURL, path, data, callback) {
-    const url = nodeURL.indexOf('http://') == -1 ? `http://${nodeURL}` : nodeURL;
+    const url = nodeURL.indexOf('http://') === -1 ? `http://${nodeURL}` : nodeURL;
     const xhr = new XMLHttpRequest();
     xhr.open(method, url + path);
     xhr.onreadystatechange = () => {
@@ -31,8 +30,7 @@ const net = {
       xhr.send();
     }
   },
-  makeRequestNode(method, nodeURL, path, data, callback){
-    const h = require('http');
+  makeRequestNode(method, nodeURL, path, data, callback) {
     const portMatch = nodeURL.match(/.*:([0-9]*)/);
     let url = nodeURL;
     if (portMatch) {
@@ -41,25 +39,25 @@ const net = {
 
     const options = {
       hostname: url,
-      path: path,
-      port: portMatch ? parseInt(portMatch[1]) : 80,
-      method: 'POST'
+      path,
+      port: portMatch ? parseInt(portMatch[1], 10) : 80,
+      method: 'POST',
     };
     if (method === 'POST') {
-      const request = require('http').request(options, res => {
+      const request = require('http').request(options, (res) => {
         let response = '';
-        res.on('data', chunk => response = response + chunk);
+        res.on('data', (chunk) => { response += chunk; });
         res.on('end', () => {
           if (callback) {
             callback(response);
-          }  
+          }
         });
       });
-      request.on('error', (err) => {/* continue anyway */});
+      request.on('error', () => { /* continue anyway */ });
       request.write(data);
       request.end();
     }
-  }
+  },
 };
 
 
@@ -76,25 +74,25 @@ class PolicyHandler {
       'tell policy': (policy) => {
         // For each tell policy in place, send all currently-untold cards to each target
         // multiple cards to be sent to one target line-separated
-        if (policy.target && policy.target.name) {
+        if (policy.target && policy.target.name && policy.target.address) {
           let data = '';
-          for (const card of this.unsentTellCards[target.name]) {
-            if (card.is_tos && card.is_from.name.toLowerCase() !== target.name.toLowerCase()) { // Don't send back a card sent from target agent
+          for (const card of this.unsentTellCards[policy.target.name]) {
+            if (card.is_tos && card.is_from.name.toLowerCase() !== policy.target.name.toLowerCase()) { // Don't send back a card sent from target agent
               // Make sure target is not already a recipient
               let inCard = false;
               for (const to of card.is_tos) {
-                if (to.id === target.id) { inCard = true; break; }
+                if (to.id === policy.target.id) { inCard = true; break; }
               }
               if (!inCard) {
-                card.addRelationship('is to', target);
+                card.addRelationship('is to', policy.target);
               }
               data += `${card.ce}\n`;
             }
           }
           if (data.length) {
-            net.makeRequest('POST', target.address, POST_SENTENCES_ENDPOINT, data, () => {
+            net.makeRequest('POST', policy.target.address, POST_SENTENCES_ENDPOINT, data, () => {
               this.lastSuccessfulRequest = new Date().getTime();
-              this.unsentTellCards[target.name] = [];
+              this.unsentTellCards[policy.target.name] = [];
             });
           }
         }
@@ -129,9 +127,9 @@ class PolicyHandler {
             }
           }
           if (data.length) {
-            net.makeRequest('POST', target.address, POST_SENTENCES_ENDPOINT, data, () => {
+            net.makeRequest('POST', policy.target.address, POST_SENTENCES_ENDPOINT, data, () => {
               this.lastSuccessfulRequest = new Date().getTime();
-              this.unsentAskCards[target.name] = [];
+              this.unsentAskCards[policy.target.name] = [];
             });
           }
         }
@@ -172,23 +170,23 @@ class PolicyHandler {
               }
               if (toAgent) {
                 // Add each other agent as a recipient (if they aren't already)
-                for (const agent of agents) {
+                for (const agentCheck of agents) {
                   let agentIsRecipient = false;
                   for (const to of tos) {
-                    if (to.name.toLowerCase() === agent.name.toLowerCase()) {
+                    if (to.name.toLowerCase() === agentCheck.name.toLowerCase()) {
                       agentIsRecipient = true;
                       break;
                     }
                   }
-                  if (!agentIsRecipient && agent.name.toLowerCase() !== this.agent.name.toLowerCase() && agent.name.toLowerCase() !== from.name.toLowerCase()) {
-                    card.addRelationship('is to', agent);
+                  if (!agentIsRecipient && agentCheck.name.toLowerCase() !== this.agent.name.toLowerCase() && agentCheck.name.toLowerCase() !== from.name.toLowerCase()) {
+                    card.addRelationship('is to', agentCheck);
                   }
                 }
               }
             }
           }
         }
-      }
+      },
     };
   }
 

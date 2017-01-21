@@ -15,7 +15,7 @@ class CardHandler {
             this.agent.policyHandler.unsentAskCards[targetName].push(card);
           }
         }
- 
+
         if (card.is_from) {
           // Prepare the response 'tell card' and add this back to the node
           let urls;
@@ -38,6 +38,7 @@ class CardHandler {
           c += ` and is in reply to the card '${card.name}'`;
           return this.node.addSentence(c);
         }
+        return null;
       },
 
       'tell card': (card) => {
@@ -63,7 +64,7 @@ class CardHandler {
         if (card.is_from) {
           // Check feedback policies to see if input 'tell card' requires a response
           for (const policy of this.node.getInstances('feedback policy')) {
-            if (policy.enabled === 'true' && policy.target && policy.target.name){
+            if (policy.enabled === 'true' && policy.target && policy.target.name) {
               const ack = policy.acknowledgement;
               if (policy.target.name.toLowerCase() === card.is_from.name.toLowerCase()) {
                 let c;
@@ -77,6 +78,7 @@ class CardHandler {
             }
           }
         }
+        return null;
       },
 
       'nl card': (card) => {
@@ -84,18 +86,16 @@ class CardHandler {
         // If valid CE, then replicate the nl card as a tell card ('autoconfirm')
         if (data.success) {
           return this.node.addSentence(`there is a tell card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
-        } else {
-          data = this.node.askQuestion(card.content);
-          // If question was success replicate as ask card ('autoask')
-          if (data.success) {
-            return this.node.addSentence(`there is an ask card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
-          } else { 
-            // If question not understood then place the response to the NL card in a new response
-            data = this.node.addNL(card.content);
-            return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
-          }
         }
-      }
+        data = this.node.askQuestion(card.content);
+        // If question was success replicate as ask card ('autoask')
+        if (data.success) {
+          return this.node.addSentence(`there is an ask card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
+        }
+        // If question not understood then place the response to the NL card in a new response
+        data = this.node.addNL(card.content);
+        return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
+      },
     };
   }
 
