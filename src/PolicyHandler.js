@@ -162,7 +162,6 @@ class PolicyHandler {
           data = `${data + allCards[j].name}\n`;
         }
         net.makeRequest('POST', target.address, `${GET_CARDS_ENDPOINT}?agent=${this.agent.name}`, data, (resp) => {
-          console.log(resp)
           this.lastSuccessfulRequest = new Date().getTime();
           const cards = resp.split('\n');
           this.node.addSentences(cards);
@@ -170,45 +169,40 @@ class PolicyHandler {
       },
 
       'forwardall policy': (policy) => {
-         // If there is one enabled forwardall policy, then forward any cards sent to THIS agent
-        // to every other known agent.
+         // Forward any cards sent to THIS agent to every other known agent
         if (policy.enabled === 'true') {
           const agents = policy.all_agents === 'true' ? this.node.getInstances('agent') : policy.targets;
           const cards = this.node.getInstances('tell card');
           if (policy.start_time) {
-            const startTime = policy.start_time.name;
-            for (let k = 0; k < cards.length; k += 1) {
-              try {
-                const card = cards[k];
-                let toAgent = false;
-                const tos = card.is_tos;
-                const cardTimestamp = card.timestamp.name;
-                if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
-                  for (let j = 0; j < tos.length; j += 1) {
-                    if (tos[j].name === name) { // If card sent to THIS agent
-                      toAgent = true;
-                      break;
-                    }
+            const startTime = policy.start_time;
+            for (const card of cards) {
+              let toAgent = false;
+              const tos = card.is_tos;
+              const from = card.is_froms[0];
+              const cardTimestamp = card.timestamp.name;
+              if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
+                for (const to of tos) {
+                  if (to.name === this.agent.name) { // If card sent to THIS agent
+                    toAgent = true;
+                    break;
                   }
-                  if (toAgent === true) {
-                    const from = card.is_froms[0];
-
-                    // Add each other agent as a recipient (if they aren't already), but not THIS agent or the original author
-                    for (let j = 0; j < agents.length; j += 1) {
-                      let agentIsRecipient = false;
-                      for (let l = 0; l < tos.length; l += 1) {
-                        if (tos[l].name.toLowerCase() === agents[j].name.toLowerCase()) {
-                          agentIsRecipient = true;
-                          break;
-                        }
+                }
+                if (toAgent) {
+                  // Add each other agent as a recipient (if they aren't already)
+                  for (const agent of agents) {
+                    let agentIsRecipient = false;
+                    for (const to of tos) {
+                      if (to.name.toLowerCase() === agent.name.toLowerCase()) {
+                        agentIsRecipient = true;
+                        break;
                       }
-                      if (!agentIsRecipient && agents[j].name.toLowerCase() !== name.toLowerCase() && agents[j].name.toLowerCase() !== from.name.toLowerCase()) {
-                        card.addRelationship('is to', agents[j]);
-                      }
+                    }
+                    if (!agentIsRecipient && agent.name.toLowerCase() !== this.agent.name.toLowerCase() && agent.name.toLowerCase() !== from.name.toLowerCase()) {
+                      card.addRelationship('is to', agent);
                     }
                   }
                 }
-              } catch (err) { /* Continue anyway */ }
+              }
             }
           }
         }
