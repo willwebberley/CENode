@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 W.M. Webberley & A.D. Preece (Cardiff University)
+ * Copyright 2017 W.M. Webberley & A.D. Preece (Cardiff University)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+'use strict';
 
 const CEAgent = require('./CEAgent.js');
 const CEParser = require('./CEParser.js');
