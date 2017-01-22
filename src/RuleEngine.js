@@ -66,7 +66,7 @@ class RuleEngine {
     }
     const rules = this.node.getInstances('rule');
     for (let i = 0; i < rules.length; i += 1) {
-      const rule = this.parseRule(rules[i].instruction);
+      const rule = RuleEngine.parseRule(rules[i].instruction);
       if (!rule) { return; }
       if (rule.if.concept === subjectInstance.type.name) {
         if ((propertyType === 'relationship' && rule.if.relationship) || (propertyType === 'value' && rule.if.value)) {
