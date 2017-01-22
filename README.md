@@ -22,7 +22,7 @@ If using CENode in a webpage, then include it (and models, if necessary) in scri
 
 <script>
   const node = new CENode(CEModels.core);
-<script>
+</script>
 ```
 
 Or, if using in a node app:
