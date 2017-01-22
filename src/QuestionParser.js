@@ -28,18 +28,19 @@ class QuestionParser {
    * Returns: [bool, str] (bool = success, str = error or response)
    */
   parse(t) {
+    const input = t.trim();
     if (t.match(/^where (is|are)/i)) {
-      return this.whereIs(t);
+      return this.whereIs(input);
     } else if (t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)) {
-      return this.whatIsIn(t);
+      return this.whatIsIn(input);
     } else if (t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)) {
-      return this.whatIs(t);
+      return this.whatIs(input);
     } else if (t.match(/^(\bwho\b|\bwhat\b) does/i)) {
-      return this.whatDoes(t);
+      return this.whatDoes(input);
     } else if (t.match(/^(\bwho\b|\bwhat\b)/i)) {
-      return this.whatRelationship(t);
+      return this.whatRelationship(input);
     } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
-      return this.listInstances(t);
+      return this.listInstances(input);
     }
     return [false, null];
   }
@@ -266,51 +267,47 @@ class QuestionParser {
   }
 
   whatRelationship(t) {
-    try {
-      const data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
-      const body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
-      const tokens = body.split(' ');
-      let instance;
-      for (let i = 0; i < tokens.length; i += 1) {
-        const testString = tokens.slice(tokens.length - (i + 1), tokens.length).join(' ').trim();
-        if (!instance) {
-          instance = this.node.getInstanceByName(testString);
-        }
-        if (!instance && testString[testString.length - 1].toLowerCase() === 's') {
-          instance = this.node.getInstanceByName(testString.substring(0, testString.length - 1));
-        }
-        if (instance) {
-          break;
-        }
+    const data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
+    const body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
+    const tokens = body.split(' ');
+    let instance;
+    for (let i = 0; i < tokens.length; i += 1) {
+      const testString = tokens.slice(tokens.length - (i + 1), tokens.length).join(' ').trim();
+      if (!instance) {
+        instance = this.node.getInstanceByName(testString);
+      }
+      if (!instance && testString[testString.length - 1].toLowerCase() === 's') {
+        instance = this.node.getInstanceByName(testString.substring(0, testString.length - 1));
       }
       if (instance) {
-        const propertyName = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
-        for (let i = 0; i < this.node.instances.length; i += 1) {
-          const subject = this.node.instances[i];
-          let fixedPropertyName = propertyName;
-          let property = subject.property(propertyName);
-          if (!property) {
-            const propTokens = propertyName.split(' ');
-            if (propTokens[0][propTokens[0].length - 1].toLowerCase() === 's') {
-              propTokens[0] = propTokens[0].substring(0, propTokens[0].length - 1);
-            }
-            fixedPropertyName = propTokens.join(' ').trim();
-            property = subject.property(fixedPropertyName);
-          }
-          if (!property) {
-            const propTokens = propertyName.split(' ');
-            propTokens[0] = `${propTokens[0]}s`;
-            fixedPropertyName = propTokens.join(' ').trim();
-            property = subject.property(fixedPropertyName);
-          }
-          if (property && property.name === instance.name) {
-            return [true, `${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`];
-          }
-        }
-        return [true, `Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`];
+        break;
       }
-    } catch (err) {
-      return [false, 'Sorry - I can\'t work out what you\'re asking.'];
+    }
+    if (instance) {
+      const propertyName = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
+      for (let i = 0; i < this.node.instances.length; i += 1) {
+        const subject = this.node.instances[i];
+        let fixedPropertyName = propertyName;
+        let property = subject.property(propertyName);
+        if (!property) {
+          const propTokens = propertyName.split(' ');
+          if (propTokens[0][propTokens[0].length - 1].toLowerCase() === 's') {
+            propTokens[0] = propTokens[0].substring(0, propTokens[0].length - 1);
+          }
+          fixedPropertyName = propTokens.join(' ').trim();
+          property = subject.property(fixedPropertyName);
+        }
+        if (!property) {
+          const propTokens = propertyName.split(' ');
+          propTokens[0] = `${propTokens[0]}s`;
+          fixedPropertyName = propTokens.join(' ').trim();
+          property = subject.property(fixedPropertyName);
+        }
+        if (property && property.name === instance.name) {
+          return [true, `${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`];
+        }
+      }
+      return [true, `Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`];
     }
     return null;
   }

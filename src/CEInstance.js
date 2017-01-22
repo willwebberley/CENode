@@ -231,18 +231,18 @@ class CEInstance {
 
   properties(propertyName, source, onlyOne) {
     const properties = [];
-    for (let i = this.valueIds.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
-      if (this.valueIds[i].label.toLowerCase() === propertyName.toLowerCase()) {
-        const inst = this.valueIds[i].instance;
-        const dat = source ? { instance: inst, source: this.valueIds[i].source } : inst;
+    for (let i = this.values.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
+      if (this.values[i].label.toLowerCase() === propertyName.toLowerCase()) {
+        const inst = this.values[i].instance;
+        const dat = source ? { instance: inst, source: this.values[i].source } : inst;
         if (onlyOne) { return dat; }
         properties.push(dat);
       }
     }
-    for (let i = this.relationshipIds.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
-      if (this.relationshipIds[i].label.toLowerCase() === propertyName.toLowerCase()) {
-        const inst = this.relationshipIds[i].instance;
-        const dat = source ? { instance: inst, source: this.relationshipIds[i].source } : inst;
+    for (let i = this.relationships.length - 1; i >= 0; i -= 1) { // Reverse so we get the latest prop first
+      if (this.relationships[i].label.toLowerCase() === propertyName.toLowerCase()) {
+        const inst = this.relationships[i].instance;
+        const dat = source ? { instance: inst, source: this.relationships[i].source } : inst;
         if (onlyOne) { return dat; }
         properties.push(dat);
       }

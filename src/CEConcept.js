@@ -187,9 +187,9 @@ class CEConcept {
   get gist() {
     let gist = '';
     if (this.parentIds.length > 0) { gist += `A ${this.name}`; }
-    for (let i = 0; i < this.parentIds.length; i += 1) {
-      gist += ` is a type of ${this.parentIds[i].name}`;
-      if (i < this.parentIds.length - 1) { gist += ' and'; }
+    for (const parentIndex in this.parents) {
+      gist += ` is a type of ${this.parents[parentIndex].name}`;
+      if (parentIndex < this.parents.length - 1) { gist += ' and'; }
     }
     if (this.parentIds.length > 0) { gist += '.'; }
     const facts = [];
