@@ -1,38 +1,62 @@
-# cenode.js
+# CENode 
 
-A pure JavaScript implementation of the ITA project's CEStore - called CENode. CENode is able to understand the basic sentence types parsed by the CEStore, such as conceptualising and instance creation.
+A pure JavaScript implementation of the ITA project's CEStore - called CENode. CENode is able to understand the basic sentence types parsed by the CEStore, such as conceptualising and instance creation and modification.
 
 Please visit the project's [home page](http://cenode.io) for more information and for documentation.
 
 See also the [Getting Started Tutorial](https://github.com/flyingsparx/CENode/blob/master/docs/getting_started.md).
 
-## Installation and use
+## Getting started
 
-`cenode.js` can be used in multiple ways.
+CENode can be imported into your Node apps or run in a browser. Either way, you will need Node and NPM installed before continuing, so install these for your platform first.
 
-It can be included simply in your web application:
+Then add CENode to your project using NPM:
 ```
-<script src="cenode.js"></script>
-```
-
-It can be imported into your NodeJS app:
-```
-var cenode = require('cenode.js');
+npm install
 ```
 
-Or it can be run as a standalone NodeJS app:
+If using CENode in a webpage, then include it (and models, if necessary) in script tags:
+```html
+<script src="/node_modules/cenode/dist/cenode.min.js"></script>
+<script src="/node_modules/cenode/dist/models.js"></script> <!-- if required -->
+
+<script>
+  const node = new CENode(CEModels.core);
+</script>
 ```
-$ node cenode.js
+
+Or, if using in a node app:
+```javascript
+const CENode = require('cenode');
+const CEModels = require('cenode/models'); // if requred
+
+const node = new CENode(CEModels.core);
 ```
 
-(Note that for options 2 and 3, `nodejs` will need to be installed on your system).
+See the [Wiki](https://github.com/flyingsparx/CENode/wiki) for further guides and the API reference.
 
-For further information, please see the Documentation section below.
+## Testing
 
-## Documentation
+Clone the repository
+```
+git clone git@github.com:flyingsparx/CENode.git
+```
 
-Please see the file `docs/documentation.pdf` for an overview of the CE language, CECard protocol, and CENode motivation and behaviour.
+Install the necessary dev dependencies.
+```
+npm install
+```
 
-## License
+Run tests.
+```
+npm test
+```
 
-`cenode.js` is released under the Apache License v2. See `LICENSE` for further information.
+## More Information
+
+See the CENode [Wiki](https://github.com/flyingsparx/CENode/wiki) for more information, guides, and the API reference.
+
+
+## Licence
+
+CENode is released under the Apache Licence v2. See `LICENCE` for further information.

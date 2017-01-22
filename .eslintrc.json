@@ -1,0 +1,18 @@
+{
+    "parserOptions": {
+        "ecmaVersion": 6
+    },
+    "env": {
+        "browser": true,
+        "node": true
+    },
+    "rules": {
+      "max-len": 0,
+      "no-restricted-syntax": 0,
+      "guard-for-in": 0,
+      "global-require": 0,
+      "lines-around-directive": 0,
+      "strict": 0
+    },
+    "extends": "airbnb-base"
+}
