@@ -4,7 +4,7 @@ A pure JavaScript implementation of the ITA project's CEStore - called CENode. C
 
 Please visit the project's [home page](http://cenode.io) for more information and for documentation.
 
-See also the [Getting Started Tutorial](https://github.com/flyingsparx/CENode/blob/master/docs/getting_started.md).
+**We recommend beginners check out the [Getting Started Guide](https://github.com/flyingsparx/CENode/wiki/Getting-Started-Guide) before continuing.**
 
 ## Getting started
 
@@ -12,7 +12,7 @@ CENode can be imported into your Node apps or run in a browser. Either way, you 
 
 Then add CENode to your project using NPM:
 ```
-npm install
+npm install cenode
 ```
 
 If using CENode in a webpage, then include it (and models, if necessary) in script tags:
