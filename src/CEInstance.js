@@ -255,8 +255,8 @@ class CEInstance {
     if (!concept) { return ''; }
     let ce = `there is a ${concept.name} named '${this.name}'`;
     const facts = [];
-    for (let i = 0; i < this.subConcepts.length; i += 1) {
-      facts.push(`is a ${this.subConcepts[i].name}`);
+    for (const subConcept of this.subConcepts) {
+      facts.push(`is a ${subConcept.name}`);
     }
     for (let i = 0; i < this.valueIds.length; i += 1) {
       const value = this.valueIds[i];
