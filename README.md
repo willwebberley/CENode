@@ -6,85 +6,48 @@ Please visit the project's [home page](http://cenode.io) for more information an
 
 See also the [Getting Started Tutorial](https://github.com/flyingsparx/CENode/blob/master/docs/getting_started.md).
 
-## Quickstart guide
+## Getting started
 
 CENode can be imported into your Node apps or run in a browser. Either way, you will need Node and NPM installed before continuing, so install these for your platform first.
 
-### Building for a browser
-
-First install the necessary dev dependencies.
+Then add CENode to your project using NPM:
 ```
 npm install
 ```
 
-Build the library for use in a browser.
-```
-npm run build-web
-```
-
-A file `cenode.js` (along with `cenode.min.js` and `cenode.js.map`) will be generated in the `dist/` directory. Additionally, CENode's default models (including the CE `core` model) are also produced during the build process.
-
-Include whichever CENode file (standard or minified) suits your needs best in your webapp markup. If you wish, also include the models file which will allow you to later use the `core` model.
+If using CENode in a webpage, then include it (and models, if necessary) in script tags:
 ```html
-...
-<script src="cenode.min.js"></script>
-<script src="models.js"></script> <!-- If you need it -->
-...
-```
+<script src="/node_modules/cenode/dist/cenode.min.js"></script>
+<script src="/node_modules/cenode/dist/models.js"></script> <!-- if required -->
 
-Once included, the `CENode` variable is exposed.
-```html
-...
 <script>
-  var node = new CENode();
-</script>
-...
-```
-
-If you chose to include the default models file too (which is recommended for most applications), then the `core` model - and any other models you need - can be passed to the node during instantiation.
-```html
-...
+  const node = new CENode(CEModels.core);
 <script>
-  var node = new CENode(CEModels.core, myCustomModel, ...);
-</script>
 ```
 
-From here, use the documentation to learn more.
-
-### Importing into your Node app
-
-CENode doesn't need to be built or processed to be included in your Node app. Simply `require` the library from the `src` directory.
-
+Or, if using in a node app:
 ```javascript
-const CENode = require('./path/to/CENode/src/CENode.js');
+const CENode = require('cenode');
+const CEModels = require('cenode/models');
 
-const node = new CENode();
+const node = new CENode(CEModels.core);
 ```
-
-Alternatively, if you want to take advantage of the CE core model, then this can also be imported and included along with any of your own models you may have.
-```javascript
-const CENode = require('./path/to/CENode/src/CENode.js');
-const CEModels = require('./path/to/CENode/models');
-
-const node = new CENode(CEModels.core, myCustomModel, ...);
-```
-
-## Running as a server
-
-A small and simple webserver is also included for submitting and retrieving CE cards over HTTP. Run the webserver using Node.
-
-```bash
-$ node /path/to/CENode/src/CEServer.js
-```
-
-Please see the documentation for information on how to configure and use the server.
 
 ## Testing
 
-To run the tests:
+Clone the repository
+```
+git clone git@github.com:flyingsparx/CENode.git
+```
 
-```bash
-$ npm test
+Install the necessary dev dependencies.
+```
+npm install
+```
+
+Run tests.
+```
+npm test
 ```
 
 ## API reference
