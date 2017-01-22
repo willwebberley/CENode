@@ -28,10 +28,12 @@ If using CENode in a webpage, then include it (and models, if necessary) in scri
 Or, if using in a node app:
 ```javascript
 const CENode = require('cenode');
-const CEModels = require('cenode/models');
+const CEModels = require('cenode/models'); // if requred
 
 const node = new CENode(CEModels.core);
 ```
+
+See the [Wiki](https://github.com/flyingsparx/CENode/wiki) for further guides and the API reference.
 
 ## Testing
 
@@ -50,13 +52,10 @@ Run tests.
 npm test
 ```
 
-## API reference
+## More Information
 
-Please see the file `docs/API.md` for more information.
+See the CENode [Wiki](https://github.com/flyingsparx/CENode/wiki) for more information, guides, and the API reference.
 
-## Motivation
-
-Please see the file `docs/documentation.pdf` for an overview of the CE language, CECard protocol, and CENode motivation and behaviour.
 
 ## Licence
 
