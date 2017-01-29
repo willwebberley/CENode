@@ -20,14 +20,11 @@ const http = require('http');
 const CENode = require('./CENode.js');
 const CEModels = require('../models/index.js');
 
-const POST_SENTENCES_ENDPOINT = '/sentences';
-const GET_CARDS_ENDPOINT = '/cards';
 let server;
 
 const handlers = {
   'GET': {
     '/sentences': (node, request, response) => {
-      response.writeHead(200, { 'Content-Type': 'text/ce' });
       const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
       const agentStr = agentRegex ? agentRegex[1] : null;
       const agents = (agentStr && agentStr.toLowerCase().split(',')) || [];
@@ -42,16 +39,39 @@ const handlers = {
           }
         }
       }
-      response.write(s);
-      response.end();
-    }
+      response.writeHead(200, { 'Content-Type': 'text/ce' });
+      response.end(s);
+    },
+    '/concepts': (node, request, response) => {
+      const concepts = [];
+      for (const concept of node.concepts) {
+        concepts.push({
+          name: concept.name,
+          id: concept.id
+        });
+      }
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify(concepts));
+    },
+    '/instances': (node, request, response) => {
+      const instances = [];
+      for (const instance of node.instances) {
+        instances.push({
+          name: instance.name,
+          id: instance.id,
+          conceptName: instance.concept.name,
+          conceptId: instance.concept.id
+        });
+      }
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify(instances));
+    },
   },
   'POST': {
     '/cards': (node, request, response) => {
       let body = '';
       request.on('data', (chunk) => { body += chunk; });
       request.on('end', () => {
-        response.writeHead(200, { 'Content-Type': 'text/ce' });
         const ignores = body.split(/\\n|\n/);
         const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
         const agentStr = agentRegex ? agentRegex[1] : null;
@@ -73,20 +93,19 @@ const handlers = {
             }
           }
         }
-        response.write(s);
-        response.end();
+        response.writeHead(200, { 'Content-Type': 'text/ce' });
+        response.end(s);
       });
     },
     '/sentences': (node, request, response) => {
-      response.writeHead(200, { 'Content-Type': 'text/ce' });
       let body = '';
       request.on('data', (chunk) => { body += chunk; });
       request.on('end', () => {
         body = decodeURIComponent(body.replace('sentence=', '').replace(/\+/g, ' '));
         const sentences = body.split(/\\n|\n/);
         const responses = node.addSentences(sentences);
-        response.write(responses.map(resp => resp.data).join('\n'));
-        response.end();
+        response.writeHead(200, { 'Content-Type': 'text/ce' });
+        response.end(responses.map(resp => resp.data).join('\n'));
       });
     }
   },
