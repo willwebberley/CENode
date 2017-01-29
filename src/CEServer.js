@@ -24,7 +24,7 @@ let server;
 
 const handlers = {
   'GET': {
-    '/sentences': (node, request, response) => {
+    '/cards': (node, request, response) => {
       const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
       const agentStr = agentRegex ? agentRegex[1] : null;
       const agents = (agentStr && agentStr.toLowerCase().split(',')) || [];
