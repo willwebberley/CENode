@@ -151,6 +151,7 @@ function startServer(name, port) {
     }
   });
   server.listen(port);
+  server.on('error', err => /* Do nothing */);
 }
 
 function stopServer (){
