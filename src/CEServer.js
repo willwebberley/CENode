@@ -20,150 +20,153 @@ const http = require('http');
 const CENode = require('./CENode.js');
 const CEModels = require('../models/index.js');
 
-let server;
+class CEServer {
 
-const handlers = {
-  'GET': {
-    '/cards': (node, request, response) => {
-      const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
-      const agentStr = agentRegex ? agentRegex[1] : null;
-      const agents = (agentStr && agentStr.toLowerCase().split(',')) || [];
-      let s = '';
-      for (const card of node.getInstances('card', true)) {
-        for (const to of card.is_tos) {
-          for (const agent of agents) {
-            if (to.name.toLowerCase() === agent) {
-              s += `${card.ce}\n`;
-              break;
-            }
-          }
-        }
-      }
-      response.writeHead(200, { 'Content-Type': 'text/ce' });
-      response.end(s);
-    },
-    '/concepts': (node, request, response) => {
-      const concepts = [];
-      for (const concept of node.concepts) {
-        concepts.push({
-          name: concept.name,
-          id: concept.id
-        });
-      }
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify(concepts));
-    },
-    '/instances': (node, request, response) => {
-      const instances = [];
-      for (const instance of node.instances) {
-        instances.push({
-          name: instance.name,
-          id: instance.id,
-          conceptName: instance.concept.name,
-          conceptId: instance.concept.id
-        });
-      }
-      response.writeHead(200, { 'Content-Type': 'application/json' });
-      response.end(JSON.stringify(instances));
-    },
-  },
-  'POST': {
-    '/cards': (node, request, response) => {
-      let body = '';
-      request.on('data', (chunk) => { body += chunk; });
-      request.on('end', () => {
-        const ignores = body.split(/\\n|\n/);
-        const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
-        const agentStr = agentRegex ? agentRegex[1] : null;
-        const agents = (agentStr && agentStr.toLowerCase().split(',')) || [];
-        let s = '';
-        for (const card of node.getInstances('card', true)) {
-          if (ignores.indexOf(card.name) === -1) {
-            if (agents.length === 0) {
-              s += `${card.ce}\n`;
-            } else {
-              for (const to of card.is_tos) {
-                for (const agent of agents) {
-                  if (to.name.toLowerCase() === agent) {
-                    s += `${card.ce}\n`;
-                    break;
-                  }
+  constructor(name, port) {
+    this.port = port;
+    this.node = new CENode(CEModels.core, CEModels.server);
+    this.node.attachAgent();
+    this.node.agent.setName(name);
+    this.handlers = {
+      'GET': {
+        '/cards': (request, response) => {
+          const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
+          const agentStr = agentRegex ? agentRegex[1] : null;
+          const agents = (agentStr && agentStr.toLowerCase().split(',')) || [];
+          let s = '';
+          for (const card of this.node.getInstances('card', true)) {
+            for (const to of card.is_tos) {
+              for (const agent of agents) {
+                if (to.name.toLowerCase() === agent) {
+                  s += `${card.ce}\n`;
+                  break;
                 }
               }
             }
           }
+          response.writeHead(200, { 'Content-Type': 'text/ce' });
+          response.end(s);
+        },
+        '/concepts': (request, response) => {
+          const concepts = [];
+          for (const concept of this.node.concepts) {
+            concepts.push({
+              name: concept.name,
+              id: concept.id
+            });
+          }
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify(concepts));
+        },
+        '/instances': (request, response) => {
+          const instances = [];
+          for (const instance of this.node.instances) {
+            instances.push({
+              name: instance.name,
+              id: instance.id,
+              conceptName: instance.concept.name,
+              conceptId: instance.concept.id
+            });
+          }
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify(instances));
+        },
+      },
+      'POST': {
+        '/cards': (request, response) => {
+          let body = '';
+          request.on('data', (chunk) => { body += chunk; });
+          request.on('end', () => {
+            const ignores = body.split(/\\n|\n/);
+            const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
+            const agentStr = agentRegex ? agentRegex[1] : null;
+            const agents = (agentStr && agentStr.toLowerCase().split(',')) || [];
+            let s = '';
+            for (const card of this.node.getInstances('card', true)) {
+              if (ignores.indexOf(card.name) === -1) {
+                if (agents.length === 0) {
+                  s += `${card.ce}\n`;
+                } else {
+                  for (const to of card.is_tos) {
+                    for (const agent of agents) {
+                      if (to.name.toLowerCase() === agent) {
+                        s += `${card.ce}\n`;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            response.writeHead(200, { 'Content-Type': 'text/ce' });
+            response.end(s);
+          });
+        },
+        '/sentences': (request, response) => {
+          let body = '';
+          request.on('data', (chunk) => { body += chunk; });
+          request.on('end', () => {
+            body = decodeURIComponent(body.replace('sentence=', '').replace(/\+/g, ' '));
+            const sentences = body.split(/\\n|\n/);
+            const responses = this.node.addSentences(sentences);
+            response.writeHead(200, { 'Content-Type': 'text/ce' });
+            response.end(responses.map(resp => resp.data).join('\n'));
+          });
         }
-        response.writeHead(200, { 'Content-Type': 'text/ce' });
-        response.end(s);
-      });
-    },
-    '/sentences': (node, request, response) => {
-      let body = '';
-      request.on('data', (chunk) => { body += chunk; });
-      request.on('end', () => {
-        body = decodeURIComponent(body.replace('sentence=', '').replace(/\+/g, ' '));
-        const sentences = body.split(/\\n|\n/);
-        const responses = node.addSentences(sentences);
-        response.writeHead(200, { 'Content-Type': 'text/ce' });
-        response.end(responses.map(resp => resp.data).join('\n'));
-      });
-    }
-  },
-  'PUT': {
-    '/reset': (node) => {
-      node.resetAll();
-      response.writeHead(204);
-      response.end();
-    },
-    '/agent/name': (node, request, response) => {
-      let body = '';
-      request.on('data', (chunk) => { body += chunk; });
-      request.on('end', () => {
-        body = decodeURIComponent(body.replace('name=', '').replace(/\+/g, ' '));
-        node.agent.setName(body);
-        response.writeHead(302, { Location: '/' });
-        response.end();
-      });
-    }
+      },
+      'PUT': {
+        '/reset': () => {
+          this.node.resetAll();
+          response.writeHead(204);
+          response.end();
+        },
+        '/agent/name': (request, response) => {
+          let body = '';
+          request.on('data', (chunk) => { body += chunk; });
+          request.on('end', () => {
+            body = decodeURIComponent(body.replace('name=', '').replace(/\+/g, ' '));
+            this.node.agent.setName(body);
+            response.writeHead(302, { Location: '/' });
+            response.end();
+          });
+        }
+      }
+    };
   }
-};
 
-function startServer(name, port) {
-  const node = new CENode(CEModels.core, CEModels.server);
-  node.attachAgent();
-  node.agent.setName(name);
-
-  server = http.createServer((request, response) => {
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    if (request.method in handlers) {
-      const path = request.url.indexOf('?') > 1 ? request.url.slice(0, request.url.indexOf('?')) : request.url;
-      if (path in handlers[request.method]) {
-        handlers[request.method][path](node, request, response);
+  start() {
+    this.server = http.createServer((request, response) => {
+      response.setHeader('Access-Control-Allow-Origin', '*');
+      if (request.method in this.handlers) {
+        const path = request.url.indexOf('?') > 1 ? request.url.slice(0, request.url.indexOf('?')) : request.url;
+        if (path in this.handlers[request.method]) {
+          this.handlers[request.method][path](request, response);
+        }
+        else {
+          response.writeHead(404);
+          response.end(`404: Resource not found for method ${request.method}.`);
+        }
       }
       else {
-        response.writeHead(404);
-        response.end(`404: Resource not found for method ${request.method}.`);
+        response.writeHead(405);
+        response.end('405: Method not allowed on this server.');
       }
-    }
-    else {
-      response.writeHead(405);
-      response.end('405: Method not allowed on this server.');
-    }
-  });
-  server.listen(port);
-  server.on('error', err => {/* Do nothing */});
-}
+    });
+    this.server.listen(this.port);
+    this.server.on('error', err => {/* Do nothing */});
+  }
 
-function stopServer (){
-  if (server) {
-    server.close();
+  stop (){
+    if (this.server) {
+      this.server.close();
+    }
   }
 }
 
 if (require.main === module) {
   const name = process.argv.length > 2 ? process.argv[2] : 'Moira';
   const port = process.argv.length > 3 ? process.argv[3] : 5555;
-  startServer(name, port);
+  new CEServer(name, port).start();
 }
 
-module.exports = {startServer, stopServer};
+module.exports = CEServer;
