@@ -153,11 +153,12 @@ class CEServer {
       }
     });
     this.server.listen(this.port);
-    this.server.on('error', err => {/* Do nothing */});
+    this.server.on('error', err => {this.node = undefined;});
   }
 
   stop (){
     if (this.server) {
+      delete this.node;
       this.server.close();
     }
   }
