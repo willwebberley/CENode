@@ -282,10 +282,9 @@ class CEInstance {
     const vowels = ['a', 'e', 'i', 'o', 'u'];
     const concept = this.concept;
     if (!concept) { return ''; }
-    let gist = `${this.name} is`;
-    if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}`; }
+    let gist = `${this.name} is ${vowels.indexOf(concept.name.toLowerCase()[0]) > -1 ? 'an' : 'a'} ${concept.name}`;
     for (let i = 0; i < this.subConcepts.length; i += 1) {
-      gist += ` and a ${this.subConcepts[i].name}`;
+      gist += ` and ${vowels.indexOf(this.subConcepts[i].name.toLowerCase()[0]) > -1 ? 'an' : 'a'} ${this.subConcepts[i].name}`;
     }
     gist += '.';
 
