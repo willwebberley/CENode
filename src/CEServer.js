@@ -58,6 +58,30 @@ class CEServer {
           response.writeHead(200, { 'Content-Type': 'application/json' });
           response.end(JSON.stringify(concepts));
         },
+        '/concept': (request, response) => {
+          const idRegex = decodeURIComponent(request.url).match(/id=(.*)/);
+          const id = idRegex ? idRegex[1] : null;
+          const concept = this.node.getConceptById(id);
+          if (concept) {
+            const body = {name: concept.name, parents: [], instances: []};
+            for (const parent of concept.parents) {
+              body.parents.push({
+                name: parent.name,
+                id: parent.id
+              });
+            }
+            for (const instance of concept.instances) {
+              body.instances.push({
+                name: instance.name,
+                id: instance.id
+              });
+            }
+            response.writeHead(200, { 'Content-Type': 'application/json' });
+            return response.end(JSON.stringify(body));
+          }
+          response.writeHead(404);
+          response.end('Concept not found');
+        },
         '/instances': (request, response) => {
           const instances = [];
           for (const instance of this.node.instances) {
@@ -73,7 +97,7 @@ class CEServer {
         },
         '/info': (request, response) => {
           const body = {recentInstances: [], recentConcepts: [], instanceCount: this.node.instances.length, conceptCount: this.node.concepts.length};
-          const recentInstances = this.node.instances.slice(this.node.instances.length >= 9 ? this.node.instances.length - 10 : 0);
+          const recentInstances = this.node.instances.slice(this.node.instances.length >= 10 ? this.node.instances.length - 10 : 0);
           for (const instance of recentInstances) {
             body.recentInstances.push({
               name: instance.name,
@@ -82,7 +106,7 @@ class CEServer {
               conceptId: instance.concept.id
             });
           }
-          const recentConcepts = this.node.concepts.slice(this.node.concepts.length >= 9 ? this.node.concepts.length - 10 : 0);
+          const recentConcepts = this.node.concepts.slice(this.node.concepts.length >= 10 ? this.node.concepts.length - 10 : 0);
           for (const concept of recentConcepts) {
             body.recentConcepts.push({
               name: concept.name,
@@ -136,7 +160,7 @@ class CEServer {
         }
       },
       'PUT': {
-        '/reset': () => {
+        '/reset': (request, response) => {
           this.node.resetAll();
           response.writeHead(204);
           response.end();
@@ -170,6 +194,7 @@ class CEServer {
       }
       else if (request.method === 'OPTIONS') {
         response.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
+        response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
         response.writeHead(200);
         response.end();
       }
