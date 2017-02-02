@@ -71,6 +71,27 @@ class CEServer {
           response.writeHead(200, { 'Content-Type': 'application/json' });
           response.end(JSON.stringify(instances));
         },
+        '/info': (request, response) => {
+          const body = {recentInstances: [], recentConcepts: [], instanceCount: this.node.instances.length, conceptCount: this.node.concepts.length};
+          const recentInstances = this.node.instances.slice(this.node.instances.length >= 9 ? this.node.instances.length - 10 : 0);
+          for (const instance of recentInstances) {
+            body.recentInstances.push({
+              name: instance.name,
+              id: instance.id,
+              conceptName: instance.concept.name,
+              conceptId: instance.concept.id
+            });
+          }
+          const recentConcepts = this.node.concepts.slice(this.node.concepts.length >= 9 ? this.node.concepts.length - 10 : 0);
+          for (const concept of recentConcepts) {
+            body.recentConcepts.push({
+              name: concept.name,
+              id: concept.id
+            });
+          }
+          response.writeHead(200, { 'Content-Type': 'application/json' });
+          response.end(JSON.stringify(body));
+        }
       },
       'POST': {
         '/cards': (request, response) => {
