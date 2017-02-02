@@ -168,6 +168,11 @@ class CEServer {
           response.end(`404: Resource not found for method ${request.method}.`);
         }
       }
+      else if (request.method === 'OPTIONS') {
+        response.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
+        response.writeHead(200);
+        response.end();
+      }
       else {
         response.writeHead(405);
         response.end('405: Method not allowed on this server.');
