@@ -63,7 +63,7 @@ class CEServer {
           const id = idRegex ? idRegex[1] : null;
           const concept = this.node.getConceptById(id);
           if (concept) {
-            const body = {name: concept.name, parents: [], instances: []};
+            const body = {name: concept.name, parents: [], instances: [], values: [], relationships: []};
             for (const parent of concept.parents) {
               body.parents.push({
                 name: parent.name,
@@ -75,6 +75,12 @@ class CEServer {
                 name: instance.name,
                 id: instance.id
               });
+            }
+            for (const value of concept.values){
+              body.values.push({label: value.label});
+            }
+            for (const relationship of concept.relationships){
+              body.relationships.push({label: relationship.label});
             }
             response.writeHead(200, { 'Content-Type': 'application/json' });
             return response.end(JSON.stringify(body));
@@ -94,6 +100,35 @@ class CEServer {
           }
           response.writeHead(200, { 'Content-Type': 'application/json' });
           response.end(JSON.stringify(instances));
+        },
+        '/instance': (request, response) => {
+          const idRegex = decodeURIComponent(request.url).match(/id=(.*)/);
+          const id = idRegex ? idRegex[1] : null;
+          const instance = this.node.getInstanceById(id);
+          if (instance) {
+            const body = {
+              name: instance.name,
+              conceptName: instance.concept.name,
+              conceptId: instance.concept.id,
+              synonyms: instance.synonyms,
+              subConcepts: [],
+              values: [],
+              relationships: []
+            };
+            for (const concept of instance.subConcepts){
+              body.subConcepts.push({name: concept.name, id: concept.id});
+            }
+            for (const value of instance.values){
+              body.values.push({label: value.label});
+            }
+            for (const relationship of instance.relationships){
+              body.relationships.push({label: relationship.label});
+            }
+            response.writeHead(200, { 'Content-Type': 'application/json' });
+            return response.end(JSON.stringify(body));
+          }
+          response.writeHead(404);
+          response.end('Concept not found');
         },
         '/info': (request, response) => {
           const body = {recentInstances: [], recentConcepts: [], instanceCount: this.node.instances.length, conceptCount: this.node.concepts.length};
