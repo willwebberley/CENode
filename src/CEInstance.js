@@ -250,10 +250,16 @@ class CEInstance {
     return onlyOne ? null : properties;
   }
 
-  get ce() {
+  getCE(isModification) {
     const concept = this.concept;
     if (!concept) { return ''; }
-    let ce = `there is a ${concept.name} named '${this.name}'`;
+
+    let ce = '';
+    if (isModification) {
+      ce += `the ${concept.name} '${this.name}'`;
+    } else {
+      ce += `there is a ${concept.name} named '${this.name}' that`;
+    }
     const facts = [];
     for (const subConcept of this.subConcepts) {
       facts.push(`is a ${subConcept.name}`);
@@ -274,8 +280,16 @@ class CEInstance {
       const relationshipConcept = relationshipInstance.type;
       facts.push(`${relationship.label} the ${relationshipConcept.name} '${relationshipInstance.name}'`);
     }
-    if (facts.length > 0) { ce += ` that ${facts.join(' and ')}`; }
+    if (facts.length > 0) { ce += ` ${facts.join(' and ')}`; }
     return `${ce}.`;
+  }
+
+  get creationCE() {
+    return `there is a ${this.concept && this.concept.name} named '${this.name}'`;
+  }
+
+  get ce() {
+    return this.getCE();    
   }
 
   get gist() {

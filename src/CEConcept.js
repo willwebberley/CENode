@@ -139,25 +139,30 @@ class CEConcept {
     return vals;
   }
 
-  get ce() {
-    let ce = `conceptualise a ~ ${this.name} ~ ${this.name.charAt(0).toUpperCase()}`;
-    if (this.parentIds.length > 0 || this.valueIds.length > 0 || this.relationshipIds.length > 0) {
+  getCE(isModification) {
+    let ce = '';
+    if (isModification) {
+      ce += `conceptualise the ${this.name} ${this.name.charAt(0).toUpperCase()}`;
+    } else {
+      ce += `conceptualise a ~ ${this.name} ~ ${this.name.charAt(0).toUpperCase()}`;
+    }
+    if (!isModification && (this.parentIds.length > 0 || this.valueIds.length > 0 || this.relationshipIds.length > 0)) {
       ce += ' that';
     }
     if (this.parentIds.length > 0) {
-      for (let i = 0; i < this.parentIds.length; i += 1) {
-        ce += ` is a ${this.parentIds[i].name}`;
-        if (i < this.parentIds.length - 1) { ce += ' and'; }
+      for (let i = 0; i < this.parents.length; i += 1) {
+        ce += ` is a ${this.parents[i].name}`;
+        if (i < this.parents.length - 1) { ce += ' and'; }
       }
     }
     let facts = [];
     const alph = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
     for (let i = 0; i < this.valueIds.length; i += 1) {
       if (this.valueIds[i].type === 0) {
-        facts.push(`has the value ${alph[i]} as ${this.valueIds[i].label}`);
+        facts.push(`has the value ${alph[i]} as ~ ${this.valueIds[i].label} ~`);
       } else {
         const valType = this.node.getConceptById(this.valueIds[i].type);
-        facts.push(`has the ${valType.name} ${valType.name.charAt(0).toUpperCase()} as ${this.valueIds[i].label}`);
+        facts.push(`has the ${valType.name} ${valType.name.charAt(0).toUpperCase()} as ~ ${this.valueIds[i].label} ~`);
       }
     }
     if (facts.length > 0) {
@@ -178,6 +183,15 @@ class CEConcept {
       }
     }
     return ce;
+  }
+
+
+  get creationCE() {
+    return `conceptualise a ~ ${this.name} ~ ${this.name.charAt(0).toUpperCase()}`;
+  }
+
+  get ce() {
+    return this.getCE(); 
   }
 
   get gist() {

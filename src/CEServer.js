@@ -63,7 +63,7 @@ class CEServer {
           const id = idRegex ? idRegex[1] : null;
           const concept = this.node.getConceptById(id);
           if (concept) {
-            const body = {name: concept.name, parents: [], children: [], instances: [], values: [], relationships: []};
+            const body = {name: concept.name, ce: concept.ce, parents: [], children: [], instances: [], values: [], relationships: []};
             for (const parent of concept.parents) {
               body.parents.push({
                 name: parent.name,
@@ -118,6 +118,7 @@ class CEServer {
               name: instance.name,
               conceptName: instance.concept.name,
               conceptId: instance.concept.id,
+              ce: instance.ce,
               synonyms: instance.synonyms,
               subConcepts: [],
               values: [],
@@ -161,6 +162,15 @@ class CEServer {
           }
           response.writeHead(200, { 'Content-Type': 'application/json' });
           response.end(JSON.stringify(body));
+        },
+        '/model': (request, response) => {
+          let body = '';
+          for (const concept of this.node.concepts) { body += concept.creationCE + '\n'; }
+          for (const concept of this.node.concepts) { body += concept.getCE(true) + '\n'; }
+          for (const instance of this.node.instances) { body += instance.creationCE + '\n'; }
+          for (const instance of this.node.instances) { body += instance.getCE(true) + '\n'; }
+          response.writeHead(200, { 'Content-Type': 'text/ce', 'Content-Disposition': 'attachment; filename="' + this.node.agent.name + '.ce"' });
+          response.end(body);
         }
       },
       'POST': {

@@ -45,7 +45,7 @@ class CEParser {
     const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
     if (t.match(/^conceptualise an?/i)) {
       return this.newConcept(t, source);
-    } else if (t.match(/^conceptualise the/i)) {
+    } else if (t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/i)) {
       return this.modifyConcept(t, source);
     } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
       return this.newInstance(t, source);
@@ -75,6 +75,9 @@ class CEParser {
 
   modifyConcept(t, source) {
     const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/);
+    if (!conceptInfo) {
+      return [false, 'Unable to parse sentence'];
+    }
     const conceptName = conceptInfo[1];
     const conceptVar = conceptInfo[2];
     const concept = this.node.getConceptByName(conceptName);
@@ -184,8 +187,10 @@ class CEParser {
 
     const remainder = t.replace(`'${instance.name}'`, instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
     const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
-    for (const fact of facts) {
-      this.processInstanceFact(instance, fact, source);
+    if (facts) {
+      for (const fact of facts) {
+        this.processInstanceFact(instance, fact, source);
+      }
     }
     return [true, t, instance];
   }
