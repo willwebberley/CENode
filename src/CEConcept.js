@@ -130,14 +130,10 @@ class CEConcept {
 
   get values() {
     const vals = [];
-    for (let i = 0; i < this.valueIds.length; i += 1) {
+    for (const val of this.valueIds) {
       const value = {};
-      value.label = this.valueIds[i].label;
-      if (this.valueIds[i].conceptId === 0) {
-        value.concept = this.valueIds[i].typeName;
-      } else {
-        value.concept = this.node.getConceptById(this.valueIds[i].type);
-      }
+      value.label = val.label;
+      value.concept = val.type && this.node.getConceptById(val.type);
       vals.push(value);
     }
     return vals;

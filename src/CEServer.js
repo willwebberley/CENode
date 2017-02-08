@@ -63,11 +63,17 @@ class CEServer {
           const id = idRegex ? idRegex[1] : null;
           const concept = this.node.getConceptById(id);
           if (concept) {
-            const body = {name: concept.name, parents: [], instances: [], values: [], relationships: []};
+            const body = {name: concept.name, parents: [], children: [], instances: [], values: [], relationships: []};
             for (const parent of concept.parents) {
               body.parents.push({
                 name: parent.name,
                 id: parent.id
+              });
+            }
+            for (const child of concept.children) {
+              body.children.push({
+                name: child.name,
+                id: child.id
               });
             }
             for (const instance of concept.instances) {
@@ -77,10 +83,12 @@ class CEServer {
               });
             }
             for (const value of concept.values){
-              body.values.push({label: value.label});
+              const name = value.concept && value.concept.name;
+              const id = value.concept && value.concept.id;
+              body.values.push({label: value.label, targetName: name, targetId: id});
             }
             for (const relationship of concept.relationships){
-              body.relationships.push({label: relationship.label});
+              body.relationships.push({label: relationship.label, targetName: relationship.concept.name, targetId: relationship.concept.id});
             }
             response.writeHead(200, { 'Content-Type': 'application/json' });
             return response.end(JSON.stringify(body));
@@ -119,10 +127,14 @@ class CEServer {
               body.subConcepts.push({name: concept.name, id: concept.id});
             }
             for (const value of instance.values){
-              body.values.push({label: value.label});
+              const name = value.instance.name || value.instance;
+              const id = value.instance.id;
+              const conceptName = value.instance.concept && value.instance.concept.name;
+              const conceptId = value.instance.concept && value.instance.concept.id;
+              body.values.push({label: value.label, targetName: name, targetId: id, targetConceptName: conceptName, targetConceptId: conceptId});
             }
             for (const relationship of instance.relationships){
-              body.relationships.push({label: relationship.label});
+              body.relationships.push({label: relationship.label, targetName: relationship.instance.name, targetId: relationship.instance.id, targetConceptName: relationship.instance.concept.name, targetConceptId: relationship.instance.concept.id});
             }
             response.writeHead(200, { 'Content-Type': 'application/json' });
             return response.end(JSON.stringify(body));
@@ -141,8 +153,7 @@ class CEServer {
               conceptId: instance.concept.id
             });
           }
-          const recentConcepts = this.node.concepts.slice(this.node.concepts.length >= 10 ? this.node.concepts.length - 10 : 0);
-          for (const concept of recentConcepts) {
+          for (const concept of this.node.concepts) {
             body.recentConcepts.push({
               name: concept.name,
               id: concept.id

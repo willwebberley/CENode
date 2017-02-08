@@ -209,7 +209,7 @@ class PolicyHandler {
   }
 
   handle(policy) {
-    if (policy.enabled === 'true') {
+    if (policy.enabled === 'true' && policy.type.name in this.handlers) {
       this.handlers[policy.type.name](policy);
     }
   }
