@@ -90,6 +90,34 @@ describe('CEParser', function() {
       expect(node.instances.jane.subConcepts[0].name).to.be('barrister');
       expect(node.instances.jane.subConcepts[1].name).to.be('londoner');
     });
+    it('prevent multi-conceptualisation', () => {
+      node.addCE('conceptualise a ~ river ~ R');
+      node.addCE('conceptualise a ~ river ~ R');
+      let counter = 0;
+      for (const concept of node.concepts) {
+        if (concept.name === 'river'){
+          counter += 1;
+        }
+      }
+      expect(counter).to.equal(1);
+
+    });
+    it('prevent multi-instantiation', () => {
+      node.addCE('there is a person named Francesca');
+      node.addCE('there is a person named Francesca');
+      let counter = 0;
+      for (const instance of node.instances) {
+        if (instance.name === 'Francesca'){
+          counter += 1;
+        }
+      }
+      expect(counter).to.equal(1);
+    });
+    it('ensure instance CE is correct', () => {
+      node.addCE('there is an entity named Hagrid');
+      const hagrid = node.instances.hagrid;
+      expect(hagrid.ce).to.equal('there is a entity named \'Hagrid\'.');
+    });
   });
 
   describe('Specific Examples', function() {
@@ -118,11 +146,12 @@ describe('CEParser', function() {
       expect(node.instances.fred.works_for.name).to.be('IBM');
     });
 
-    it('the person Fred works for the company IBM and is married to the person Jane and has 53 as age.', function() {
+    it('the person Fred works for the company IBM and is married to the person Jane and has 53 as age and has the city Cardiff as address.', function() {
       node.addCE('conceptualise a ~ company ~ C');
-      node.addCE('conceptualise a ~ person ~ P that ~ works for ~ the company C and ~ is married to ~ the person Q and has the value V as ~ age ~');
+      node.addCE('coneptualise a ~ city ~ C');
+      node.addCE('conceptualise a ~ person ~ P that ~ works for ~ the company C and ~ is married to ~ the person Q and has the value V as ~ age ~ and has the city C as ~ address ~');
       node.addCE('there is a person named Fred');
-      node.addCE('the person Fred works for the company IBM and is married to the person Jane and has 53 as age.');
+      node.addCE('the person Fred works for the company IBM and is married to the person Jane and has 53 as age and has the city Cardiff as address.');
       expect(node.instances.fred.works_for.name).to.be('IBM');
       expect(node.instances.fred.is_married_to.name).to.be('Jane');
       expect(node.instances.fred.age).to.be('53');

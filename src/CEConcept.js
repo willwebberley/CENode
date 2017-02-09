@@ -165,26 +165,17 @@ class CEConcept {
         facts.push(`has the ${valType.name} ${valType.name.charAt(0).toUpperCase()} as ~ ${this.valueIds[i].label} ~`);
       }
     }
+    for (let i = 0; i < this.relationshipIds.length; i += 1) {
+      const relType = this.node.getConceptById(this.relationshipIds[i].target);
+      facts.push(`~ ${this.relationshipIds[i].label} ~ the ${relType.name} ${alph[i]}`);
+    }
     if (facts.length > 0) {
       if (this.parentIds.length > 0) { ce += ' and'; }
       ce += ` ${facts.join(' and ')}`;
     }
     ce += '.';
-    if (this.relationshipIds.length > 0) {
-      facts = [];
-      ce += `\nconceptualise the ${this.name} ${this.name.charAt(0).toUpperCase()}`;
-      for (let i = 0; i < this.relationshipIds.length; i += 1) {
-        const relType = this.node.getConceptById(this.relationshipIds[i].target);
-        facts.push(`~ ${this.relationshipIds[i].label} ~ the ${relType.name} ${alph[i]}`);
-      }
-      if (facts.length > 0) {
-        if (this.parentIds.length > 0 || this.valueIds.length > 0) { ce += ' and'; }
-        ce += ` ${facts.join(' and ')}.`;
-      }
-    }
     return ce;
   }
-
 
   get creationCE() {
     return `conceptualise a ~ ${this.name} ~ ${this.name.charAt(0).toUpperCase()}`;
