@@ -117,6 +117,19 @@ describe('CEParser', function() {
       node.addCE('there is an entity named Hagrid');
       const hagrid = node.instances.hagrid;
       expect(hagrid.ce).to.equal('there is a entity named \'Hagrid\'.');
+      node.addCE('the entity Hagrid is a person');
+      expect(hagrid.ce).to.equal('there is a entity named \'Hagrid\' that is a person.');
+    });
+    it('ensure concepts can be addressed by synonyms', () => {
+      node.addCE('conceptualise a ~ seat ~ that ~ is expressed by ~ chair and has the value V as ~ height ~');
+      node.addCE('there is a chair named chair1 that has 43cm as height');
+      expect(node.instances.chair1.height).to.equal('43cm');
+    });
+    it('ensure instances can be addressed by synonyms', () => {
+      node.addCE('conceptualise an ~ engineer ~');
+      node.addCE('there is a person named William that is expressed by Will');
+      node.addCE('the person Will is an engineer');
+      expect(node.instances.william.subConcepts).to.contain(node.concepts.engineer.id);
     });
   });
 
