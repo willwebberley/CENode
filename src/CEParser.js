@@ -141,13 +141,13 @@ class CEParser {
     const instanceName = names[2].replace(/\\/g, '');
     const concept = this.node.getConceptByName(conceptName);
     const currentInstance = this.node.getInstanceByName(instanceName);
-    const instance = new CEInstance(this.node, concept, instanceName, source);
     if (!concept) {
       return [false, `Instance type unknown: ${conceptName}`];
     }
     if (currentInstance && currentInstance.type.id === concept.id) {
-      return [true, 'There is already an instance of this type with this name.', currentInstance];
+      return [false, 'There is already an instance of this type with this name.', currentInstance];
     }
+    const instance = new CEInstance(this.node, concept, instanceName, source);
     instance.sentences.push(t);
 
     const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') that/, '');
