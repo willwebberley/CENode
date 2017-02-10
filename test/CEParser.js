@@ -44,6 +44,22 @@ describe('CEParser', function() {
       expect(node.concepts.plant.relationships.length).to.be(1);
       expect(node.concepts.plant.relationships[0].label).to.be('grows into');
     });
+    it('prevent multi-conceptualisation', () => {
+      node.addCE('conceptualise a ~ river ~ R');
+      node.addCE('conceptualise a ~ river ~ R');
+      let counter = 0;
+      for (const concept of node.concepts) {
+        if (concept.name === 'river'){
+          counter += 1;
+        }
+      }
+      expect(counter).to.equal(1);
+    });
+    it('ensure concepts can be addressed by synonyms', () => {
+      node.addCE('conceptualise a ~ seat ~ that ~ is expressed by ~ chair and has the value V as ~ height ~');
+      node.addCE('there is a chair named chair1 that has 43cm as height');
+      expect(node.instances.chair1.height).to.equal('43cm');
+    });
   });   
   
   
@@ -90,18 +106,7 @@ describe('CEParser', function() {
       expect(node.instances.jane.subConcepts[0].name).to.be('barrister');
       expect(node.instances.jane.subConcepts[1].name).to.be('londoner');
     });
-    it('prevent multi-conceptualisation', () => {
-      node.addCE('conceptualise a ~ river ~ R');
-      node.addCE('conceptualise a ~ river ~ R');
-      let counter = 0;
-      for (const concept of node.concepts) {
-        if (concept.name === 'river'){
-          counter += 1;
-        }
-      }
-      expect(counter).to.equal(1);
-
-    });
+    
     it('prevent multi-instantiation', () => {
       node.addCE('there is a person named Francesca');
       node.addCE('there is a person named Francesca');
@@ -120,16 +125,21 @@ describe('CEParser', function() {
       node.addCE('the entity Hagrid is a person');
       expect(hagrid.ce).to.equal('there is a entity named \'Hagrid\' that is a person.');
     });
-    it('ensure concepts can be addressed by synonyms', () => {
-      node.addCE('conceptualise a ~ seat ~ that ~ is expressed by ~ chair and has the value V as ~ height ~');
-      node.addCE('there is a chair named chair1 that has 43cm as height');
-      expect(node.instances.chair1.height).to.equal('43cm');
-    });
+    
     it('ensure instances can be addressed by synonyms', () => {
       node.addCE('conceptualise an ~ engineer ~');
       node.addCE('there is a person named William that is expressed by Will');
       node.addCE('the person Will is an engineer');
       expect(node.instances.william.subConcepts).to.contain(node.concepts.engineer.id);
+    });
+    it('ensure instances inherit properties from subConcepts', () => {
+      node.addCE('conceptualise a ~ borough ~ B');
+      node.addCE('conceptualise the londoner L ~ lives in ~ the borough B');
+      node.addCE('conceptualise the barrister B has the value V as ~ speciality ~');
+      node.addCE('there is a person named Amy that is a londoner and is a barrister');
+      node.addCE('the person Amy lives in the borough Chelsea and has \'family law\' as speciality');
+      expect(node.instances.amy.lives_in.name).to.be('Chelsea');
+      expect(node.instances.amy.speciality).to.be('family law');
     });
   });
 
@@ -200,7 +210,5 @@ describe('CEParser', function() {
       expect(node.concepts.farmer.parents[1].name).to.be('land owner');
     });
   });
-
-
 });
 

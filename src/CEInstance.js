@@ -258,7 +258,7 @@ class CEInstance {
     if (isModification) {
       ce += `the ${concept.name} '${this.name}'`;
     } else {
-      ce += `there is a ${concept.name} named '${this.name}' that`;
+      ce += `there is a ${concept.name} named '${this.name}'`;
     }
     const facts = [];
     for (const subConcept of this.subConcepts) {
@@ -280,7 +280,7 @@ class CEInstance {
       const relationshipConcept = relationshipInstance.type;
       facts.push(`${relationship.label} the ${relationshipConcept.name} '${relationshipInstance.name}'`);
     }
-    if (facts.length > 0) { ce += ` ${facts.join(' and ')}`; }
+    if (facts.length > 0) { ce += `${!isModification && ' that'} ${facts.join(' and ')}`; }
     return `${ce}.`;
   }
 
@@ -297,7 +297,7 @@ class CEInstance {
     const concept = this.concept;
     if (!concept) { return ''; }
     let gist = `${this.name} is`;
-    if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}.`; } else { gist += ` a ${concept.name}`; }
+    if (vowels.indexOf(concept.name.toLowerCase()[0]) > -1) { gist += ` an ${concept.name}`; } else { gist += ` a ${concept.name}`; }
     for (let i = 0; i < this.subConcepts.length; i += 1) {
       gist += ` and a ${this.subConcepts[i].name}`;
     }
