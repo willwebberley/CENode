@@ -46,13 +46,13 @@ class CENode {
 
   getConceptByName(name) {
     if (!name) { return null; }
-    for (let i = 0; i < this.concepts.length; i += 1) {
-      if (this.concepts[i].name.toLowerCase() === name.toLowerCase()) {
-        return this.concepts[i];
+    for (const concept of this.concepts) {
+      if (concept.name.toLowerCase() === name.toLowerCase()) {
+        return concept;
       }
-      for (let j = 0; j < this.concepts[i].synonyms.length; j += 1) {
-        if (this.concepts[i].synonyms[j].toLowerCase() === name.toLowerCase()) {
-          return this.concepts[i];
+      for (const synonym of concept.synonyms) {
+        if (synonym.toLowerCase() === name.toLowerCase()) {
+          return concept;
         }
       }
     }
@@ -63,15 +63,17 @@ class CENode {
     return this.instanceDict[id];
   }
 
-  getInstanceByName(name) {
+  getInstanceByName(name, concept) {
     if (!name) { return null; }
-    for (let i = 0; i < this.instances.length; i += 1) {
-      if (this.instances[i].name.toLowerCase() === name.toLowerCase()) {
-        return this.instances[i];
-      }
-      for (let j = 0; j < this.instances[i].synonyms.length; j += 1) {
-        if (this.instances[i].synonyms[j].toLowerCase() === name.toLowerCase()) {
-          return this.instances[i];
+    for (const instance of this.instances) {
+      if (instance && (concept ? concept.id === instance.concept.id : true)){
+        if (instance.name.toLowerCase() === name.toLowerCase()) {
+          return instance;
+        }
+        for (const synonym of instance.synonyms) {
+          if (synonym.toLowerCase() === name.toLowerCase()) {
+            return instance;
+          }
         }
       }
     }
@@ -101,9 +103,9 @@ class CENode {
     } else if (conceptType && !recurse) {
       const concept = this.getConceptByName(conceptType);
       if (concept) {
-        for (let i = 0; i < this.instances.length; i += 1) {
-          if (this.instances[i].type.id === concept.id) {
-            instanceList.push(this.instances[i]);
+        for (const instance of this.instances) {
+          if (instance.type.id === concept.id) {
+            instanceList.push(instance);
           }
         }
       }
@@ -112,10 +114,10 @@ class CENode {
       if (concept) {
         const descendants = concept.descendants.concat(concept);
         const childrenIds = [];
-        for (let i = 0; i < descendants.length; i += 1) { childrenIds.push(descendants[i].id); }
-        for (let i = 0; i < this.instances.length; i += 1) {
-          if (childrenIds.indexOf(this.instances[i].type.id) > -1) {
-            instanceList.push(this.instances[i]);
+        for (const descendant of descendants) { childrenIds.push(descendant.id); }
+        for (const instance of this.instances) {
+          if (childrenIds.indexOf(instance.type.id) > -1) {
+            instanceList.push(instance);
           }
         }
       }
@@ -151,8 +153,8 @@ class CENode {
    */
   addSentences(sentences, source) {
     const responses = [];
-    for (let i = 0; i < sentences.length; i += 1) {
-      responses.push(this.addSentence(sentences[i], source));
+    for (const sentence of sentences) {
+      responses.push(this.addSentence(sentence, source));
     }
     return responses;
   }
@@ -210,8 +212,8 @@ class CENode {
    */
   loadModel(sentences) {
     const responses = [];
-    for (let i = 0; i < sentences.length; i += 1) {
-      responses.push(this.addCE(sentences[i]));
+    for (const sentence of sentences) {
+      responses.push(this.addCE(sentence));
     }
     return responses;
   }
@@ -250,8 +252,8 @@ class CENode {
     this.lastInstanceId = this.instances.length;
     this.lastConceptId = this.concepts.length;
     this.lastCardId = 0;
-    for (let i = 0; i < models.length; i += 1) {
-      this.loadModel(models[i]);
+    for (const model of models) {
+      this.loadModel(model);
     }
   }
 }

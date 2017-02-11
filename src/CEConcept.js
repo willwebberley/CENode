@@ -19,6 +19,14 @@
 class CEConcept {
 
   constructor(node, name, source) {
+    if (!name) {
+      return;
+    }
+    for (const concept of node.concepts) {
+      if (concept.name.toLowerCase() === name.toLowerCase()){
+        return;
+      }
+    }
     this.name = name;
     this.source = source;
     this.id = node.newConceptId();

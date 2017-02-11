@@ -127,10 +127,10 @@ describe('CEParser', function() {
     });
     
     it('ensure instances can be addressed by synonyms', () => {
-      node.addCE('conceptualise an ~ engineer ~');
+      node.addCE('conceptualise an ~ engineer ~ E');
       node.addCE('there is a person named William that is expressed by Will');
       node.addCE('the person Will is an engineer');
-      expect(node.instances.william.subConcepts).to.contain(node.concepts.engineer.id);
+      expect(node.instances.william.subConcepts[0].name).to.be('engineer');
     });
     it('ensure instances inherit properties from subConcepts', () => {
       node.addCE('conceptualise a ~ borough ~ B');

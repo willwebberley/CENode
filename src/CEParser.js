@@ -140,7 +140,7 @@ class CEParser {
     const conceptName = names[1];
     const instanceName = names[2].replace(/\\/g, '');
     const concept = this.node.getConceptByName(conceptName);
-    const currentInstance = this.node.getInstanceByName(instanceName);
+    const currentInstance = this.node.getInstanceByName(instanceName, concept);
     if (!concept) {
       return [false, `Instance type unknown: ${conceptName}`];
     }
@@ -159,23 +159,23 @@ class CEParser {
   }
 
   modifyInstance(t, source) {
-    let concept;
-    let instance;
+    let concept, instance, instanceName;
     if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
       if (names) {
         concept = this.node.getConceptByName(names[1]);
-        instance = this.node.getInstanceByName(names[2].replace(/\\/g, ''));
+        instanceName = names[2].replace(/\\/g, '');
+        instance = this.node.getInstanceByName(instanceName, concept);
       }
     }
     if (!instance && t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
       const nameTokens = names[1].split(' ');
-      for (let i = 0; i < this.node.concepts.length; i += 1) {
-        if (names[1].toLowerCase().indexOf(this.node.concepts[i].name.toLowerCase()) === 0) {
-          concept = this.node.concepts[i];
-          const instanceName = nameTokens[concept.name.split(' ').length].toLowerCase();
-          instance = concept[instanceName];
+      for (const conceptCheck of this.node.concepts) {
+        if (names[1].toLowerCase().indexOf(conceptCheck.name.toLowerCase()) === 0) {
+          concept = conceptCheck;
+          instanceName = nameTokens[concept.name.split(' ').length];
+          instance = this.node.getInstanceByName(instanceName, concept);
           break;
         }
       }
@@ -184,8 +184,9 @@ class CEParser {
       return [false, `Unknown concept/instance combination in: ${t}`];
     }
     instance.sentences.push(t);
-
-    const remainder = t.replace(`'${instance.name}'`, instance.name).replace(`the ${concept.name} ${instance.name}`.trim(), '');
+    const tokens = t.split(' ');
+    tokens.splice(0, 1 + concept.name.split(' ').length + instanceName.split(' ').length);
+    const remainder = tokens.join(' ');
     const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     if (facts) {
       for (const fact of facts) {
@@ -204,7 +205,7 @@ class CEParser {
       const relConceptName = match[2];
       const relInstanceName = match[3].replace(/'/g, '');
       const relConcept = this.node.getConceptByName(relConceptName);
-      let relInstance = this.node.getInstanceByName(relInstanceName);
+      let relInstance = this.node.getInstanceByName(relInstanceName, relConcept);
       if (!relInstance) {
         relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
       }
@@ -224,7 +225,7 @@ class CEParser {
       const valInstanceName = match[2].replace(/'/g, '');
       const label = match[3];
       const valConcept = this.node.getConceptByName(valConceptName);
-      let valInstance = this.node.getInstanceByName(valInstanceName);
+      let valInstance = this.node.getInstanceByName(valInstanceName, valConcept);
       if (!valInstance) {
         valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
       }

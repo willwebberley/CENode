@@ -19,8 +19,13 @@
 class CEInstance {
 
   constructor(node, type, name, source) {
-    if (!type) {
+    if (!type || !name) {
       return;
+    }
+    for (const instance of node.instances) {
+      if (instance.name.toLowerCase() === name.toLowerCase() && type.id === instance.concept.id){
+        return;
+      }
     }
 
     this.node = node;
