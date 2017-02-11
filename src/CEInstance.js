@@ -101,8 +101,12 @@ class CEInstance {
   }
 
   getPossibleProperties() {
-    const ancestorInstances = this.concept.ancestors;
+    let ancestorInstances = this.concept.ancestors;
     ancestorInstances.push(this.concept);
+    for (const subConcept of this.subConcepts) {
+      ancestorInstances.push(subConcept);
+      ancestorInstances = ancestorInstances.concat(subConcept.ancestors); 
+    }
     const properties = { values: [], relationships: [] };
     for (let i = 0; i < ancestorInstances.length; i += 1) {
       for (let j = 0; j < ancestorInstances[i].values.length; j += 1) {
