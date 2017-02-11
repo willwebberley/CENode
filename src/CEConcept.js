@@ -38,99 +38,101 @@ class CEConcept {
     node.concepts.push(this);
     this.node.conceptDict[this.id] = this;
 
-    const concept = this;
-    Object.defineProperty(node.concepts, name.toLowerCase().replace(/ /g, '_'), {
-      get() {
-        return concept;
-      },
-      configurable: true,
-    });
+    if (isNaN(name[0])){
+      const concept = this;
+      Object.defineProperty(node.concepts, name.toLowerCase().replace(/ /g, '_'), {
+        get() {
+          return concept;
+        },
+        configurable: true,
+      });
+    }
   }
 
   get instances() {
-    const instances = [];
-    for (let i = 0; i < this.node.instances.length; i += 1) {
-      if (this.node.instances[i].type.id === this.id) {
-        instances.push(this.node.instances[i]);
+    const array = [];
+    for (const instance of this.node.instances) {
+      if (instance.concept.id === this.id) {
+        array.push(instance);
       }
     }
-    return instances;
+    return array;
   }
 
   get allInstances() {
     const allConcepts = this.descendants.concat(this);
-    const instances = [];
-    for (let i = 0; i < this.node.instances.length; i += 1) {
-      for (let j = 0; j < allConcepts.length; j += 1) {
-        if (this.node.instances[i].type.id === allConcepts[j].id) {
-          instances.push(this.node.instances[i]);
+    const array = [];
+    for (const instance of this.node.instances) {
+      for (const concept of allConcepts) {
+        if (instance.concept.id === concept.id) {
+          array.push(instance);
         }
       }
     }
-    return instances;
+    return array;
   }
 
   get parents() {
-    const p = [];
-    for (let i = 0; i < this.parentIds.length; i += 1) {
-      p.push(this.node.getConceptById(this.parentIds[i]));
+    const array = [];
+    for (const id of this.parentIds) {
+      array.push(this.node.getConceptById(id));
     }
-    return p;
+    return array;
   }
 
   get ancestors() {
-    const parents = [];
+    const array = [];
     const stack = [];
-    for (let i = 0; i < this.parentIds.length; i += 1) {
-      stack.push(this.parents[i]);
+    for (const parent of this.parents) {
+      stack.push(parent);
     }
     while (stack.length > 0) {
       const current = stack.pop();
-      parents.push(current);
-      for (let i = 0; i < current.parents.length; i += 1) {
-        stack.push(current.parents[i]);
+      array.push(current);
+      for (const parent of current.parents) {
+        stack.push(parent);
       }
     }
-    return parents;
+    return array;
   }
 
   get children() {
-    const children = [];
-    for (let i = 0; i < this.node.concepts.length; i += 1) {
-      for (let j = 0; j < this.node.concepts[i].parents.length; j += 1) {
-        if (this.node.concepts[i].parents[j].id === this.id) {
-          children.push(this.node.concepts[i]);
+    const array = [];
+    for (const concept of this.node.concepts) {
+      for (const parent of concept.parents) {
+        if (parent.id === this.id) {
+          array.push(concept);
         }
       }
     }
-    return children;
+    return array;
   }
 
   get descendants() {
-    const children = [];
+    const array = [];
     const stack = [];
-    for (let i = 0; i < this.children.length; i += 1) {
-      stack.push(this.children[i]);
+    for (const child of this.children) {
+      stack.push(child);
     }
     while (stack.length > 0) {
       const current = stack.pop();
-      children.push(current);
+      array.push(current);
       const currentChildren = current.children;
       if (currentChildren) {
-        for (let i = 0; i < currentChildren.length; i += 1) {
-          stack.push(currentChildren[i]);
+        for (const child of currentChildren) {
+          stack.push(child);
         }
       }
     }
-    return children;
+    return array;
   }
 
   get relationships() {
     const rels = [];
-    for (let i = 0; i < this.relationshipIds.length; i += 1) {
+    for (const id of this.relationshipIds) {
       const relationship = {};
-      relationship.label = this.relationshipIds[i].label;
-      relationship.concept = this.node.getConceptById(this.relationshipIds[i].target);
+      relationship.label = id.label;
+      relationship.concept = this.node.getConceptById(id.target);
       rels.push(relationship);
     }
     return rels;
@@ -228,12 +230,14 @@ class CEConcept {
     value.label = label;
     value.type = typeof type === 'number' ? type : type.id;
     this.valueIds.push(value);
-    Object.defineProperty(this, label.toLowerCase().replace(/ /g, '_'), {
-      get() {
-        return type === 0 ? 'value' : type;
-      },
-      configurable: true,
-    });
+    if (isNaN(label[0])){
+      Object.defineProperty(this, label.toLowerCase().replace(/ /g, '_'), {
+        get() {
+          return type === 0 ? 'value' : type;
+        },
+        configurable: true,
+      });
+    }
   }
 
   addRelationship(label, target, source) {
@@ -242,12 +246,14 @@ class CEConcept {
     relationship.label = label;
     relationship.target = target.id;
     this.relationshipIds.push(relationship);
-    Object.defineProperty(this, label.toLowerCase().replace(/ /g, '_'), {
-      get() {
-        return target;
-      },
-      configurable: true,
-    });
+    if (isNaN(label[0])){
+      Object.defineProperty(this, label.toLowerCase().replace(/ /g, '_'), {
+        get() {
+          return target;
+        },
+        configurable: true,
+      });
+    }
   }
 
   addParent(parentConcept) {
@@ -257,8 +263,8 @@ class CEConcept {
   }
 
   addSynonym(synonym) {
-    for (let i = 0; i < this.synonyms.length; i += 1) {
-      if (this.synonyms[i].toLowerCase() === synonym.toLowerCase()) {
+    for (const currentSynonym of this.synonyms) {
+      if (currentSynonym.toLowerCase() === synonym.toLowerCase()) {
         return;
       }
     }

@@ -27,7 +27,6 @@ class CEInstance {
         return;
       }
     }
-
     this.node = node;
     this.name = name;
     this.source = source;
@@ -43,20 +42,22 @@ class CEInstance {
     node.instances.push(this);
     this.node.instanceDict[this.id] = this;
 
-    const instance = this;
-    Object.defineProperty(node.instances, name.toLowerCase().replace(/ /g, '_').replace(/'/g, ''), {
-      get() {
-        return instance;
-      },
-      configurable: true,
-    });
-
-    Object.defineProperty(type, name.toLowerCase(), {
-      get() {
-        return instance;
-      },
-      configurable: true,
-    });
+    if (isNaN(name[0])){
+      const instance = this;
+      const helperName = name.toLowerCase().replace(/ /g, '_').replace(/'/g, '');
+      Object.defineProperty(node.instances, helperName, {
+        get() {
+          return instance;
+        },
+        configurable: true,
+      });
+      Object.defineProperty(type, helperName, {
+        get() {
+          return instance;
+        },
+        configurable: true,
+      });
+    }
   }
 
   get type() {
@@ -132,7 +133,7 @@ class CEInstance {
       this.valueIds.push(value);
       const valueNameField = label.toLowerCase().replace(/ /g, '_');
 
-      if (this.reservedFields.indexOf(valueNameField) === -1) {
+      if (this.reservedFields.indexOf(valueNameField) === -1 && isNaN(valueNameField[0])) {
         Object.defineProperty(this, valueNameField, {
           get() {
             return value.conceptId === 0 ? value.typeName : this.node.getInstanceById(value.conceptId);
@@ -171,7 +172,7 @@ class CEInstance {
       this.relationshipIds.push(relationship);
       const relNameField = label.toLowerCase().replace(/ /g, '_');
 
-      if (this.reservedFields.indexOf(relNameField) === -1) {
+      if (this.reservedFields.indexOf(relNameField) === -1 && isNaN(relNameField[0])) {
         Object.defineProperty(this, relNameField, {
           get() {
             return this.node.getInstanceById(relationship.targetId);
@@ -210,11 +211,13 @@ class CEInstance {
       }
     }
     this.synonyms.push(synonym);
-    Object.defineProperty(this, synonym.toLowerCase().replace(/ /g, '_'), {
-      get() {
-        return this;
-      },
-    });
+    if (isNaN(synonym[0])) {
+      Object.defineProperty(this, synonym.toLowerCase().replace(/ /g, '_'), {
+        get() {
+          return this;
+        },
+      });
+    }
     return null;
   }
 

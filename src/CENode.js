@@ -99,12 +99,14 @@ class CENode {
   getInstances(conceptType, recurse) {
     let instanceList = [];
     if (!conceptType) {
-      instanceList = this.instances;
+      for (const instance of this.instances) {
+        instanceList.push(instance);
+      }
     } else if (conceptType && !recurse) {
       const concept = this.getConceptByName(conceptType);
       if (concept) {
         for (const instance of this.instances) {
-          if (instance.type.id === concept.id) {
+          if (instance && instance.concept.id === concept.id) {
             instanceList.push(instance);
           }
         }
@@ -116,7 +118,7 @@ class CENode {
         const childrenIds = [];
         for (const descendant of descendants) { childrenIds.push(descendant.id); }
         for (const instance of this.instances) {
-          if (childrenIds.indexOf(instance.type.id) > -1) {
+          if (instance && childrenIds.indexOf(instance.concept.id) > -1) {
             instanceList.push(instance);
           }
         }

@@ -191,6 +191,7 @@ class CEParser {
     if (facts) {
       for (const fact of facts) {
         this.processInstanceFact(instance, fact, source);
+        
       }
     }
     return [true, t, instance];
