@@ -43,9 +43,9 @@ class CEAgent {
 
   getInstance() {
     const instances = this.node.getInstances('agent');
-    for (let i = 0; i < instances.length; i += 1) {
-      if (instances[i].name.toLowerCase() === name.toLowerCase()) {
-        return instances[i];
+    for (const instance of instances) {
+      if (instance.name.toLowerCase() === name.toLowerCase()) {
+        return instance;
       }
     }
     return null;
