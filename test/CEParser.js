@@ -171,7 +171,7 @@ describe('CEParser', function() {
 
     it('the person Fred works for the company IBM and is married to the person Jane and has 53 as age and has the city Cardiff as address.', function() {
       node.addCE('conceptualise a ~ company ~ C');
-      node.addCE('coneptualise a ~ city ~ C');
+      node.addCE('conceptualise a ~ city ~ C');
       node.addCE('conceptualise a ~ person ~ P that ~ works for ~ the company C and ~ is married to ~ the person Q and has the value V as ~ age ~ and has the city C as ~ address ~');
       node.addCE('there is a person named Fred');
       node.addCE('the person Fred works for the company IBM and is married to the person Jane and has 53 as age and has the city Cardiff as address.');
