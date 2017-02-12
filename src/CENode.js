@@ -214,8 +214,10 @@ class CENode {
    */
   loadModel(sentences) {
     const responses = [];
-    for (const sentence of sentences) {
-      responses.push(this.addCE(sentence));
+    if (sentences && sentences.length) {
+      for (const sentence of sentences) {
+        responses.push(this.addCE(sentence));
+      }
     }
     return responses;
   }

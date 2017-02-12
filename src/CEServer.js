@@ -22,9 +22,14 @@ const CEModels = require('../models/index.js');
 
 class CEServer {
 
-  constructor(name, port) {
+  constructor(name, port, models) {
     this.port = port;
-    this.node = new CENode(CEModels.core, CEModels.server);
+    this.node = new CENode();
+    if (models) {
+      for (const model of models) {
+        this.node.loadModel(CEModels[model]);
+      }
+    }
     this.node.attachAgent();
     this.node.agent.setName(name);
     this.handlers = {
@@ -274,7 +279,8 @@ class CEServer {
 if (require.main === module) {
   const name = process.argv.length > 2 ? process.argv[2] : 'Moira';
   const port = process.argv.length > 3 ? process.argv[3] : 5555;
-  new CEServer(name, port).start();
+  const models = process.argv.slice(4);
+  new CEServer(name, port, models).start();
 }
 
 module.exports = CEServer;
