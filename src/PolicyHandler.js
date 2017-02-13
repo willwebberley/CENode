@@ -175,29 +175,31 @@ class PolicyHandler {
         if (policy.start_time) {
           const startTime = policy.start_time;
           for (const card of cards) {
-            let toAgent = false;
-            const tos = card.is_tos;
-            const from = card.is_froms[0];
-            const cardTimestamp = card.timestamp.name;
-            if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
-              for (const to of tos) {
-                if (to.name === this.agent.name) { // If card sent to THIS agent
-                  toAgent = true;
-                  break;
-                }
-              }
-              if (toAgent) {
-                // Add each other agent as a recipient (if they aren't already)
-                for (const agentCheck of agents) {
-                  let agentIsRecipient = false;
-                  for (const to of tos) {
-                    if (to.name.toLowerCase() === agentCheck.name.toLowerCase()) {
-                      agentIsRecipient = true;
-                      break;
-                    }
+            if (card.timestamp && card.is_froms.length) {
+              let toAgent = false;
+              const tos = card.is_tos;
+              const from = card.is_froms[0];
+              const cardTimestamp = card.timestamp.name;
+              if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
+                for (const to of tos) {
+                  if (to.name === this.agent.name) { // If card sent to THIS agent
+                    toAgent = true;
+                    break;
                   }
-                  if (!agentIsRecipient && agentCheck.name.toLowerCase() !== this.agent.name.toLowerCase() && agentCheck.name.toLowerCase() !== from.name.toLowerCase()) {
-                    card.addRelationship('is to', agentCheck);
+                }
+                if (toAgent) {
+                  // Add each other agent as a recipient (if they aren't already)
+                  for (const agentCheck of agents) {
+                    let agentIsRecipient = false;
+                    for (const to of tos) {
+                      if (to.name.toLowerCase() === agentCheck.name.toLowerCase()) {
+                        agentIsRecipient = true;
+                        break;
+                      }
+                    }
+                    if (!agentIsRecipient && agentCheck.name.toLowerCase() !== this.agent.name.toLowerCase() && agentCheck.name.toLowerCase() !== from.name.toLowerCase()) {
+                      card.addRelationship('is to', agentCheck);
+                    }
                   }
                 }
               }
@@ -209,7 +211,7 @@ class PolicyHandler {
   }
 
   handle(policy) {
-    if (policy.enabled === 'true') {
+    if (policy.enabled === 'true' && policy.type.name in this.handlers) {
       this.handlers[policy.type.name](policy);
     }
   }

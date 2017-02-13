@@ -324,7 +324,7 @@ class QuestionParser {
       ins = this.node.getInstances(con, true);
       s = `All instances of type '${con}':`;
     } else if (t.toLowerCase() === 'list instances') {
-      ins = this.node.instances;
+      ins = this.node.getInstances();
       s = 'All instances:';
     }
     if (ins.length === 0) {
