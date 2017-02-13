@@ -172,7 +172,7 @@ class PolicyHandler {
         // Forward any cards sent to THIS agent to every other known agent
         const agents = policy.all_agents === 'true' ? this.node.getInstances('agent') : policy.targets;
         const cards = this.node.getInstances('tell card');
-        if (policy.start_time) {
+        if (policy.start_time && card.timestamp) {
           const startTime = policy.start_time;
           for (const card of cards) {
             let toAgent = false;
