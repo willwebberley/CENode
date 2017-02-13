@@ -66,7 +66,7 @@ class CENode {
   getInstanceByName(name, concept) {
     if (!name) { return null; }
     for (const instance of this.instances) {
-      if (instance && (concept ? concept.id === instance.concept.id : true)){
+      if (instance && (concept ? concept.id === instance.concept.id : true)) {
         if (instance.name.toLowerCase() === name.toLowerCase()) {
           return instance;
         }
@@ -97,7 +97,7 @@ class CENode {
    * Returns: [obj{instance}]
    */
   getInstances(conceptType, recurse) {
-    let instanceList = [];
+    const instanceList = [];
     if (!conceptType) {
       for (const instance of this.instances) {
         instanceList.push(instance);

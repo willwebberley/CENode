@@ -159,7 +159,9 @@ class CEParser {
   }
 
   modifyInstance(t, source) {
-    let concept, instance, instanceName;
+    let concept;
+    let instance;
+    let instanceName;
     if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
       if (names) {
@@ -191,7 +193,6 @@ class CEParser {
     if (facts) {
       for (const fact of facts) {
         this.processInstanceFact(instance, fact, source);
-        
       }
     }
     return [true, t, instance];

@@ -23,7 +23,7 @@ class CEConcept {
       return;
     }
     for (const concept of node.concepts) {
-      if (concept.name.toLowerCase() === name.toLowerCase()){
+      if (concept.name.toLowerCase() === name.toLowerCase()) {
         return;
       }
     }
@@ -38,7 +38,7 @@ class CEConcept {
     node.concepts.push(this);
     this.node.conceptDict[this.id] = this;
 
-    if (isNaN(name[0])){
+    if (isNaN(name[0])) {
       const concept = this;
       Object.defineProperty(node.concepts, name.toLowerCase().replace(/ /g, '_'), {
         get() {
@@ -165,7 +165,7 @@ class CEConcept {
         if (i < this.parents.length - 1) { ce += ' and'; }
       }
     }
-    let facts = [];
+    const facts = [];
     const alph = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
     for (let i = 0; i < this.valueIds.length; i += 1) {
       if (this.valueIds[i].type === 0) {
@@ -192,7 +192,7 @@ class CEConcept {
   }
 
   get ce() {
-    return this.getCE(); 
+    return this.getCE();
   }
 
   get gist() {
@@ -230,7 +230,7 @@ class CEConcept {
     value.label = label;
     value.type = typeof type === 'number' ? type : type.id;
     this.valueIds.push(value);
-    if (isNaN(label[0])){
+    if (isNaN(label[0])) {
       Object.defineProperty(this, label.toLowerCase().replace(/ /g, '_'), {
         get() {
           return type === 0 ? 'value' : type;
@@ -246,7 +246,7 @@ class CEConcept {
     relationship.label = label;
     relationship.target = target.id;
     this.relationshipIds.push(relationship);
-    if (isNaN(label[0])){
+    if (isNaN(label[0])) {
       Object.defineProperty(this, label.toLowerCase().replace(/ /g, '_'), {
         get() {
           return target;

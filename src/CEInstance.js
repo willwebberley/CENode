@@ -23,7 +23,7 @@ class CEInstance {
       return;
     }
     for (const instance of node.instances) {
-      if (instance.name.toLowerCase() === name.toLowerCase() && type.id === instance.concept.id){
+      if (instance.name.toLowerCase() === name.toLowerCase() && type.id === instance.concept.id) {
         return;
       }
     }
@@ -42,7 +42,7 @@ class CEInstance {
     node.instances.push(this);
     this.node.instanceDict[this.id] = this;
 
-    if (isNaN(name[0])){
+    if (isNaN(name[0])) {
       const instance = this;
       const helperName = name.toLowerCase().replace(/ /g, '_').replace(/'/g, '');
       Object.defineProperty(node.instances, helperName, {
@@ -106,7 +106,7 @@ class CEInstance {
     ancestorInstances.push(this.concept);
     for (const subConcept of this.subConcepts) {
       ancestorInstances.push(subConcept);
-      ancestorInstances = ancestorInstances.concat(subConcept.ancestors); 
+      ancestorInstances = ancestorInstances.concat(subConcept.ancestors);
     }
     const properties = { values: [], relationships: [] };
     for (const ancestor of ancestorInstances) {
@@ -299,7 +299,7 @@ class CEInstance {
   }
 
   get ce() {
-    return this.getCE();    
+    return this.getCE();
   }
 
   get gist() {

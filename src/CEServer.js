@@ -33,7 +33,7 @@ class CEServer {
     this.node.attachAgent();
     this.node.agent.setName(name);
     this.handlers = {
-      'GET': {
+      GET: {
         '/cards': (request, response) => {
           const agentRegex = decodeURIComponent(request.url).match(/agent=(.*)/);
           const agentStr = agentRegex ? agentRegex[1] : null;
@@ -57,7 +57,7 @@ class CEServer {
           for (const concept of this.node.concepts) {
             concepts.push({
               name: concept.name,
-              id: concept.id
+              id: concept.id,
             });
           }
           response.writeHead(200, { 'Content-Type': 'application/json' });
@@ -68,38 +68,38 @@ class CEServer {
           const id = idRegex ? idRegex[1] : null;
           const concept = this.node.getConceptById(id);
           if (concept) {
-            const body = {name: concept.name, ce: concept.ce, parents: [], children: [], instances: [], values: [], relationships: []};
+            const body = { name: concept.name, ce: concept.ce, parents: [], children: [], instances: [], values: [], relationships: [] };
             for (const parent of concept.parents) {
               body.parents.push({
                 name: parent.name,
-                id: parent.id
+                id: parent.id,
               });
             }
             for (const child of concept.children) {
               body.children.push({
                 name: child.name,
-                id: child.id
+                id: child.id,
               });
             }
             for (const instance of concept.instances) {
               body.instances.push({
                 name: instance.name,
-                id: instance.id
+                id: instance.id,
               });
             }
-            for (const value of concept.values){
-              const name = value.concept && value.concept.name;
-              const id = value.concept && value.concept.id;
-              body.values.push({label: value.label, targetName: name, targetId: id});
+            for (const value of concept.values) {
+              const valueName = value.concept && value.concept.name;
+              const valueId = value.concept && value.concept.id;
+              body.values.push({ label: value.label, targetName: valueName, targetId: valueId });
             }
-            for (const relationship of concept.relationships){
-              body.relationships.push({label: relationship.label, targetName: relationship.concept.name, targetId: relationship.concept.id});
+            for (const relationship of concept.relationships) {
+              body.relationships.push({ label: relationship.label, targetName: relationship.concept.name, targetId: relationship.concept.id });
             }
             response.writeHead(200, { 'Content-Type': 'application/json' });
             return response.end(JSON.stringify(body));
           }
           response.writeHead(404);
-          response.end('Concept not found');
+          return response.end('Concept not found');
         },
         '/instances': (request, response) => {
           const instances = [];
@@ -108,7 +108,7 @@ class CEServer {
               name: instance.name,
               id: instance.id,
               conceptName: instance.concept.name,
-              conceptId: instance.concept.id
+              conceptId: instance.concept.id,
             });
           }
           response.writeHead(200, { 'Content-Type': 'application/json' });
@@ -127,42 +127,42 @@ class CEServer {
               synonyms: instance.synonyms,
               subConcepts: [],
               values: [],
-              relationships: []
+              relationships: [],
             };
-            for (const concept of instance.subConcepts){
-              body.subConcepts.push({name: concept.name, id: concept.id});
+            for (const concept of instance.subConcepts) {
+              body.subConcepts.push({ name: concept.name, id: concept.id });
             }
-            for (const value of instance.values){
-              const name = value.instance.name || value.instance;
-              const id = value.instance.id;
+            for (const value of instance.values) {
+              const valueName = value.instance.name || value.instance;
+              const valueId = value.instance.id;
               const conceptName = value.instance.concept && value.instance.concept.name;
               const conceptId = value.instance.concept && value.instance.concept.id;
-              body.values.push({label: value.label, targetName: name, targetId: id, targetConceptName: conceptName, targetConceptId: conceptId});
+              body.values.push({ label: value.label, targetName: valueName, targetId: valueId, targetConceptName: conceptName, targetConceptId: conceptId });
             }
-            for (const relationship of instance.relationships){
-              body.relationships.push({label: relationship.label, targetName: relationship.instance.name, targetId: relationship.instance.id, targetConceptName: relationship.instance.concept.name, targetConceptId: relationship.instance.concept.id});
+            for (const relationship of instance.relationships) {
+              body.relationships.push({ label: relationship.label, targetName: relationship.instance.name, targetId: relationship.instance.id, targetConceptName: relationship.instance.concept.name, targetConceptId: relationship.instance.concept.id });
             }
             response.writeHead(200, { 'Content-Type': 'application/json' });
             return response.end(JSON.stringify(body));
           }
           response.writeHead(404);
-          response.end('Concept not found');
+          return response.end('Concept not found');
         },
         '/info': (request, response) => {
-          const body = {recentInstances: [], recentConcepts: [], instanceCount: this.node.instances.length, conceptCount: this.node.concepts.length};
+          const body = { recentInstances: [], recentConcepts: [], instanceCount: this.node.instances.length, conceptCount: this.node.concepts.length };
           const recentInstances = this.node.instances.slice(this.node.instances.length >= 10 ? this.node.instances.length - 10 : 0);
           for (const instance of recentInstances) {
             body.recentInstances.push({
               name: instance.name,
               id: instance.id,
               conceptName: instance.concept.name,
-              conceptId: instance.concept.id
+              conceptId: instance.concept.id,
             });
           }
           for (const concept of this.node.concepts) {
             body.recentConcepts.push({
               name: concept.name,
-              id: concept.id
+              id: concept.id,
             });
           }
           response.writeHead(200, { 'Content-Type': 'application/json' });
@@ -170,15 +170,15 @@ class CEServer {
         },
         '/model': (request, response) => {
           let body = '';
-          for (const concept of this.node.concepts) { body += concept.creationCE + '\n'; }
-          for (const concept of this.node.concepts) { body += concept.getCE(true) + '\n'; }
-          for (const instance of this.node.instances) { body += instance.creationCE + '\n'; }
-          for (const instance of this.node.instances) { body += instance.getCE(true) + '\n'; }
-          response.writeHead(200, { 'Content-Type': 'text/ce', 'Content-Disposition': 'attachment; filename="' + this.node.agent.name + '.ce"' });
+          for (const concept of this.node.concepts) { body += `${concept.creationCE}\n`; }
+          for (const concept of this.node.concepts) { body += `${concept.getCE(true)}\n`; }
+          for (const instance of this.node.instances) { body += `${instance.creationCE}\n`; }
+          for (const instance of this.node.instances) { body += `${instance.getCE(true)}\n`; }
+          response.writeHead(200, { 'Content-Type': 'text/ce', 'Content-Disposition': `attachment; filename="${this.node.agent.name}.ce"` });
           response.end(body);
-        }
+        },
       },
-      'POST': {
+      POST: {
         '/cards': (request, response) => {
           let body = '';
           request.on('data', (chunk) => { body += chunk; });
@@ -218,9 +218,9 @@ class CEServer {
             response.writeHead(200, { 'Content-Type': 'text/ce' });
             response.end(responses.map(resp => resp.data).join('\n'));
           });
-        }
+        },
       },
-      'PUT': {
+      PUT: {
         '/reset': (request, response) => {
           this.node.resetAll();
           response.writeHead(204);
@@ -235,8 +235,8 @@ class CEServer {
             response.writeHead(302, { Location: '/' });
             response.end();
           });
-        }
-      }
+        },
+      },
     };
   }
 
@@ -247,28 +247,25 @@ class CEServer {
         const path = request.url.indexOf('?') > 1 ? request.url.slice(0, request.url.indexOf('?')) : request.url;
         if (path in this.handlers[request.method]) {
           this.handlers[request.method][path](request, response);
-        }
-        else {
+        } else {
           response.writeHead(404);
           response.end(`404: Resource not found for method ${request.method}.`);
         }
-      }
-      else if (request.method === 'OPTIONS') {
+      } else if (request.method === 'OPTIONS') {
         response.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
         response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
         response.writeHead(200);
         response.end();
-      }
-      else {
+      } else {
         response.writeHead(405);
         response.end('405: Method not allowed on this server.');
       }
     });
     this.server.listen(this.port);
-    this.server.on('error', err => {this.node = undefined;});
+    this.server.on('error', () => { this.node = undefined; });
   }
 
-  stop (){
+  stop() {
     if (this.server) {
       delete this.node;
       this.server.close();
