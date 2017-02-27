@@ -118,7 +118,7 @@ class CardHandler {
   }
 
   handle(card) {
-    if (card.is_tos && card.content && this.agent.handledCards.indexOf(card.name) === -1) {
+    if (card.type.name in this.handlers && card.is_tos && card.content && this.agent.handledCards.indexOf(card.name) === -1) {
       // Determine whether or not to read or ignore this card:
       for (const to of card.is_tos) {
         if (to.name.toLowerCase() === this.agent.name.toLowerCase()) {

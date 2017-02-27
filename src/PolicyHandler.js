@@ -84,8 +84,8 @@ class PolicyHandler {
   constructor(agent) {
     this.agent = agent;
     this.node = agent.node;
-    this.unsentTellCards = [];
-    this.unsentAskCards = [];
+    this.unsentTellCards = {};
+    this.unsentAskCards = {};
     this.lastSuccessfulRequest = 0;
     this.handlers = {
 
@@ -93,6 +93,9 @@ class PolicyHandler {
         // For each tell policy in place, send all currently-untold cards to each target
         // multiple cards to be sent to one target line-separated
         if (policy.target && policy.target.name && policy.target.address) {
+          if (!(policy.target.name in this.unsentTellCards)) {
+            this.unsentTellCards[policy.target.name] = [];
+          }
           let data = '';
           for (const card of this.unsentTellCards[policy.target.name]) {
             if (card.is_tos && card.is_from.name.toLowerCase() !== policy.target.name.toLowerCase()) { // Don't send back a card sent from target agent
@@ -120,6 +123,9 @@ class PolicyHandler {
         // For each ask policy in place send all currently-untold cards to each target
         // multiple cards to be sent to one target are line-separated
         if (policy.target && policy.target.name) {
+          if (!(policy.target.name in this.unsentAskCards)) {
+            this.unsentAskCards[policy.target.name] = [];
+          }
           let data = '';
           for (const card of this.unsentAskCards[policy.target.name]) {
             const froms = card.is_froms;
