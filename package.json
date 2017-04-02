@@ -1,6 +1,6 @@
 {
   "name": "cenode",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "A pure JavaScript implementation of the ITA project's CEStore - called CENode. CENode is able to understand the basic sentence types parsed by the CEStore, such as conceptualising and instance creation and modification.",
   "homepage": "http://cenode.io",
   "license": "Apache-2.0",
