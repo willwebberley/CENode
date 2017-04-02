@@ -193,11 +193,13 @@ class CEServer {
                 if (agents.length === 0) {
                   s += `${card.ce}\n`;
                 } else {
-                  for (const to of card.is_tos) {
-                    for (const agent of agents) {
-                      if (to.name.toLowerCase() === agent) {
-                        s += `${card.ce}\n`;
-                        break;
+                  if (card.is_tos){
+                    for (const to of card.is_tos) {
+                      for (const agent of agents) {
+                        if (to.name.toLowerCase() === agent) {
+                          s += `${card.ce}\n`;
+                          break;
+                        }
                       }
                     }
                   }

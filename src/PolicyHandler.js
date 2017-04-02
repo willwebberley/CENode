@@ -186,7 +186,7 @@ class PolicyHandler {
               const tos = card.is_tos;
               const from = card.is_froms[0];
               const cardTimestamp = card.timestamp.name;
-              if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime, 10)) {
+              if (tos && parseInt(cardTimestamp, 10) > parseInt(startTime.name, 10)) {
                 for (const to of tos) {
                   if (to.name === this.agent.name) { // If card sent to THIS agent
                     toAgent = true;
