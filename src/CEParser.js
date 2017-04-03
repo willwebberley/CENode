@@ -162,15 +162,7 @@ class CEParser {
     let concept;
     let instance;
     let instanceName;
-    if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
-      const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (names) {
-        concept = this.node.getConceptByName(names[1]);
-        instanceName = names[2].replace(/\\/g, '');
-        instance = this.node.getInstanceByName(instanceName, concept);
-      }
-    }
-    if (!instance && t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+    if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
       const nameTokens = names[1].split(' ');
       for (const conceptCheck of this.node.concepts) {
@@ -180,6 +172,14 @@ class CEParser {
           instance = this.node.getInstanceByName(instanceName, concept);
           break;
         }
+      }
+    }
+    if (!instance && t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
+      const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+      if (names) {
+        concept = this.node.getConceptByName(names[1]);
+        instanceName = names[2].replace(/\\/g, '');
+        instance = this.node.getInstanceByName(instanceName, concept);
       }
     }
     if (!concept || !instance) {
