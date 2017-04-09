@@ -1,7 +1,8 @@
 module.exports = [
   "conceptualise an ~ entity ~ E",
+  "conceptualise a ~ transform ~ T that has the value V as ~ input ~ and has the value W as ~ output ~ and has the value R as ~ transform function ~",
   "conceptualise an ~ imageable thing ~ I that has the value V as ~ image ~",
-  "conceptualise a ~ timestamp ~ T that is an entity",
+  "conceptualise a ~ timestamp ~ T that is an entity and has the value V as ~ date ~ and ~ uses ~ the transform R",
   "conceptualise an ~ agent ~ A that is an entity and has the value V as ~ address ~",
   "conceptualise an ~ individual ~ I that is an ~ agent ~",
   "conceptualise a ~ card ~ C that is an entity and has the timestamp T as ~ timestamp ~ and has the value V as ~ content ~ and has the value W as ~ linked content ~ and has the value V as ~ number of keystrokes ~ and has the timestamp T as ~ start time ~ and has the value W as ~ submit time ~ and has the value L as ~ latitude ~ and has the value M as ~ longitude ~",

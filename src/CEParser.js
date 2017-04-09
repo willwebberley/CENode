@@ -213,6 +213,11 @@ class CEParser {
           relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
         }
         instance.addRelationship(label, relInstance, true, source);
+
+        if (relConcept.name === 'transform'){
+          const e = eval(relInstance.transform_function);
+          instance.addValue(relInstance.output, e.toString(), true, source);
+        }
       }
     }
     if (input.match(/^has ([a-zA-Z0-9]*|'[^'\\]*(?:\\.[^'\\]*)*') as ([a-zA-Z0-9 ]*)/)) {
@@ -235,6 +240,11 @@ class CEParser {
           valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
         }
         instance.addValue(label, valInstance, true, source);
+
+        if (valConcept.name === 'transform'){
+          const e = eval(valInstance.transform_function);
+          instance.addValue(valInstance.output, e.toString(), true, source);
+        }
       }
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)) {
