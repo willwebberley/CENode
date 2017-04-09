@@ -150,6 +150,21 @@ describe('CEParser', function() {
       expect(node.instances.betty_hughes.lives_in.name).to.be('Camden');
       expect(node.instances.sally.lives_in.name).to.be('Kensington and Chelsea');
     });
+
+    it('allow for successful transforms', () => {
+      node = new CENode(CEModels.core);
+      node.addCE('conceptualise a ~ person ~ P that is a transformer and has the value A as ~ first name ~ and has the value B as ~ last name ~ and has the value C as ~ full name ~');
+      node.addCE('there is a transform named t1 that has \'full name\' as output and has \'this.first_name + " " + this.last_name\' as transform function');
+      node.addCE('there is a person named p1 that has Jane as first name and has Smith as last name and uses the transform t1');
+      expect(node.instances.p1.full_name).to.be('Jane Smith');
+      node.addCE('the person p1 has Harry as first name');
+      expect(node.instances.p1.full_name).to.be('Harry Smith');
+
+      node.addCE('there is a transform named t2 that has date as output and has \'new Date(parseInt(this.name))\' as transform function');
+      node.addCE('there is a timestamp named \'715263762315\' that uses the transform t2');
+      const t = node.getInstanceByName('715263762315');
+      expect(t.date).to.contain('1992');
+    });
   });
 
   describe('Specific Examples', function() {

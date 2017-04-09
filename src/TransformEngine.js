@@ -24,22 +24,25 @@ class TransformEngine {
     }
 
     try {
+      const sandbox = {
+        name: instance.name,
+        type: instance.concept.name
+      };
+      for (const attr of instance.values.concat(instance.relationships)) {
+        const value = attr.instance.name ? attr.instance.name : attr.instance;
+        sandbox[attr.label] = value;
+        sandbox[attr.label.toLowerCase().replace(/ /g, '_').replace(/'/g, '')] = value;
+      }
+      sandbox.instance = sandbox;
       if (typeof window !== 'undefined' && window.document) {
-
+        return function () {
+          eval(func)
+        }.call(sandbox);
       } 
       else {
         const vm = require('vm');
         const util = require('util')
         const script = new vm.Script(func);
-        const sandbox = {
-          name: instance.name,
-          type: instance.concept.name,
-        };
-        for (const attr of instance.values.concat(instance.relationships)) {
-          const value = attr.instance.name ? attr.instance.name : attr.instance;
-          sandbox[attr.label] = value;
-          sandbox[attr.label.toLowerCase().replace(/ /g, '_').replace(/'/g, '')] = value;
-        }
         const context = new vm.createContext(sandbox);
         return script.runInContext(context, {timeout: 30});
       }
