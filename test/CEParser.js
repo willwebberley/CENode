@@ -141,6 +141,15 @@ describe('CEParser', function() {
       expect(node.instances.amy.lives_in.name).to.be('Chelsea');
       expect(node.instances.amy.speciality).to.be('family law');
     });
+    it('ensure strings with a mix of quoted and unquoted names/values are parsed', () => {
+      node.addCE('there is a londoner named Ella that lives in the borough \'Kensington and Chelsea\'');
+      node.addCE('there is a londoner named \'Betty Hughes\' that lives in the borough Camden');
+      node.addCE('there is a londoner named Sally');
+      node.addCE('the londoner Sally lives in the borough \'Kensington and Chelsea\'');
+      expect(node.instances.ella.lives_in.name).to.be('Kensington and Chelsea');
+      expect(node.instances.betty_hughes.lives_in.name).to.be('Camden');
+      expect(node.instances.sally.lives_in.name).to.be('Kensington and Chelsea');
+    });
   });
 
   describe('Specific Examples', function() {

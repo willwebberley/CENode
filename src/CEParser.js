@@ -162,15 +162,7 @@ class CEParser {
     let concept;
     let instance;
     let instanceName;
-    if (t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
-      const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (names) {
-        concept = this.node.getConceptByName(names[1]);
-        instanceName = names[2].replace(/\\/g, '');
-        instance = this.node.getInstanceByName(instanceName, concept);
-      }
-    }
-    if (!instance && t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+    if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
       const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
       const nameTokens = names[1].split(' ');
       for (const conceptCheck of this.node.concepts) {
@@ -180,6 +172,14 @@ class CEParser {
           instance = this.node.getInstanceByName(instanceName, concept);
           break;
         }
+      }
+    }
+    if (!instance && t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
+      const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
+      if (names) {
+        concept = this.node.getConceptByName(names[1]);
+        instanceName = names[2].replace(/\\/g, '');
+        instance = this.node.getInstanceByName(instanceName, concept);
       }
     }
     if (!concept || !instance) {
@@ -207,11 +207,13 @@ class CEParser {
       const relConceptName = match[2];
       const relInstanceName = match[3].replace(/'/g, '');
       const relConcept = this.node.getConceptByName(relConceptName);
-      let relInstance = this.node.getInstanceByName(relInstanceName, relConcept);
-      if (!relInstance) {
-        relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
+      if (relConcept) {
+        let relInstance = this.node.getInstanceByName(relInstanceName, relConcept);
+        if (!relInstance) {
+          relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
+        }
+        instance.addRelationship(label, relInstance, true, source);
       }
-      instance.addRelationship(label, relInstance, true, source);
     }
     if (input.match(/^has ([a-zA-Z0-9]*|'[^'\\]*(?:\\.[^'\\]*)*') as ([a-zA-Z0-9 ]*)/)) {
       const re = /^has ([a-zA-Z0-9]*|'[^'\\]*(?:\\.[^'\\]*)*') as ([a-zA-Z0-9 ]*)/;
@@ -227,11 +229,13 @@ class CEParser {
       const valInstanceName = match[2].replace(/'/g, '');
       const label = match[3];
       const valConcept = this.node.getConceptByName(valConceptName);
-      let valInstance = this.node.getInstanceByName(valInstanceName, valConcept);
-      if (!valInstance) {
-        valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
+      if (valConcept) {
+        let valInstance = this.node.getInstanceByName(valInstanceName, valConcept);
+        if (!valInstance) {
+          valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
+        }
+        instance.addValue(label, valInstance, true, source);
       }
-      instance.addValue(label, valInstance, true, source);
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)) {
       const re = /(?:is| )?an? ([a-zA-Z0-9 ]*)/g;
