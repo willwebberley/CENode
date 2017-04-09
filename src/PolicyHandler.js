@@ -213,7 +213,20 @@ class PolicyHandler {
           }
         }
       },
-    };
+
+      'transform policy': (policy) => {
+        if (policy.transform_type && policy.uses){
+          for (const instance of this.node.getInstances(policy.transform_type)) {
+            if (!instance.uses) {
+              instance.addRelationship('uses', policy.uses, true); 
+              console.log('added',policy.uses.name,' to',instance.name)
+              console.log(instance.date)
+              console.log(instance.blah)
+            }
+          }
+        }
+      }
+    }
   }
 
   handle(policy) {
