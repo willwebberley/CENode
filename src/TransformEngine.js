@@ -32,7 +32,6 @@ class TransformEngine {
         const value = attr.instance.name ? attr.instance.name : attr.instance;
         sandbox[attr.label.toLowerCase().replace(/ /g, '_').replace(/'/g, '')] = value;
       }
-      sandbox.instance = sandbox;
       if (typeof window !== 'undefined' && window.document) {
         return function () {
           eval(func)
@@ -53,21 +52,20 @@ class TransformEngine {
 
   enactTransforms(instance, label, targetInstance, source) {
     let doTransform = false;
-    let transform;
+    let transforms = [];
     if (targetInstance.concept && targetInstance.concept.name === 'transform'){
-      transform = targetInstance;
+      transforms = [targetInstance];
     }
     else {
       const newLabel = 'this.' + label.toLowerCase().replace(/ /g, '_').replace(/'/g, '');
       for (const rel of instance.relationships){
         if (rel.instance.concept && rel.instance.concept.name === 'transform' && rel.instance.transform_function && rel.instance.transform_function.indexOf(newLabel) > -1){
-          transform = rel.instance;
-          break;
+          transforms.push(rel.instance);
         }
       }
     }
 
-    if (transform) {
+    for (const transform of transforms) {
       const e = this.evaluate(instance, transform.transform_function);
       if (e){
         instance.addValue(transform.output, e.toString(), true, source);
