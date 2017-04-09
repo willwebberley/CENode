@@ -34,7 +34,7 @@ class TransformEngine {
       }
       if (typeof window !== 'undefined' && window.document) {
         return function () {
-          eval(func)
+          return eval(func);
         }.call(sandbox);
       } 
       else {
