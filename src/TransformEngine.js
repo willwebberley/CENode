@@ -18,8 +18,35 @@
 
 class TransformEngine {
 
-  evalInContext(func) {
-    return eval(func);        //# .logs `{ a: 1, b: 2, c: 3 }` inside example()
+  evaluate (instance, func) {
+    if (func.indexOf('require') > -1){
+      return 'Invalid function';
+    }
+
+    try {
+      if (typeof window !== 'undefined' && window.document) {
+
+      } 
+      else {
+        const vm = require('vm');
+        const util = require('util')
+        const script = new vm.Script(func);
+        const sandbox = {
+          name: instance.name,
+          type: instance.concept.name,
+        };
+        for (const attr of instance.values.concat(instance.relationships)) {
+          const value = attr.instance.name ? attr.instance.name : attr.instance;
+          sandbox[attr.label] = value;
+          sandbox[attr.label.toLowerCase().replace(/ /g, '_').replace(/'/g, '')] = value;
+        }
+        const context = new vm.createContext(sandbox);
+        return script.runInContext(context, {timeout: 30});
+      }
+    }
+    catch (err){
+      return err;
+    }
   }
 
   enactTransforms(instance, label, targetInstance, source) {
@@ -39,8 +66,10 @@ class TransformEngine {
     }
 
     if (transform) {
-      const e = this.evalInContext.call(instance, transform.transform_function);
-      instance.addValue(transform.output, e.toString(), true, source);
+      const e = this.evaluate(instance, transform.transform_function);
+      if (e){
+        instance.addValue(transform.output, e.toString(), true, source);
+      }
     }
   }
 
