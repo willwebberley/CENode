@@ -23,5 +23,6 @@ module.exports = [
   "conceptualise a ~ listen policy ~ P that is a policy",
   "conceptualise a ~ listen onbehalfof policy ~ P that is a policy",
   "conceptualise a ~ forwardall policy ~ P that is a policy and has the timestamp T as ~ start time ~ and has the value V as ~ all agents ~",
-  "conceptualise a ~ feedback policy ~ P that is a policy and has the value V as ~ acknowledgement ~"
+  "conceptualise a ~ feedback policy ~ P that is a policy and has the value V as ~ acknowledgement ~",
+  "conceptualise a ~ transform policy ~ P that is a policy and ~ transforms ~ the transformer T and has the value V as ~ attribute ~ and ~ uses ~ the transform U"
 ];
