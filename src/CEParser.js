@@ -151,7 +151,7 @@ class CEParser {
     instance.sentences.push(t);
 
     const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') that/, '');
-    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    const facts = remainder.replace(/\band\b/g, '!+').match(/(?:'(?:\\.|[^'])*'|[^!+])+/g);
     for (const fact of facts) {
       this.processInstanceFact(instance, fact, source);
     }
@@ -189,7 +189,7 @@ class CEParser {
     const tokens = t.split(' ');
     tokens.splice(0, 1 + concept.name.split(' ').length + instanceName.split(' ').length);
     const remainder = tokens.join(' ');
-    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    const facts = remainder.replace(/\band\b/g, '!+').match(/(?:'(?:\\.|[^'])*'|[^!+])+/g);
     if (facts) {
       for (const fact of facts) {
         this.processInstanceFact(instance, fact, source);
@@ -199,7 +199,7 @@ class CEParser {
   }
 
   processInstanceFact(instance, fact, source) {
-    const input = fact.trim().replace(/\+/g, 'and');
+    const input = fact.trim().replace(/!\+/g, 'and');
     if (input.match(/^(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/)) {
       const re = /^(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/;
       const match = re.exec(input);
@@ -213,11 +213,6 @@ class CEParser {
           relInstance = new CEInstance(this.node, relConcept, relInstanceName, source);
         }
         instance.addRelationship(label, relInstance, true, source);
-
-        if (relConcept.name === 'transform'){
-          const e = eval(relInstance.transform_function);
-          instance.addValue(relInstance.output, e.toString(), true, source);
-        }
       }
     }
     if (input.match(/^has ([a-zA-Z0-9]*|'[^'\\]*(?:\\.[^'\\]*)*') as ([a-zA-Z0-9 ]*)/)) {
@@ -240,11 +235,6 @@ class CEParser {
           valInstance = new CEInstance(this.node, valConcept, valInstanceName, source);
         }
         instance.addValue(label, valInstance, true, source);
-
-        if (valConcept.name === 'transform'){
-          const e = eval(valInstance.transform_function);
-          instance.addValue(valInstance.output, e.toString(), true, source);
-        }
       }
     }
     if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)) {

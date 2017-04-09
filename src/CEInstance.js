@@ -158,6 +158,7 @@ class CEInstance {
       if (propagate !== false) {
         this.node.ruleEngine.enactRules(this, 'value', valueInstance, source);
       }
+      this.node.transformEngine.enactTransforms(this, label, valueInstance, source);
     }
     return null;
   }
@@ -197,6 +198,7 @@ class CEInstance {
       if (propagate !== false) {
         this.node.ruleEngine.enactRules(this, 'relationship', relationshipInstance, source);
       }
+      this.node.transformEngine.enactTransforms(this, label, relationshipInstance, source);
     }
     return null;
   }

@@ -21,6 +21,7 @@ const CEParser = require('./CEParser.js');
 const QuestionParser = require('./QuestionParser.js');
 const NLParser = require('./NLParser.js');
 const RuleEngine = require('./RuleEngine.js');
+const TransformEngine = require('./TransformEngine.js');
 
 class CENode {
 
@@ -248,6 +249,7 @@ class CENode {
     this.questionParser = new QuestionParser(this);
     this.nlParser = new NLParser(this);
     this.ruleEngine = new RuleEngine(this);
+    this.transformEngine = new TransformEngine(this);
     this.concepts = [];
     this.instances = [];
     this.conceptDict = {};
