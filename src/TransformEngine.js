@@ -30,7 +30,6 @@ class TransformEngine {
       };
       for (const attr of instance.values.concat(instance.relationships)) {
         const value = attr.instance.name ? attr.instance.name : attr.instance;
-        sandbox[attr.label] = value;
         sandbox[attr.label.toLowerCase().replace(/ /g, '_').replace(/'/g, '')] = value;
       }
       sandbox.instance = sandbox;
@@ -59,11 +58,11 @@ class TransformEngine {
       transform = targetInstance;
     }
     else {
+      const newLabel = 'this.' + label.toLowerCase().replace(/ /g, '_').replace(/'/g, '');
       for (const rel of instance.relationships){
-        if (rel.instance.concept && rel.instance.concept.name === 'transform'){
-          if (rel.instance.input === label || rel.instance.input === 'name'){
-            transform = rel.instance;
-          }
+        if (rel.instance.concept && rel.instance.concept.name === 'transform' && rel.instance.transform_function && rel.instance.transform_function.indexOf(newLabel) > -1){
+          transform = rel.instance;
+          break;
         }
       }
     }

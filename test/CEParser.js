@@ -158,12 +158,12 @@ describe('CEParser', function() {
       node.addCE('there is a person named p1 that has Jane as first name and has Smith as last name and uses the transform t1');
       expect(node.instances.p1.full_name).to.be('Jane Smith');
       node.addCE('the person p1 has Harry as first name');
+      expect(node.instances.p1.first_name).to.be('Harry');
       expect(node.instances.p1.full_name).to.be('Harry Smith');
 
       node.addCE('there is a transform named t2 that has date as output and has \'new Date(parseInt(this.name))\' as transform function');
       node.addCE('there is a timestamp named \'715263762315\' that uses the transform t2');
-      const t = node.getInstanceByName('715263762315');
-      expect(t.date).to.contain('1992');
+      expect(node.getInstanceByName('715263762315').date).to.contain('1992');
     });
   });
 
