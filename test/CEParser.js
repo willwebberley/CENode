@@ -181,7 +181,6 @@ describe('CEParser', function() {
       node.addSentence('the person p1 has \'Harry\' as first name');
       expect(node.instances.p1.full_name).to.be('Harry Smith');
       expect(node.instances.p1.username).to.be('harry_smith');
-
     });
   });
 

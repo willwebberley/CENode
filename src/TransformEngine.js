@@ -53,9 +53,13 @@ class TransformEngine {
   enactTransforms(instance, label, targetInstance, source) {
     let doTransform = false;
     let transforms = [];
+
+    // Find out if the target property is a transform
     if (targetInstance.concept && targetInstance.concept.name === 'transform'){
       transforms = [targetInstance];
     }
+
+    // Otherwise check if the 'label' is a dependency of any existing transforms on this instance
     else {
       const newLabel = 'this.' + label.toLowerCase().replace(/ /g, '_').replace(/'/g, '');
       for (const rel of instance.relationships){
