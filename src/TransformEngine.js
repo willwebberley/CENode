@@ -18,7 +18,18 @@
 
 class TransformEngine {
 
+  enable () {
+    this.enabled = true;
+  }
+
+  disable () {
+    this.enabled = false;
+  }
+
   evaluate (instance, func) {
+    if (!this.enabled) {
+      return 'Transforms disabled';
+    }
     if (func.indexOf('require') > -1){
       return 'Invalid function';
     }
@@ -39,7 +50,6 @@ class TransformEngine {
       } 
       else {
         const vm = require('vm');
-        const util = require('util')
         const script = new vm.Script(func);
         const context = new vm.createContext(sandbox);
         return script.runInContext(context, {timeout: 30});
@@ -79,6 +89,7 @@ class TransformEngine {
 
   constructor(node) {
     this.node = node;
+    this.enabled = false;
   }
 }
 module.exports = TransformEngine;
