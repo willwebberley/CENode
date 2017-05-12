@@ -1,0 +1,20 @@
+<html>
+  <body>
+    <script src="dist/cenode.js"></script>
+    <script src="dist/models.js"></script>
+  <script>
+    const node = new CENode(CEModels.core);
+       node.addSentence("conceptualise a ~ person ~ P that is a transformer and has the value A as ~ first name ~ and has the value B as ~ last name ~ and has the value C as ~ full name ~ and has the value D as ~ username ~")
+ 
+       node.addSentence("there is a transform named t1 that has 'full name' as output and has 'this.first_name + \\'  \\' + this.last_name' as transform function")
+       node.addSentence("there is a transform named t2 that has 'username' as output and has 'console.log(this);this.full_name.toLowerCase().replace(/ /g, \\'_\\')' as transform function");
+ 
+       node.addSentence("there is a person named p1 that has 'Jane' as first name and has 'Smith' as last name and uses the transform t1 and uses the transform t2");
+ 
+       node.addSentence('the person p1 has \'Harry\' as first name');
+      console.log(node.instances.p1.first_name, node.instances.p1.username)
+
+  </script>
+  </body>
+</html>
+
