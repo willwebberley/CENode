@@ -65,7 +65,7 @@ class CENode {
 
   getInstanceByName(name, concept) {
     if (!name) { return null; }
-    const possibleConcepts = concept ? concept.ancestors.map(ancestor => ancestor.id).concat(concept.id) : [];
+    const possibleConcepts = concept ? [concept.id].concat(concept.ancestors.map(ancestor => ancestor.id)).concat(concept.descendants.map(descendant => descendant.id)) : [];
     for (const instance of this.instances) {
       if (instance && (concept ? possibleConcepts.indexOf(instance.concept.id) > -1 : true)) {
         if (instance.name.toLowerCase() === name.toLowerCase()) {

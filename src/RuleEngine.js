@@ -64,16 +64,15 @@ class RuleEngine {
     if (typeof objectInstance === 'string') {
       return;
     }
-    const rules = this.node.getInstances('rule');
-    for (let i = 0; i < rules.length; i += 1) {
-      const rule = RuleEngine.parseRule(rules[i].instruction);
+    for (const ruleInstance of this.node.getInstances('rule')) {
+      const rule = RuleEngine.parseRule(ruleInstance.instruction);
       if (!rule) { return; }
       if (rule.if.concept === subjectInstance.type.name) {
         if ((propertyType === 'relationship' && rule.if.relationship) || (propertyType === 'value' && rule.if.value)) {
-          const ancestorConcepts = objectInstance.type.ancestors;
-          ancestorConcepts.push(objectInstance.type);
-          for (let j = 0; j < ancestorConcepts.length; j += 1) {
-            if (ancestorConcepts[j].name.toLowerCase() === rule.if[propertyType].type.toLowerCase()) {
+          const ancestorConcepts = objectInstance.concept.ancestors;
+          ancestorConcepts.push(objectInstance.concept);
+          for (const ancestorConcept of ancestorConcepts) {
+            if (ancestorConcept.name.toLowerCase() === rule.if[propertyType].type.toLowerCase()) {
               if (rule.then.relationship && rule.then.relationship.type === subjectInstance.type.name) {
                 objectInstance.addRelationship(rule.then.relationship.label, subjectInstance, false, source);
               } else if (rule.then.value && rule.then.value.type === subjectInstance.type.name) {

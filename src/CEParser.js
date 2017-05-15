@@ -207,6 +207,7 @@ class CEParser {
       const relConceptName = match[2];
       const relInstanceName = match[3].replace(/'/g, '');
       const relConcept = this.node.getConceptByName(relConceptName);
+
       if (relConcept) {
         let relInstance = this.node.getInstanceByName(relInstanceName, relConcept);
         if (!relInstance) {
