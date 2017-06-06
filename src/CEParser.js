@@ -18,6 +18,7 @@
 
 const CEConcept = require('./CEConcept.js');
 const CEInstance = require('./CEInstance.js');
+const en = require('../langs/en.js');
 
 const quotes = {
   escape(string) {
@@ -27,6 +28,15 @@ const quotes = {
     return string.replace(/\\'/g, "'").replace(/^'/, '').replace(/'$/, '');
   },
 };
+
+const newConcept = new RegExp(en.concept.create.stub, 'i');
+const editConcept = new RegExp(en.concept.edit.stub);
+const newInstance = new RegExp(en.instance.createStub);
+const editInstance = new RegExp(en.instance.editStub);
+
+const andRegex = new RegExp('\\b' + en.and + '\\b', 'gi');
+const and = en.and;
+const value = en.value;
 
 class CEParser {
 
@@ -43,20 +53,21 @@ class CEParser {
    */
   parse(input, source) {
     const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
-    if (t.match(/^conceptualise an?/i)) {
+    
+    if (newConcept.test(t)){
       return this.newConcept(t, source);
-    } else if (t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/i)) {
+    } else if (editConcept.test(t)) {
       return this.modifyConcept(t, source);
-    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
+    } else if (newInstance.test(t)) {
       return this.newInstance(t, source);
-    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+    } else if (editInstance.test(t)) {
       return this.modifyInstance(t, source);
     }
     return [false, null];
   }
 
   newConcept(t, source) {
-    const match = t.match(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~ ([A-Z0-9]+)/i);
+    const match = newConcept.exec(t);
     const conceptName = match[1];
     const storedConcept = this.node.getConceptByName(conceptName);
     let concept = null;
@@ -65,16 +76,18 @@ class CEParser {
     }
     concept = new CEConcept(this.node, conceptName, source);
 
-    const remainder = t.replace(/^conceptualise an? ~ ([a-zA-Z0-9 ]*) ~ ([A-Z0-9]+) that/, '');
-    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
-    for (const fact of facts) {
-      this.processConceptFact(concept, fact, source);
+    const remainder = t.replace(newConcept, '');
+    const facts = remainder.replace(andRegex, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    if (facts){
+      for (const fact of facts) {
+        this.processConceptFact(concept, fact, source);
+      }
     }
     return [true, t, concept];
   }
 
   modifyConcept(t, source) {
-    const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/);
+    const conceptInfo = editConcept.exec(t);
     if (!conceptInfo) {
       return [false, 'Unable to parse sentence'];
     }
@@ -87,7 +100,7 @@ class CEParser {
 
     const remainderRegex = new RegExp(`^conceptualise the ${conceptName} ${conceptVar}`, 'i');
     const remainder = t.replace(remainderRegex, '');
-    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    const facts = remainder.replace(andRegex, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     for (const fact of facts) {
       this.processConceptFact(concept, fact, source);
     }
@@ -95,27 +108,29 @@ class CEParser {
   }
 
   processConceptFact(concept, fact, source) {
-    const input = fact.trim().replace(/\+/g, 'and');
-    if (input.match(/has the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) as ~ ([a-zA-Z0-9 ]*) ~/g)) {
-      const re = /has the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) as ~ ([a-zA-Z0-9 ]*) ~/g;
-      const match = re.exec(input);
+    const parseVal = new RegExp(en.concept.parseValue);
+    const parsePar = new RegExp(en.concept.parseParent);
+    const parseRel = new RegExp(en.concept.parseRel);
+    const parseSyn = new RegExp(en.concept.parseSyn);
+
+    const input = fact.trim().replace(/\+/g, and);
+    if (parseVal.test(input)){
+      const match = parseVal.exec(input);
       const valConceptName = match[1];
       const label = match[3];
-      const valConcept = valConceptName === 'value' ? 0 : this.node.getConceptByName(valConceptName);
+      const valConcept = valConceptName === value ? 0 : this.node.getConceptByName(valConceptName);
       concept.addValue(label, valConcept, source);
     }
-    if (input.match(/^is an? ([a-zA-Z0-9 ]*)/)) {
-      const re = /^is an? ([a-zA-Z0-9 ]*)/;
-      const match = re.exec(input);
+    if (parsePar.test(input)){
+      const match = parsePar.exec(input);
       const parentConceptName = match[1];
       const parentConcept = this.node.getConceptByName(parentConceptName);
       if (parentConcept) {
         concept.addParent(parentConcept);
       }
     }
-    if (input.match(/~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/)) {
-      const re = /~ ([a-zA-Z0-9 ]*) ~ the ([a-zA-Z0-9 ]*) ([A-Z0-9]+)/;
-      const match = re.exec(input);
+    if (parseRel.test(input)){
+      const match = parseRel.exec(input);
       const label = match[1];
       const relConceptName = match[2];
       const relConcept = this.node.getConceptByName(relConceptName);
@@ -123,9 +138,8 @@ class CEParser {
         concept.addRelationship(label, relConcept, source);
       }
     }
-    if (input.match(/~ is expressed by ~ ([a-zA-Z0-9 ]*)/)) {
-      const re = /~ is expressed by ~ ([a-zA-Z0-9 ]*)/;
-      const match = re.exec(input);
+    if (parseSyn.test(input)){
+      const match = parseSyn.exec(input);
       const synonym = match[1];
       concept.addSynonym(synonym);
     }
