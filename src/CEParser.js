@@ -29,9 +29,9 @@ const quotes = {
   },
 };
 
-const newConcept = new RegExp(en.concept.create.stub, 'i');
-const editConcept = new RegExp(en.concept.edit.stub);
-const newInstance = new RegExp(en.instance.createStub);
+const newConcept = new RegExp(en.concept.create, 'i');
+const editConcept = new RegExp(en.concept.edit);
+const newInstance = new RegExp(en.instance.create);
 const editInstance = new RegExp(en.instance.editStub);
 
 const andRegex = new RegExp('\\b' + en.and + '\\b', 'gi');
@@ -146,11 +146,7 @@ class CEParser {
   }
 
   newInstance(t, source) {
-    let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-    if (!names) {
-      names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9_]*)/i);
-      if (!names) { return [false, 'Unable to determine name of instance.']; }
-    }
+    const names = newInstance.exec(t)
     const conceptName = names[1];
     const instanceName = names[2].replace(/\\/g, '');
     const concept = this.node.getConceptByName(conceptName);
@@ -164,10 +160,12 @@ class CEParser {
     const instance = new CEInstance(this.node, concept, instanceName, source);
     instance.sentences.push(t);
 
-    const remainder = t.replace(/^there is an? (?:[a-zA-Z0-9 ]*) named (?:[a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') that/, '');
-    const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
-    for (const fact of facts) {
-      this.processInstanceFact(instance, fact, source);
+    const remainder = t.replace(newInstance, '');
+    const facts = remainder.replace(andRegex, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
+    if (facts){
+      for (const fact of facts) {
+        this.processInstanceFact(instance, fact, source);
+      }
     }
     return [true, t, instance];
   }
