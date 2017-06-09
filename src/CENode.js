@@ -118,6 +118,7 @@ class CENode {
         const descendants = concept.descendants.concat(concept);
         const childrenIds = [];
         for (const descendant of descendants) { childrenIds.push(descendant.id); }
+        for (const ancestor of concept.ancestors) { childrenIds.push(ancestor.id); }
         for (const instance of this.instances) {
           if (instance && childrenIds.indexOf(instance.concept.id) > -1) {
             instanceList.push(instance);

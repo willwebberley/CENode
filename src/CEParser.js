@@ -32,7 +32,7 @@ const quotes = {
 const newConcept = new RegExp(en.concept.create, 'i');
 const editConcept = new RegExp(en.concept.edit);
 const newInstance = new RegExp(en.instance.create);
-const editInstance = new RegExp(en.instance.editStub);
+const editInstance = new RegExp(en.instance.edit);
 
 const andRegex = new RegExp('\\b' + en.and + '\\b', 'gi');
 const and = en.and;
@@ -148,7 +148,7 @@ class CEParser {
   newInstance(t, source) {
     const names = newInstance.exec(t)
     const conceptName = names[1];
-    const instanceName = names[2].replace(/\\/g, '');
+    const instanceName = names[2].replace(/\\/g, '').replace(/'/g, '');
     const concept = this.node.getConceptByName(conceptName);
     const currentInstance = this.node.getInstanceByName(instanceName, concept);
     if (!concept) {
@@ -173,33 +173,42 @@ class CEParser {
   modifyInstance(t, source) {
     let concept;
     let instance;
-    let instanceName;
-    if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
-      const names = t.match(/^the ([a-zA-Z0-9 ]*)/i);
+    const names = editInstance.exec(t);
+
+    concept = this.node.getConceptByName(names[1]);
+    if (concept){
+      instance = this.node.getInstanceByName(names[2].replace(/\\/g, '').replace(/'/g, ''));
+    }
+    else {
       const nameTokens = names[1].split(' ');
-      for (const conceptCheck of this.node.concepts) {
-        if (names[1].toLowerCase().indexOf(conceptCheck.name.toLowerCase()) === 0) {
-          concept = conceptCheck;
-          instanceName = nameTokens[concept.name.split(' ').length];
-          instance = this.node.getInstanceByName(instanceName, concept);
+      let currentName = '';
+      for (const index in nameTokens){
+        currentName += ' ' + nameTokens[index];
+        concept = this.node.getConceptByName(currentName.trim());
+        if (concept){
           break;
         }
       }
-    }
-    if (!instance && t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i)) {
-      const names = t.match(/^the ([a-zA-Z0-9 ]*) '([^'\\]*(?:\\.[^'\\]*)*)'/i);
-      if (names) {
-        concept = this.node.getConceptByName(names[1]);
-        instanceName = names[2].replace(/\\/g, '');
-        instance = this.node.getInstanceByName(instanceName, concept);
+      if (concept){
+        const possibleInstances = this.node.getInstances(concept.name, true);
+        let lowestIndex = null;
+        for (const potential of possibleInstances){
+          const check = new RegExp('\\b(' + potential.name + (potential.synonyms.length ? '|' + potential.synonyms.join('|') : '') + ')\\b', 'i');
+          const match = check.exec(t);
+          if (match && (lowestIndex === null || match.index < lowestIndex)){
+            lowestIndex = match.index;
+            instance = potential;
+          }
+        }
       }
     }
+
     if (!concept || !instance) {
       return [false, `Unknown concept/instance combination in: ${t}`];
     }
     instance.sentences.push(t);
     const tokens = t.split(' ');
-    tokens.splice(0, 1 + concept.name.split(' ').length + instanceName.split(' ').length);
+    tokens.splice(0, 1 + concept.name.split(' ').length + instance.name.split(' ').length);
     const remainder = tokens.join(' ');
     const facts = remainder.replace(/\band\b/g, '+').match(/(?:'(?:\\.|[^'])*'|[^+])+/g);
     if (facts) {

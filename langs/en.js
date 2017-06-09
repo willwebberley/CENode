@@ -9,8 +9,7 @@ module.exports = {
   },
   instance: {
     create: '^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9_]+|\'[a-zA-Z0-9_ ]+\')(?: that)?',
-    createStub: '^there is an? ([a-zA-Z0-9 ]*) named',
-    editStub: '^the ([a-zA-Z0-9 ]*)'
+    edit: /the ([a-zA-Z0-9_ ]+) ([a-zA-Z0-9_]+|'[a-zA-Z0-9_ ]+')/,
   },
   and: 'and',
   value: 'value'
