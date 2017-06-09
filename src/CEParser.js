@@ -221,9 +221,14 @@ class CEParser {
 
   processInstanceFact(instance, fact, source) {
     const input = fact.trim().replace(/\+/g, 'and');
-    if (input.match(/^(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/)) {
-      const re = /^(?!has)([a-zA-Z0-9 ]*) the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_' ]*)/;
-      const match = re.exec(input);
+    const parseRel = new RegExp(en.instance.parseRel);
+    const parseRawVal = new RegExp(en.instance.parseRawVal);
+    const parseInstanceVal = new RegExp(en.instance.parseInstanceVal);
+    const parseInstanceSubConcept = new RegExp(en.instance.parseInstanceSubConcept);
+    const parseInstanceSynonym = new RegExp(en.instance.parseInstanceSynonym);
+
+    if (parseRel.test(input)){
+      const match = parseRel.exec(input);
       const label = match[1];
       const relConceptName = match[2];
       const relInstanceName = match[3].replace(/'/g, '');
@@ -237,16 +242,14 @@ class CEParser {
         instance.addRelationship(label, relInstance, true, source);
       }
     }
-    if (input.match(/^has ([a-zA-Z0-9]*|'[^'\\]*(?:\\.[^'\\]*)*') as ([a-zA-Z0-9 ]*)/)) {
-      const re = /^has ([a-zA-Z0-9]*|'[^'\\]*(?:\\.[^'\\]*)*') as ([a-zA-Z0-9 ]*)/;
-      const match = re.exec(input);
+    if (parseRawVal.test(input)){
+      const match = parseRawVal.exec(input);
       const value = quotes.unescape(match[1]);
       const label = match[2];
       instance.addValue(label, value, true, source);
     }
-    if (input.match(/^has the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9_]*|'[a-zA-Z0-9_ ]*') as ([a-zA-Z0-9 ]*)/)) {
-      const re = /^has the ([a-zA-Z0-9 ]*) ([a-zA-Z0-9]*|'[a-zA-Z0-9 ]*') as ([a-zA-Z0-9 ]*)/;
-      const match = re.exec(input);
+    if (parseInstanceVal.test(input)){
+      const match = parseInstanceVal.exec(input);
       const valConceptName = match[1];
       const valInstanceName = match[2].replace(/'/g, '');
       const label = match[3];
@@ -259,13 +262,12 @@ class CEParser {
         instance.addValue(label, valInstance, true, source);
       }
     }
-    if (input.match(/(?:is| )?an? ([a-zA-Z0-9 ]*)/g)) {
-      const re = /(?:is| )?an? ([a-zA-Z0-9 ]*)/g;
-      const match = re.exec(input);
+    if (parseInstanceSubConcept.test(input)){
+      const match = parseInstanceSubConcept.exec(input);
       instance.addSubConcept(this.node.getConceptByName(match && match[1] && match[1].trim()));
     }
-    if (input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/)) {
-      const match = input.match(/is expressed by ('[a-zA-Z0-9 ]*'|[a-zA-Z0-9]*)/);
+    if (parseInstanceSynonym.test(input)){
+      const match = parseInstanceSynonym.exec(input);
       const synonym = match && match[1] && match[1].replace(/'/g, '').trim();
       instance.addSynonym(synonym);
     }
