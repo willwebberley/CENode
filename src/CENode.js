@@ -16,6 +16,7 @@
  */
 'use strict';
 
+const LanguageManager = require('./LanguageManager.js');
 const CEAgent = require('./CEAgent.js');
 const CEParser = require('./CEParser.js');
 const QuestionParser = require('./QuestionParser.js');
@@ -246,6 +247,7 @@ class CENode {
    * sentence sets to be processed.
    */
   constructor(...models) {
+    this.languageManager = new LanguageManager(this);
     this.ceParser = new CEParser(this);
     this.questionParser = new QuestionParser(this);
     this.nlParser = new NLParser(this);
