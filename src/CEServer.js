@@ -131,6 +131,7 @@ class CEServer {
               conceptName: instance.concept.name,
               conceptId: instance.concept.id,
               ce: instance.ce,
+              gist: instance.gist,
               synonyms: instance.synonyms,
               subConcepts: [],
               values: [],
