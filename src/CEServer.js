@@ -117,14 +117,13 @@ class CEServer {
         '/instance': (request, response) => {
           const idRegex = decodeURIComponent(request.url).match(/id=(.*)/);
           const nameRegex = decodeURIComponent(request.url).match(/name=(.*)/);
-          const id = idRegex ? idRegex[1] : null;
-          const name = nameRegex ? nameRegex[1] : null;
+          const idQuery = idRegex ? idRegex[1] : null;
+          const nameQuery = nameRegex ? nameRegex[1] : null;
           let instance;
-          if (id){
-            instance = this.node.getInstanceById(id);
-          }
-          else if (name){
-            instance = this.node.getInstanceByName(name);
+          if (idQuery) {
+            instance = this.node.getInstanceById(idQuery);
+          } else if (nameQuery) {
+            instance = this.node.getInstanceByName(nameQuery);
           }
           if (instance) {
             const body = {
