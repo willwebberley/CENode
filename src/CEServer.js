@@ -116,8 +116,16 @@ class CEServer {
         },
         '/instance': (request, response) => {
           const idRegex = decodeURIComponent(request.url).match(/id=(.*)/);
+          const nameRegex = decodeURIComponent(request.url).match(/name=(.*)/);
           const id = idRegex ? idRegex[1] : null;
-          const instance = this.node.getInstanceById(id);
+          const name = nameRegex ? nameRegex[1] : null;
+          let instance;
+          if (id){
+            instance = this.node.getInstanceById(id);
+          }
+          else if (name){
+            instance = this.node.getInstanceByName(name);
+          }
           if (instance) {
             const body = {
               name: instance.name,
@@ -146,7 +154,7 @@ class CEServer {
             return response.end(JSON.stringify(body));
           }
           response.writeHead(404);
-          return response.end('Concept not found');
+          return response.end('Unable to find the instance.');
         },
         '/info': (request, response) => {
           const body = { recentInstances: [], recentConcepts: [], instanceCount: this.node.instances.length, conceptCount: this.node.concepts.length };
