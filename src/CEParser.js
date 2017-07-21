@@ -50,17 +50,22 @@ class CEParser {
    * Returns: [bool, str] (bool = success, str = error or parsed string)
    */
   parse(input, source) {
-    const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim(); // Whitespace -> single space
-    if (t.match(/^conceptualise an?/i)) {
-      return this.newConcept(t, source);
-    } else if (t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/i)) {
-      return this.modifyConcept(t, source);
-    } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
-      return this.newInstance(t, source);
-    } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
-      return this.modifyInstance(t, source);
+    try {
+      // Whitespace -> single space:
+      const t = input.replace(/\s+/g, ' ').replace(/\.+$/, '').trim();
+      if (t.match(/^conceptualise an?/i)) {
+        return this.newConcept(t, source);
+      } else if (t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/i)) {
+        return this.modifyConcept(t, source);
+      } else if (t.match(/^there is an? ([a-zA-Z0-9 ]*) named/i)) {
+        return this.newInstance(t, source);
+      } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
+        return this.modifyInstance(t, source);
+      }
+      return this.error('Input not a valid CE sentence.');
+    } catch (err) {
+      return this.error(`There was a problem parsing the CE. ${err}.`);
     }
-    return this.error('Input not a valid CE sentence.');
   }
 
   newConcept(t, source) {

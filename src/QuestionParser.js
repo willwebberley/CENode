@@ -36,21 +36,25 @@ class QuestionParser {
    * Returns: [bool, str] (bool = success, str = error or response)
    */
   parse(t) {
-    const input = t.trim();
-    if (t.match(/^where (is|are)/i)) {
-      return this.whereIs(input);
-    } else if (t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)) {
-      return this.whatIsIn(input);
-    } else if (t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)) {
-      return this.whatIs(input);
-    } else if (t.match(/^(\bwho\b|\bwhat\b) does/i)) {
-      return this.whatDoes(input);
-    } else if (t.match(/^(\bwho\b|\bwhat\b)/i)) {
-      return this.whatRelationship(input);
-    } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
-      return this.listInstances(input);
+    try {
+      const input = t.trim();
+      if (t.match(/^where (is|are)/i)) {
+        return this.whereIs(input);
+      } else if (t.match(/^(\bwho\b|\bwhat\b) is(?: \bin?\b | \bon\b | \bat\b)/i)) {
+        return this.whatIsIn(input);
+      } else if (t.match(/^(\bwho\b|\bwhat\b) (?:is|are)/i)) {
+        return this.whatIs(input);
+      } else if (t.match(/^(\bwho\b|\bwhat\b) does/i)) {
+        return this.whatDoes(input);
+      } else if (t.match(/^(\bwho\b|\bwhat\b)/i)) {
+        return this.whatRelationship(input);
+      } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
+        return this.listInstances(input);
+      }
+      return this.error('Input is not a valid question');
+    } catch (err) {
+      return this.error(`There was a problem with the question. ${err}.`);
     }
-    return this.error('Input is not a valid question');
   }
 
   whereIs(t) {
