@@ -18,12 +18,12 @@
 
 class QuestionParser {
 
-  error(message) {
-    return {error: true, response: {message, type: 'gist'}};
+  static error(message) {
+    return { error: true, response: { message, type: 'gist' } };
   }
 
-  success(message) {
-    return {error: false, response: {message, type: 'gist'}};
+  static success(message) {
+    return { error: false, response: { message, type: 'gist' } };
   }
 
   /*
@@ -51,9 +51,9 @@ class QuestionParser {
       } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
         return this.listInstances(input);
       }
-      return this.error('Input is not a valid question');
+      return QuestionParser.error('Input is not a valid question');
     } catch (err) {
-      return this.error(`There was a problem with the question. ${err}.`);
+      return QuestionParser.error(`There was a problem with the question. ${err}.`);
     }
   }
 
@@ -62,7 +62,7 @@ class QuestionParser {
     const instance = this.node.getInstanceByName(thing);
     let message;
     if (!instance) {
-      return this.success(`I don't know what ${thing} is.`);
+      return QuestionParser.success(`I don't know what ${thing} is.`);
     }
     const locatableInstances = this.node.getInstances('location', true);
     const locatableIds = [];
@@ -91,7 +91,7 @@ class QuestionParser {
       }
     }
     if (!placeFound) {
-      return this.success(`I don't know where ${instance.name} is.`);
+      return QuestionParser.success(`I don't know where ${instance.name} is.`);
     }
     message = instance.name;
     for (const place in places) {
@@ -103,7 +103,7 @@ class QuestionParser {
         message += ' and';
       }
     }
-    return this.success(`${message.substring(0, message.length - 4)}.`);
+    return QuestionParser.success(`${message.substring(0, message.length - 4)}.`);
   }
 
   whatIsIn(t) {
@@ -116,7 +116,7 @@ class QuestionParser {
       }
     }
     if (!instance) {
-      return this.success(`${thing} is not an instance of type location.`);
+      return QuestionParser.success(`${thing} is not an instance of type location.`);
     }
     const things = {};
     let thingFound = false;
@@ -143,7 +143,7 @@ class QuestionParser {
       }
     }
     if (!thingFound) {
-      return this.success(`I don't know what is located in/on/at the ${instance.type.name} ${instance.name}.`);
+      return QuestionParser.success(`I don't know what is located in/on/at the ${instance.type.name} ${instance.name}.`);
     }
 
     let message = '';
@@ -154,7 +154,7 @@ class QuestionParser {
       }
       message += ' and';
     }
-    return this.success(`${message.substring(0, message.length - 4)}.`);
+    return QuestionParser.success(`${message.substring(0, message.length - 4)}.`);
   }
 
   whatIs(input) {
@@ -166,7 +166,7 @@ class QuestionParser {
     if (name) {
       instance = this.node.getInstanceByName(name[2]);
       if (instance) {
-        return this.success(instance.gist);
+        return QuestionParser.success(instance.gist);
       }
     }
 
@@ -197,7 +197,7 @@ class QuestionParser {
           }
         }
         if (possibilities.length > 0) {
-          return this.success(`'${name}' ${possibilities.join(' and ')}.`);
+          return QuestionParser.success(`'${name}' ${possibilities.join(' and ')}.`);
         }
 
         // If nothing found, do fuzzy search
@@ -230,13 +230,13 @@ class QuestionParser {
           }
         }
         if (fuzzyFound) {
-          return this.success(fuzzyGist);
+          return QuestionParser.success(fuzzyGist);
         }
-        return this.success('I don\'t know who or what that is.');
+        return QuestionParser.success('I don\'t know who or what that is.');
       }
-      return this.success(concept.gist);
+      return QuestionParser.success(concept.gist);
     }
-    return this.success(instance.gist);
+    return QuestionParser.success(instance.gist);
   }
 
   whatDoes(t) {
@@ -268,14 +268,14 @@ class QuestionParser {
           property = instance.property(fixedPropertyName);
         }
         if (property) {
-          return this.success(`${instance.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
+          return QuestionParser.success(`${instance.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
         }
-        return this.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
+        return QuestionParser.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
       }
     } catch (err) {
-      return this.success('Sorry - I can\'t work out what you\'re asking.');
+      return QuestionParser.success('Sorry - I can\'t work out what you\'re asking.');
     }
-    return this.success('Sorry - I can\'t work out what you\'re asking about.');
+    return QuestionParser.success('Sorry - I can\'t work out what you\'re asking about.');
   }
 
   whatRelationship(t) {
@@ -316,12 +316,12 @@ class QuestionParser {
           property = subject.property(fixedPropertyName);
         }
         if (property && property.name === instance.name) {
-          return this.success(`${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
+          return QuestionParser.success(`${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
         }
       }
-      return this.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
+      return QuestionParser.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
     }
-    return this.success('Sorry - I don\'t know the instance you\'re referring to.');
+    return QuestionParser.success('Sorry - I don\'t know the instance you\'re referring to.');
   }
 
   listInstances(t) {
@@ -340,13 +340,13 @@ class QuestionParser {
       s = 'All instances:';
     }
     if (ins.length === 0) {
-      return this.success('I could not find any instances matching your query.');
+      return QuestionParser.success('I could not find any instances matching your query.');
     }
     const names = [];
     for (let i = 0; i < ins.length; i += 1) {
       names.push(ins[i].name);
     }
-    return this.success(`${s} ${names.join(', ')}`);
+    return QuestionParser.success(`${s} ${names.join(', ')}`);
   }
 
   /*

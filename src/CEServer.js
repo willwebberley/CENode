@@ -254,7 +254,12 @@ class CEServer {
       if (request.method in this.handlers) {
         const path = request.url.indexOf('?') > 1 ? request.url.slice(0, request.url.indexOf('?')) : request.url;
         if (path in this.handlers[request.method]) {
-          this.handlers[request.method][path](request, response);
+          try {
+            this.handlers[request.method][path](request, response);
+          } catch (err) {
+            response.writeHead(500);
+            response.end(`500: ${err}.`);
+          }
         } else {
           response.writeHead(404);
           response.end(`404: Resource not found for method ${request.method}.`);

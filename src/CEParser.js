@@ -30,12 +30,12 @@ const quotes = {
 
 class CEParser {
 
-  error(message, concerns) {
-    return {error: true, response: {message, type: 'gist', concerns}};
+  static error(message, concerns) {
+    return { error: true, response: { message, type: 'gist', concerns } };
   }
 
-  success(message, concerns) {
-    return {error: false, response: {message, type: 'gist', concerns}};
+  static success(message, concerns) {
+    return { error: false, response: { message, type: 'gist', concerns } };
   }
 
   /*
@@ -62,9 +62,9 @@ class CEParser {
       } else if (t.match(/^the ([a-zA-Z0-9 ]*)/i)) {
         return this.modifyInstance(t, source);
       }
-      return this.error('Input not a valid CE sentence.');
+      return CEParser.error('Input not a valid CE sentence.');
     } catch (err) {
-      return this.error(`There was a problem parsing the CE. ${err}.`);
+      return CEParser.error(`There was a problem parsing the CE. ${err}.`);
     }
   }
 
@@ -74,7 +74,7 @@ class CEParser {
     const storedConcept = this.node.getConceptByName(conceptName);
     let concept = null;
     if (storedConcept) {
-      return this.error('This concept already exists');
+      return CEParser.error('This concept already exists');
     }
     concept = new CEConcept(this.node, conceptName, source);
 
@@ -83,19 +83,19 @@ class CEParser {
     for (const fact of facts) {
       this.processConceptFact(concept, fact, source);
     }
-    return this.success(t, concept);
+    return CEParser.success(t, concept);
   }
 
   modifyConcept(t, source) {
     const conceptInfo = t.match(/^conceptualise the ([a-zA-Z0-9 ]*) ([A-Z0-9]+) (?:has|is|~)/);
     if (!conceptInfo) {
-      return this.error('Unable to parse sentence');
+      return CEParser.error('Unable to parse sentence');
     }
     const conceptName = conceptInfo[1];
     const conceptVar = conceptInfo[2];
     const concept = this.node.getConceptByName(conceptName);
     if (!concept) {
-      return this.error(`Concept ${conceptInfo[1]} not known.`);
+      return CEParser.error(`Concept ${conceptInfo[1]} not known.`);
     }
 
     const remainderRegex = new RegExp(`^conceptualise the ${conceptName} ${conceptVar}`, 'i');
@@ -104,7 +104,7 @@ class CEParser {
     for (const fact of facts) {
       this.processConceptFact(concept, fact, source);
     }
-    return this.success(t, concept);
+    return CEParser.success(t, concept);
   }
 
   processConceptFact(concept, fact, source) {
@@ -148,17 +148,17 @@ class CEParser {
     let names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named '([^'\\]*(?:\\.[^'\\]*)*)'/i);
     if (!names) {
       names = t.match(/^there is an? ([a-zA-Z0-9 ]*) named ([a-zA-Z0-9_]*)/i);
-      if (!names) { return this.error('Unable to determine name of instance.'); }
+      if (!names) { return CEParser.error('Unable to determine name of instance.'); }
     }
     const conceptName = names[1];
     const instanceName = names[2].replace(/\\/g, '');
     const concept = this.node.getConceptByName(conceptName);
     const currentInstance = this.node.getInstanceByName(instanceName, concept);
     if (!concept) {
-      return this.error(`Instance type unknown: ${conceptName}`);
+      return CEParser.error(`Instance type unknown: ${conceptName}`);
     }
     if (currentInstance && currentInstance.type.id === concept.id) {
-      return this.error('There is already an instance of this type with this name.', currentInstance);
+      return CEParser.error('There is already an instance of this type with this name.', currentInstance);
     }
     const instance = new CEInstance(this.node, concept, instanceName, source);
     instance.sentences.push(t);
@@ -168,7 +168,7 @@ class CEParser {
     for (const fact of facts) {
       this.processInstanceFact(instance, fact, source);
     }
-    return this.success(t, instance);
+    return CEParser.success(t, instance);
   }
 
   modifyInstance(t, source) {
@@ -196,7 +196,7 @@ class CEParser {
       }
     }
     if (!concept || !instance) {
-      return this.error(`Unknown concept/instance combination in: ${t}`);
+      return CEParser.error(`Unknown concept/instance combination in: ${t}`);
     }
     instance.sentences.push(t);
     const tokens = t.split(' ');
@@ -208,7 +208,7 @@ class CEParser {
         this.processInstanceFact(instance, fact, source);
       }
     }
-    return this.success(t, instance);
+    return CEParser.success(t, instance);
   }
 
   processInstanceFact(instance, fact, source) {
