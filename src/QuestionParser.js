@@ -200,28 +200,30 @@ class QuestionParser {
         const searchReturn = this.fuzzySearch(t);
         let fuzzyGist = 'I know about ';
         let fuzzyFound = false;
-        for (const key in searchReturn) {
-          if (searchReturn[key].length > 1) {
-            for (let i = 0; i < searchReturn[key].length; i += 1) {
-              if (i === 0) {
-                if (!fuzzyFound) {
-                  fuzzyGist += `the ${key}s '${searchReturn[key][i]}'`;
+        if (searchReturn) {
+          for (const key in searchReturn) {
+            if (searchReturn[key].length > 1) {
+              for (let i = 0; i < searchReturn[key].length; i += 1) {
+                if (i === 0) {
+                  if (!fuzzyFound) {
+                    fuzzyGist += `the ${key}s '${searchReturn[key][i]}'`;
+                  } else {
+                    fuzzyGist += `The ${key}s '${searchReturn[key][i]}'`;
+                  }
                 } else {
-                  fuzzyGist += `The ${key}s '${searchReturn[key][i]}'`;
+                  fuzzyGist += `, '${searchReturn[key][i]}'`;
                 }
-              } else {
-                fuzzyGist += `, '${searchReturn[key][i]}'`;
+                if (i === searchReturn[key].length - 1) {
+                  fuzzyGist += '. ';
+                }
               }
-              if (i === searchReturn[key].length - 1) {
-                fuzzyGist += '. ';
-              }
+            } else if (!fuzzyFound) {
+              fuzzyGist += `the ${key} '${searchReturn[key][0]}'. `;
+            } else {
+              fuzzyGist += `The ${key} '${searchReturn[key][0]}'. `;
             }
-          } else if (!fuzzyFound) {
-            fuzzyGist += `the ${key} '${searchReturn[key][0]}'. `;
-          } else {
-            fuzzyGist += `The ${key} '${searchReturn[key][0]}'. `;
+            fuzzyFound = true;
           }
-          fuzzyFound = true;
         }
         if (fuzzyFound) {
           return this.success(fuzzyGist);
@@ -269,7 +271,7 @@ class QuestionParser {
     } catch (err) {
       return this.success('Sorry - I can\'t work out what you\'re asking.');
     }
-    return null;
+    return this.success('Sorry - I can\'t work out what you\'re asking about.');
   }
 
   whatRelationship(t) {
@@ -315,7 +317,7 @@ class QuestionParser {
       }
       return this.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
     }
-    return null;
+    return this.success('Sorry - I don\'t know the instance you\'re referring to.');
   }
 
   listInstances(t) {
@@ -344,7 +346,6 @@ class QuestionParser {
   }
 
   /*
-   *
    * Search the knowledge base for an instance name similar to the one asked about.
    */
   fuzzySearch(sentence) {
@@ -354,12 +355,10 @@ class QuestionParser {
     let instancesFiltered = [];
 
     if (searchFor.indexOf(' ')) {
-      // if theres spaces then split
       multipleSearch = searchFor.split(' ');
     }
 
     if (multipleSearch) {
-      // loop through to create return string
       for (let x = 0; x < multipleSearch.length; x += 1) {
         const instancesFilteredTemp = instances.filter((input) => {
           if (input.name.toUpperCase().includes(multipleSearch[x].toUpperCase())) {
@@ -370,7 +369,6 @@ class QuestionParser {
         instancesFiltered = instancesFiltered.concat(instancesFilteredTemp);
       }
     } else {
-      // single search term
       instancesFiltered = instances.filter((input) => {
         if (input.name.toUpperCase().includes(searchFor.toUpperCase())) {
           return input;
