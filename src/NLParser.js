@@ -18,6 +18,14 @@
 
 class NLParser {
 
+  error(message) {
+    return {error: true, response: {message, type: 'gist'}};
+  }
+
+  success(message) {
+    return {error: false, response: {message, type: 'confirm'}};
+  }
+
   /*
    * Submit natural language to be processed by node.
    * This results in
@@ -122,7 +130,7 @@ class NLParser {
         }
       }
       if (facts.length > 0) {
-        return [true, ce + facts.join(' and ')];
+        return this.success(ce + facts.join(' and '));
       }
     }
 
@@ -140,12 +148,12 @@ class NLParser {
           }
         }
         if (newInstanceName && newInstanceName.length) {
-          return [true, `there is a ${this.node.concepts[i].name} named '${newInstanceName.trim()}'`];
+          return this.success(`there is a ${this.node.concepts[i].name} named '${newInstanceName.trim()}'`);
         }
-        return [true, `there is a ${this.node.concepts[i].name} named '${this.node.concepts[i].name} ${this.node.instances.length}${1}'`];
+        return this.success(`there is a ${this.node.concepts[i].name} named '${this.node.concepts[i].name} ${this.node.instances.length}${1}'`);
       }
     }
-    return [false, `Un-parseable input: ${t}`];
+    return this.error(`Un-parseable input: ${t}`);
   }
 
   /*

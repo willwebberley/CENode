@@ -38,9 +38,9 @@ class CardHandler {
           // Prepare the response 'tell card' and add this back to the node
           let urls;
           let c;
-          if (data.data) {
-            urls = data.data.match(/(https?:\/\/[a-zA-Z0-9./\-+_&=?!%]*)/gi);
-            c = `there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content`;
+          if (data.response.message) {
+            urls = data.response.message.match(/(https?:\/\/[a-zA-Z0-9./\-+_&=?!%]*)/gi);
+            c = `there is a ${data.response.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.response.message.replace(/'/g, "\\'")}' as content`;
           } else {
             c = `there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry; your question was not understood.' as content`;
           }
@@ -63,12 +63,12 @@ class CardHandler {
         // Add the CE sentence to the node
         const data = this.node.addCE(card.content, card.is_from && card.is_from.name);
 
-        if (!data.success && card.is_from) {
+        if (data.error && card.is_from) {
           // If unsuccessful, write an error back
           return this.node.addSentence(`there is a gist card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has 'Sorry. Your input was not understood.' as content and is in reply to the card '${card.name}'.`);
         }
 
-        if (data.success === true) {
+        if (!data.error) {
           // Add sentence to any active tell policy queues
           for (const policy of this.node.getInstances('tell policy')) {
             if (policy.enabled === 'true' && policy.target && policy.target.name) {
@@ -86,12 +86,12 @@ class CardHandler {
               const ack = policy.acknowledgement;
               if (policy.target.name.toLowerCase() === card.is_from.name.toLowerCase()) {
                 let c;
-                if (ack === 'basic') { c = 'OK.'; } else if (data.type === 'tell') {
-                  c = `OK. I added this to my knowledge base: ${data.data}`;
-                } else if (data.type === 'ask' || data.type === 'confirm' || data.type === 'gist') {
-                  c = data.data;
+                if (ack === 'basic') { c = 'OK.'; } else if (data.response.type === 'tell') {
+                  c = `OK. I added this to my knowledge base: ${data.response.message}`;
+                } else if (data.response.type === 'ask' || data.response.type === 'confirm' || data.response.type === 'gist') {
+                  c = data.response.message;
                 }
-                return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${c.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
+                return this.node.addSentence(`there is a ${data.response.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${c.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
               }
             }
           }
@@ -102,17 +102,17 @@ class CardHandler {
       'nl card': (card) => {
         let data = this.node.addCE(card.content, card.is_from && card.is_from.name);
         // If valid CE, then replicate the nl card as a tell card ('autoconfirm')
-        if (data.success) {
+        if (!data.error) {
           return this.node.addSentence(`there is a tell card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
         }
         data = this.node.askQuestion(card.content);
         // If question was success replicate as ask card ('autoask')
-        if (data.success) {
+        if (!data.error) {
           return this.node.addSentence(`there is an ask card named 'msg_{uid}' that is from the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and is to the agent '${this.agent.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${card.content.replace(/'/g, "\\'")}' as content.`);
         }
         // If question not understood then place the response to the NL card in a new response
         data = this.node.addNL(card.content);
-        return this.node.addSentence(`there is a ${data.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.data.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
+        return this.node.addSentence(`there is a ${data.response.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.response.message.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
       },
     };
   }

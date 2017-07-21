@@ -137,12 +137,12 @@ class CENode {
    */
   addSentence(sentence, source) {
     const ceResult = this.addCE(sentence, false, source);
-    if (ceResult.success) {
+    if (!ceResult.error) {
       return ceResult;
     }
 
     const questionResult = this.askQuestion(sentence);
-    if (questionResult.success) {
+    if (!questionResult.error) {
       return questionResult;
     }
 
@@ -170,13 +170,7 @@ class CENode {
    * Returns: {success: bool, type: str, data: str}
    */
   addCE(sentence, source) {
-    const success = this.ceParser.parse(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), source);
-    return {
-      success: success[0],
-      type: 'gist',
-      data: success[1],
-      result: success[2] || undefined,
-    };
+    return this.ceParser.parse(sentence.trim().replace('{now}', new Date().getTime()).replace('{uid}', this.newCardId()), source);
   }
 
   /*
@@ -186,12 +180,7 @@ class CENode {
    * Returns: {success: bool, type: str, data: str}
    */
   askQuestion(sentence) {
-    const success = this.questionParser.parse(sentence);
-    return {
-      success: success[0],
-      type: success[0] ? 'gist' : undefined,
-      data: success[0] ? success[1] : undefined,
-    };
+    return this.questionParser.parse(sentence);
   }
 
   /*
@@ -201,11 +190,7 @@ class CENode {
    * Returns: {type: str, data: str}
    */
   addNL(sentence) {
-    const success = this.nlParser.parse(sentence);
-    return {
-      type: success[0] ? 'confirm' : 'gist',
-      data: success[1],
-    };
+    return this.nlParser.parse(sentence);
   }
 
   /*

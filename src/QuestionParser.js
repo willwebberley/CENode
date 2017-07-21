@@ -18,6 +18,14 @@
 
 class QuestionParser {
 
+  error(message) {
+    return {error: true, response: {message, type: 'gist'}};
+  }
+
+  success(message) {
+    return {error: false, response: {message, type: 'gist'}};
+  }
+
   /*
    * Submit a who/what/where question to be processed by node.
    * This may result in
@@ -42,7 +50,7 @@ class QuestionParser {
     } else if (t.match(/^list (\ball\b|\binstances\b)/i)) {
       return this.listInstances(input);
     }
-    return [false, null];
+    return this.error('Input is not a valid question');
   }
 
   whereIs(t) {
@@ -50,8 +58,7 @@ class QuestionParser {
     const instance = this.node.getInstanceByName(thing);
     let message;
     if (!instance) {
-      message = `I don't know what ${thing} is.`;
-      return [true, message];
+      return this.success(`I don't know what ${thing} is.`);
     }
     const locatableInstances = this.node.getInstances('location', true);
     const locatableIds = [];
@@ -80,8 +87,7 @@ class QuestionParser {
       }
     }
     if (!placeFound) {
-      message = `I don't know where ${instance.name} is.`;
-      return [true, message];
+      return this.success(`I don't know where ${instance.name} is.`);
     }
     message = instance.name;
     for (const place in places) {
@@ -93,7 +99,7 @@ class QuestionParser {
         message += ' and';
       }
     }
-    return [true, `${message.substring(0, message.length - 4)}.`];
+    return this.success(`${message.substring(0, message.length - 4)}.`);
   }
 
   whatIsIn(t) {
@@ -106,7 +112,7 @@ class QuestionParser {
       }
     }
     if (!instance) {
-      return [true, `${thing} is not an instance of type location.`];
+      return this.success(`${thing} is not an instance of type location.`);
     }
     const things = {};
     let thingFound = false;
@@ -133,7 +139,7 @@ class QuestionParser {
       }
     }
     if (!thingFound) {
-      return [true, `I don't know what is located in/on/at the ${instance.type.name} ${instance.name}.`];
+      return this.success(`I don't know what is located in/on/at the ${instance.type.name} ${instance.name}.`);
     }
 
     let message = '';
@@ -144,7 +150,7 @@ class QuestionParser {
       }
       message += ' and';
     }
-    return [true, `${message.substring(0, message.length - 4)}.`];
+    return this.success(`${message.substring(0, message.length - 4)}.`);
   }
 
   whatIs(input) {
@@ -156,7 +162,7 @@ class QuestionParser {
     if (name) {
       instance = this.node.getInstanceByName(name[2]);
       if (instance) {
-        return [true, instance.gist];
+        return this.success(instance.gist);
       }
     }
 
@@ -187,7 +193,7 @@ class QuestionParser {
           }
         }
         if (possibilities.length > 0) {
-          return [true, `'${name}' ${possibilities.join(' and ')}.`];
+          return this.success(`'${name}' ${possibilities.join(' and ')}.`);
         }
 
         // If nothing found, do fuzzy search
@@ -218,13 +224,13 @@ class QuestionParser {
           fuzzyFound = true;
         }
         if (fuzzyFound) {
-          return [true, fuzzyGist];
+          return this.success(fuzzyGist);
         }
-        return [true, 'I don\'t know who or what that is.'];
+        return this.success('I don\'t know who or what that is.');
       }
-      return [true, concept.gist];
+      return this.success(concept.gist);
     }
-    return [true, instance.gist];
+    return this.success(instance.gist);
   }
 
   whatDoes(t) {
@@ -256,12 +262,12 @@ class QuestionParser {
           property = instance.property(fixedPropertyName);
         }
         if (property) {
-          return [true, `${instance.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`];
+          return this.success(`${instance.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
         }
-        return [true, `Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`];
+        return this.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
       }
     } catch (err) {
-      return [false, 'Sorry - I can\'t work out what you\'re asking.'];
+      return this.success('Sorry - I can\'t work out what you\'re asking.');
     }
     return null;
   }
@@ -304,10 +310,10 @@ class QuestionParser {
           property = subject.property(fixedPropertyName);
         }
         if (property && property.name === instance.name) {
-          return [true, `${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`];
+          return this.success(`${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
         }
       }
-      return [true, `Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`];
+      return this.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
     }
     return null;
   }
@@ -328,13 +334,13 @@ class QuestionParser {
       s = 'All instances:';
     }
     if (ins.length === 0) {
-      return [true, 'I could not find any instances matching your query.'];
+      return this.success('I could not find any instances matching your query.');
     }
     const names = [];
     for (let i = 0; i < ins.length; i += 1) {
       names.push(ins[i].name);
     }
-    return [true, `${s} ${names.join(', ')}`];
+    return this.success(`${s} ${names.join(', ')}`);
   }
 
   /*
