@@ -18,6 +18,7 @@ module.exports = [
   "conceptualise a ~ policy ~ P that is an entity and has the value V as ~ enabled ~ and has the agent A as ~ target ~",
   "conceptualise a ~ tell policy ~ P that is a policy",
   "conceptualise an ~ ask policy ~ P that is a policy",
+	"conceptualise a ~ gist policy ~ P that is a policy",
   "conceptualise a ~ listen policy ~ P that is a policy",
   "conceptualise a ~ listen onbehalfof policy ~ P that is a policy",
   "conceptualise a ~ forwardall policy ~ P that is a policy and has the timestamp T as ~ start time ~ and has the value V as ~ all agents ~",

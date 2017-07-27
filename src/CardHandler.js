@@ -114,6 +114,17 @@ class CardHandler {
         data = this.node.addNL(card.content);
         return this.node.addSentence(`there is a ${data.response.type} card named 'msg_{uid}' that is from the agent '${this.agent.name.replace(/'/g, "\\'")}' and is to the ${card.is_from.type.name} '${card.is_from.name.replace(/'/g, "\\'")}' and has the timestamp '{now}' as timestamp and has '${data.response.message.replace(/'/g, "\\'")}' as content and is in reply to the card '${card.name}'.`);
       },
+
+			'gist card': (card) => {
+				// Add sentence to any active gist policy queues
+				for (const policy of this.node.getInstances('gist policy')) {
+					if (policy.enabled === 'true' && policy.target && policy.target.name) {
+						const targetName = policy.target.name;
+						if (!(targetName in this.agent.policyHandler.unsentGistCards)) { this.agent.policyHandler.unsentGistCards[targetName] = []; }
+						this.agent.policyHandler.unsentGistCards[targetName].push(card);
+					}
+				}
+			},
     };
   }
 
