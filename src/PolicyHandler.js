@@ -86,6 +86,7 @@ class PolicyHandler {
     this.node = agent.node;
     this.unsentTellCards = {};
     this.unsentAskCards = {};
+		this.unsentGistCards = {};
     this.lastSuccessfulRequest = 0;
     this.handlers = {
 
@@ -104,8 +105,7 @@ class PolicyHandler {
               for (const to of card.is_tos) {
                 if (to.id === policy.target.id) { inCard = true; break; }
               }
-              if (!inCard) {
-                card.addRelationship('is to', policy.target);
+              if (!inCard) { card.addRelationship('is to', policy.target);
               }
               data += `${card.ce}\n`;
             }
@@ -154,6 +154,35 @@ class PolicyHandler {
             net.makeRequest('POST', policy.target.address, POST_SENTENCES_ENDPOINT, data, () => {
               this.lastSuccessfulRequest = new Date().getTime();
               this.unsentAskCards[policy.target.name] = [];
+            });
+          }
+        }
+      },
+
+			'gist policy': (policy) => {
+        // For each gist policy in place, send all currently-untold cards to each target
+        // multiple cards to be sent to one target line-separated
+        if (policy.target && policy.target.name && policy.target.address) {
+          if (!(policy.target.name in this.unsentGistCards)) {
+            this.unsentGistCards[policy.target.name] = [];
+          }
+          let data = '';
+          for (const card of this.unsentGistCards[policy.target.name]) {
+            if (card.is_tos && card.is_from.name.toLowerCase() !== policy.target.name.toLowerCase()) { // Don't send back a card sent from target agent
+              // Make sure target is not already a recipient
+              let inCard = false;
+              for (const to of card.is_tos) {
+                if (to.id === policy.target.id) { inCard = true; break; }
+              }
+              if (!inCard) { card.addRelationship('is to', policy.target);
+              }
+              data += `${card.ce}\n`;
+            }
+          }
+          if (data.length) {
+            net.makeRequest('POST', policy.target.address, POST_SENTENCES_ENDPOINT, data, () => {
+              this.lastSuccessfulRequest = new Date().getTime();
+              this.unsentGistCards[policy.target.name] = [];
             });
           }
         }
