@@ -86,7 +86,7 @@ class PolicyHandler {
     this.node = agent.node;
     this.unsentTellCards = {};
     this.unsentAskCards = {};
-		this.unsentGistCards = {};
+    this.unsentGistCards = {};
     this.lastSuccessfulRequest = 0;
     this.handlers = {
 
@@ -105,7 +105,8 @@ class PolicyHandler {
               for (const to of card.is_tos) {
                 if (to.id === policy.target.id) { inCard = true; break; }
               }
-              if (!inCard) { card.addRelationship('is to', policy.target);
+              if (!inCard) {
+                card.addRelationship('is to', policy.target);
               }
               data += `${card.ce}\n`;
             }
@@ -159,7 +160,7 @@ class PolicyHandler {
         }
       },
 
-			'gist policy': (policy) => {
+      'gist policy': (policy) => {
         // For each gist policy in place, send all currently-untold cards to each target
         // multiple cards to be sent to one target line-separated
         if (policy.target && policy.target.name && policy.target.address) {
@@ -174,7 +175,8 @@ class PolicyHandler {
               for (const to of card.is_tos) {
                 if (to.id === policy.target.id) { inCard = true; break; }
               }
-              if (!inCard) { card.addRelationship('is to', policy.target);
+              if (!inCard) {
+                card.addRelationship('is to', policy.target);
               }
               data += `${card.ce}\n`;
             }
