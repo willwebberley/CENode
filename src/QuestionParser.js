@@ -282,6 +282,7 @@ class QuestionParser {
     const data = t.match(/^(\bwho\b|\bwhat\b) ([a-zA-Z0-9_ ]*)/i);
     const body = data[2].replace(/\ban\b/gi, '').replace(/\bthe\b/gi, '').replace(/\ba\b/gi, '');
     const tokens = body.split(' ');
+    const uniqueResponses = new Set([]);
     let instance;
     for (let i = 0; i < tokens.length; i += 1) {
       const testString = tokens.slice(tokens.length - (i + 1), tokens.length).join(' ').trim();
@@ -295,6 +296,7 @@ class QuestionParser {
         break;
       }
     }
+
     if (instance) {
       const propertyName = tokens.splice(0, tokens.length - instance.name.split(' ').length).join(' ').trim();
       for (let i = 0; i < this.node.instances.length; i += 1) {
@@ -316,7 +318,11 @@ class QuestionParser {
           property = subject.property(fixedPropertyName);
         }
         if (property && property.name === instance.name) {
-          return QuestionParser.success(`${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
+          uniqueResponses.add(`${subject.name} ${fixedPropertyName} the ${property.type.name} ${property.name}.`);
+        }
+        const responsesArray = Array.from(uniqueResponses);
+        if (responsesArray.length > 0 && i === this.node.instances.length - 1) {
+          return QuestionParser.success(responsesArray.join(' '));
         }
       }
       return QuestionParser.success(`Sorry - I don't know that property about the ${instance.type.name} ${instance.name}.`);
