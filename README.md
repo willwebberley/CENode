@@ -4,7 +4,7 @@ A pure JavaScript implementation of the ITA project's CEStore - called CENode. C
 
 Please visit the project's [home page](http://cenode.io) for more information and for documentation.
 
-**We recommend beginners check out the [Getting Started Guide](https://github.com/flyingsparx/CENode/wiki/Getting-Started-Guide) before continuing.**
+**We recommend beginners check out the [Getting Started Guide](https://github.com/willwebberley/CENode/wiki/Getting-Started-Guide) before continuing.**
 
 ## Getting started
 
@@ -33,13 +33,13 @@ const CEModels = require('cenode/models'); // if requred
 const node = new CENode(CEModels.core);
 ```
 
-See the [Wiki](https://github.com/flyingsparx/CENode/wiki) for further guides and the API reference.
+See the [Wiki](https://github.com/willwebberley/CENode/wiki) for further guides and the API reference.
 
 ## Testing
 
 Clone the repository
 ```
-git clone git@github.com:flyingsparx/CENode.git
+git clone git@github.com:willwebberley/CENode.git
 ```
 
 Install the necessary dev dependencies.
@@ -54,7 +54,7 @@ npm test
 
 ## More Information
 
-See the CENode [Wiki](https://github.com/flyingsparx/CENode/wiki) for more information, guides, and the API reference.
+See the CENode [Wiki](https://github.com/willwebberley/CENode/wiki) for more information, guides, and the API reference.
 
 
 ## Licence
